@@ -82,7 +82,7 @@ create function test.ci50_iv() returns calendar_invites language sql stable as $
 select app.hiring_book((test.ci50_app()).token, (select s.id from interview_slots s join interview_days d on d.id = s.day_id where d.note = 'ci50 day' order by s.starts_at limit 1));
 select test.eq('booking sends the call''s invite', (test.ci50_iv()).method, 'REQUEST');
 select test.ok('at the slot''s time, with the call link', (test.ci50_iv()).starts_at = (select s.starts_at from interview_slots s where s.id = (test.ci50_app()).slot_id)
-  and app.calendar_invite_ics((test.ci50_iv()).id) like '%LOCATION:' || (test.ci50_app()).meet_url || '%');
+  and replace(app.calendar_invite_ics((test.ci50_iv()).id), E'\r\n ', '') like '%LOCATION:' || (test.ci50_app()).meet_url || '%');
 select test.ok('on the booking confirmation', exists (select 1 from app_events where code = 'applicant_booked' and payload ->> '_ics_id' = (test.ci50_iv()).id::text));
 select app.hiring_book((test.ci50_app()).token, (select s.id from interview_slots s join interview_days d on d.id = s.day_id where d.note = 'ci50 day' order by s.starts_at desc limit 1));
 select test.eq('moved: an update of the same event', (test.ci50_iv()).seq, 1);

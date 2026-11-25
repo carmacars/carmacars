@@ -1,0 +1,45 @@
+/* r50 (5010): the call page. The video and its controls first, beside them (below on a phone) the slides, the chat, the
+   people and the candidate's details. Phone widths 320 and 375: the tiles two across, the controls wrap, nothing scrolls
+   sideways; every control is at least 44px tall. */
+.call { display: grid; gap: var(--s-4); grid-template-columns: minmax(0, 1fr); align-items: start; }
+@media (min-width: 64rem) { .call { grid-template-columns: minmax(0, 1.6fr) minmax(18rem, 1fr); } }
+.call-stage { display: grid; gap: var(--s-3); min-width: 0; }
+.call-tiles { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-2); grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.call-tiles--1 { grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 40rem) { .call-tiles--3, .call-tiles--4 { grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr)); } }
+.call-tile { position: relative; aspect-ratio: 16 / 9; min-width: 0; overflow: hidden; display: grid; place-items: center; background: var(--black); color: var(--white);
+  border-radius: var(--r-2); outline: 3px solid transparent; outline-offset: -3px; transition: outline-color 150ms var(--ease-out, ease-out); }
+.call-tile.is-speaking { outline-color: var(--red-600); }
+.call-tile.is-screen { grid-column: 1 / -1; }
+.call-tile video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.call-tile.is-screen video { object-fit: contain; }
+.call-tile__face { font-family: var(--font-display); font-size: clamp(1.25rem, 6vw, 2.25rem); letter-spacing: .04em; }
+.call-tile__name { position: absolute; left: var(--s-2); bottom: var(--s-2); max-width: calc(100% - var(--s-4)); padding: 2px var(--s-2); border-radius: var(--r-1, 6px);
+  background: rgb(0 0 0 / 0.6); font-size: var(--fs-xs); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.call-bar { display: flex; flex-wrap: wrap; gap: var(--s-2); justify-content: center; }
+.call-bar .btn { min-height: 44px; flex: 1 1 auto; }
+@media (min-width: 40rem) { .call-bar .btn { flex: 0 0 auto; } }
+@media (max-width: 40rem) { .call-bar__share { display: none; } }
+.call-side { display: grid; gap: var(--s-3); min-width: 0; border: 1px solid var(--line); border-radius: var(--r-2); padding: var(--s-3); background: var(--white); }
+.call-tabs { display: flex; flex-wrap: wrap; gap: var(--s-1); border-bottom: 1px solid var(--line); padding-bottom: var(--s-2); }
+.call-tabs button { min-height: 44px; padding: 0 var(--s-3); border: 1px solid transparent; border-radius: var(--r-1, 6px); background: none; color: var(--text-2); font: inherit;
+  font-size: var(--fs-sm); cursor: pointer; transition: background-color 150ms var(--ease-out, ease-out), color 150ms var(--ease-out, ease-out); }
+.call-tabs button[aria-selected='true'] { color: var(--text); border-color: var(--line); background: var(--grey-50); font-weight: 600; }
+.call-tabs button:hover, .call-tabs button:focus-visible { background: var(--grey-100); }
+.call-deck, .call-panel { display: grid; gap: var(--s-2); min-width: 0; overflow-wrap: anywhere; }
+.call-deck .th-points { gap: var(--s-2) var(--s-3); }
+.call-deck__nav { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+.call-deck__nav .btn { min-height: 44px; }
+.call-chat { display: grid; gap: var(--s-2); min-width: 0; }
+.call-chat__list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-2); max-height: min(50dvh, 26rem); overflow-y: auto; font-size: var(--fs-sm); overflow-wrap: anywhere; }
+.call-chat__list li.is-me b { color: var(--red-700); }
+.call-chat__form { display: flex; gap: var(--s-2); }
+.call-chat__form input { flex: 1 1 auto; min-width: 0; min-height: 44px; padding: 0 var(--s-3); border: 1px solid var(--grey-300); border-radius: var(--r-1, 6px); font: inherit; }
+.call-chat__form .btn { min-height: 44px; }
+.call-people { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-2); }
+.call-people li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0 var(--s-2); }
+.call-lobby, .call-end { max-width: 36rem; }
+.call-lobby__opts { display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-4); }
+.call-check { display: inline-flex; gap: var(--s-2); align-items: center; min-height: 44px; cursor: pointer; }
+.call-check input { width: 1.1rem; height: 1.1rem; accent-color: var(--red-600); }
+.call-layout { display: grid; gap: var(--s-4); }

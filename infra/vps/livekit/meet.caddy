@@ -1,0 +1,20 @@
+# r50 (5010): the media server's signalling (LiveKit, wss) behind Caddy. The deploy puts the media host (meet.<domain>,
+# a DNS-only record) in place of __CALLS_HOST__ and the Docker network's gateway in place of __LIVEKIT_UPSTREAM__ (LiveKit
+# runs on the host network), and installs this file as caddy/sites/meet.caddy. Let's Encrypt over HTTP-01 or TLS-ALPN-01,
+# straight to the server; up.sh copies the certificate for TURN over TLS.
+__CALLS_HOST__ {
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		-Server
+	}
+	reverse_proxy __LIVEKIT_UPSTREAM__ {
+		transport http {
+			read_timeout 0
+			write_timeout 0
+		}
+	}
+	log {
+		output stdout
+		format console
+	}
+}

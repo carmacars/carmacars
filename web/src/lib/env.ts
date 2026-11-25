@@ -69,6 +69,13 @@ const schema = z.object({
    *  Cloud API token; unset: the Meta webhook answers nothing */
   META_APP_SECRET: z.string().optional(),
   WHATSAPP_TOKEN: z.string().optional(),
+  /** r50 (5010): the calls in the site (townhall, interviews). livekit: the company's own LiveKit server (LIVEKIT_URL, the
+   *  wss address of its media host; LIVEKIT_API_KEY and LIVEKIT_API_SECRET sign each person's short token and check its
+   *  webhook); fake: no media, tiles and the data channel inside the browser (local and CI); off: the outside link only. */
+  CALLS_PROVIDER: z.enum(['livekit', 'fake', 'off']).default('fake'),
+  LIVEKIT_URL: z.string().optional(),
+  LIVEKIT_API_KEY: z.string().optional(),
+  LIVEKIT_API_SECRET: z.string().optional(),
   VIN_DECODER: z.enum(['vpic', 'fake']).default('fake'),
   /** The listing pipeline: copy drafts (workers-ai: the Worker's AI binding) and photos (cloudflare: Images transformations). */
   LLM_PROVIDER: z.enum(['workers-ai', 'gemini', 'fake']).default('fake'),

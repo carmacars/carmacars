@@ -1,0 +1,15 @@
+{
+  "id": "join-townhall",
+  "title": "Join the townhall",
+  "summary": "The weekly call in the site: join, the controls, the slides and your attendance.",
+  "who": ["admin", "cs", "sales", "fleet", "finance", "field"],
+  "start": "{base}/townhall",
+  "guide": { "portal": "va", "slug": "your-workday" },
+  "steps": [
+    { "id": "join", "target": "townhall-join", "text": "Join the call from here (or the Townhall card). It opens 15 minutes before the townhall.", "on": "{base}/townhall", "href": "{base}/townhall" },
+    { "id": "lobby", "target": "call-join", "text": "Allow your camera and microphone, then Join the call. Being in the call counts your attendance by itself.", "on": "{base}/townhall/live", "href": "{base}/townhall/live" },
+    { "id": "controls", "target": "call-controls", "text": "Mute, turn your camera off, share your screen or leave from this bar.", "on": "{base}/townhall/live", "page": "call-controls", "when": { "exists": "call-controls" } },
+    { "id": "deck", "target": "call-deck", "text": "The slides follow the presenter. Previous and Next let you look on your own; Back to the presenter catches up.", "on": "{base}/townhall/live", "page": "call-controls", "when": { "exists": "call-deck" } },
+    { "id": "hand", "target": "call-hand", "text": "Raise your hand to speak, and use Chat to write to everyone.", "on": "{base}/townhall/live", "page": "call-controls", "when": { "exists": "call-hand" } }
+  ]
+}

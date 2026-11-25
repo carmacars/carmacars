@@ -25,3 +25,15 @@ test('the policy lets HelcimPay.js load its script and card modal, never the Hel
   for (const k of ['script-src', 'frame-src', 'connect-src']) assert.ok(p[k]!.includes('https://secure.helcim.app'), `${k} secure.helcim.app`);
   assert.ok(!cspHeader('n').includes('api.helcim.com'));
 });
+
+test('r50 (5010): the media server is allowed on the call pages only', async () => {
+  const { callPage, cspHeader, mediaOrigins } = await import('./csp.ts');
+  assert.deepEqual(mediaOrigins('wss://meet.carmacars.ca'), ['wss://meet.carmacars.ca', 'https://meet.carmacars.ca']);
+  assert.deepEqual(mediaOrigins('ws://insecure.example'), []);
+  assert.deepEqual(mediaOrigins(undefined), []);
+  assert.equal(callPage('/staff/townhall/live'), true);
+  assert.equal(callPage('/call/i/abc'), true);
+  assert.equal(callPage('/cars/sonata'), false);
+  assert.match(cspHeader('n', { calls: mediaOrigins('wss://meet.carmacars.ca') }), /connect-src [^;]*wss:\/\/meet\.carmacars\.ca/);
+  assert.doesNotMatch(cspHeader('n', {}), /meet\.carmacars\.ca/);
+});

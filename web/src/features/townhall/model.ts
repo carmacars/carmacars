@@ -14,7 +14,8 @@ export interface Townhall { admin: boolean; next_at: string | null; minutes: num
   social?: Array<{ week_of: string; platform: string; followers: number | null; posts: number | null; views: number | null }> | null;
   mark?: { meeting_at: string | null; people: Array<{ user_id: string; name: string; present: boolean; locked: boolean }> } | null;
   /** r45 (2863): the next one cancelled; for an Admin the last 8 meetings (held or not) and the next 4 (cancelled or not) */
-  next_cancelled?: boolean; meetings?: { past: PastMeeting[]; upcoming: UpcomingMeeting[] } | null }
+  next_cancelled?: boolean; meetings?: { past: PastMeeting[]; upcoming: UpcomingMeeting[] } | null;
+  /** r50 (5010): the call is in the site (else the outside link, the fallback an Admin switches to) */ in_site?: boolean; calls_mode?: 'in_site' | 'link' }
 export interface PastMeeting { meeting_at: string; held: boolean; reason: string | null; missed: number; attended: number }
 export interface UpcomingMeeting { meeting_at: string; cancelled: boolean; reason: string | null }
 
@@ -64,7 +65,7 @@ export function withReleases(slides: Slide[], releases: Release[]): Slide[] {
 
 // ---------------------------------------------------------------- 2590: the townhall card of every portal home
 export interface TownhallLinkRead { has_link: boolean; next_at: string | null; minutes: number; live: boolean; card?: boolean; ends_at?: string | null;
-  checked_in?: boolean; missed_last?: boolean }
+  checked_in?: boolean; missed_last?: boolean; /** r50 (5010) */ in_site?: boolean }
 export interface TownhallCardModel { headline: string; when: string; countdown: string; joinOpen: boolean; live: boolean; checkedIn: boolean; warn: string | null }
 const torontoWhen = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', weekday: 'long', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(iso));
 const torontoDay = (ms: number) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto' }).format(new Date(ms));

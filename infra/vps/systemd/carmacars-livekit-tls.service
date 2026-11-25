@@ -1,0 +1,9 @@
+[Unit]
+Description=CarmaCars media server: refresh the TURN certificate from Caddy and restart if it changed (r50, 5010)
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/carmacars/livekit/up.sh
+Nice=10

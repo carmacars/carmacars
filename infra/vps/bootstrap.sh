@@ -80,8 +80,11 @@ ufw limit 22/tcp > /dev/null
 ufw allow 80/tcp > /dev/null
 ufw allow 443/tcp > /dev/null
 ufw allow 443/udp > /dev/null
+# r50 (5010): the media server for the calls in the site (infra/vps/livekit): WebRTC and TURN
+ufw allow 7881/tcp > /dev/null; ufw allow 50000:50199/udp > /dev/null; ufw allow 3478/udp > /dev/null; ufw allow 5349/tcp > /dev/null
+ufw allow from 172.16.0.0/12 to any port 7880 proto tcp > /dev/null
 ufw --force enable > /dev/null
-say "ufw: $(ufw status | grep -c ALLOW) rules (22 limited, 80, 443)"
+say "ufw: $(ufw status | grep -c ALLOW) rules (22 limited, 80, 443, the media server)"
 
 # ---------------------------------------------------------------- 4. fail2ban
 cat > /etc/fail2ban/jail.d/carmacars.local <<'EOF'

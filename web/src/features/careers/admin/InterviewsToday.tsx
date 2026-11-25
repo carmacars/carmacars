@@ -14,7 +14,9 @@ export async function InterviewsToday({ userId }: { userId: string }) {
       <ul className="ad-sched">{calls.map((c) => (
         <li key={c.id} data-testid={`interview-${c.id}`}><time className="ad-sched__time">{time(c.starts_at)}</time>
           <span className="ad-sched__body"><span><Link prefetch={false} className="link" href={`/admin/hiring/${c.id}`}>{c.name}</Link></span><span className="ad-sub">{c.role}</span></span>
-          {c.status === 'booked' && c.link
+          {c.status === 'booked' && c.link?.includes('/call/i/')
+            ? <Link prefetch={false} className="btn btn--primary btn--sm" href={`/admin/hiring/${c.id}/call`}>Join the call</Link>
+            : c.status === 'booked' && c.link
             ? <a className="btn btn--primary btn--sm" href={c.link} target={c.link.startsWith('tel:') ? undefined : '_blank'} rel="noopener noreferrer">{callLinkLabel(c)}</a>
             : <span className={c.status === 'booked' ? 'ad-pill ad-pill--red' : 'ad-pill'}>{c.status === 'booked' ? 'no link' : c.status === 'no_show' ? 'no show' : 'done'}</span>}
         </li>))}</ul>

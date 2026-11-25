@@ -36837,6 +36837,10 @@ export type Database = {
       server_booking_sign_pay: { Args: { p_booking: string }; Returns: Json };
       server_call_backfill_done: { Args: { p: Json }; Returns: Json };
       server_call_backfill_due: { Args: { p_limit: number }; Returns: Json };
+      server_call_event: { Args: { p: Json }; Returns: Json };
+      server_call_guest_open: { Args: { p_token: string; p_nonce: string }; Returns: Json };
+      server_call_guest_peek: { Args: { p_token: string }; Returns: Json };
+      server_call_guest_session: { Args: { p_link: string; p_nonce: string }; Returns: Json };
       server_capture_contact: { Args: { p: Json }; Returns: Json };
       server_capture_continue_open: { Args: { p_token: string }; Returns: Json };
       server_capture_done: { Args: { p: Json }; Returns: number };

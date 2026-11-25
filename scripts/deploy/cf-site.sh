@@ -16,6 +16,8 @@
 #                                   CF_WORKER_CRON=off|on to GITHUB_ENV: the server's cron goes on only when the Worker's is off
 #   cf-site.sh unswitch             the rollback of B: the A records to the server removed, the Worker's custom domains and
 #                                   its cron trigger back
+#   cf-site.sh media NAME           r50 (5010): the media server's record (calls in the site, LiveKit): exactly one A NAME ->
+#                                   the server, DNS-only (grey): WebRTC and TURN cannot pass Cloudflare's proxy
 #   cf-site.sh live-on              worker or vps (where DOMAIN is served now), for ci.yml: WEB_LIVE_ON_INPUT (worker|vps)
 #                                   wins, then WEB_LIVE_ON_VAR=vps, else read from the zone; exits 1 when it cannot be read
 # Environment: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, DOMAIN (carmacars.ca), WORKER_NAME (carmacars-prod),
@@ -103,6 +105,29 @@ upsert_a() {
   cf POST "/zones/$z/dns_records" "$(jq -nc --arg n "$name" --arg ip "$ip" '{type: "A", name: $n, content: $ip, proxied: true, ttl: 1, comment: "the website on the company server (deploy-vps)"}')" > /dev/null \
     || { if denied; then need "Zone > DNS > Edit" "add A $name -> $ip"; else warn "A $name -> $ip was refused: $CF_ERR"; fi; return 1; }
   note "DNS: A $name -> $ip (proxied)"
+}
+
+# media_a NAME: exactly one DNS-only A record NAME -> the server (the media server for the calls in the site, r50 5010);
+# other A, AAAA and CNAME records of NAME are removed. Its certificate is Let's Encrypt over HTTP-01, straight to Caddy.
+media_a() {
+  local name="$1" ip z recs keep="" r id t c p
+  [[ "$name" =~ ^[a-z0-9-]+(\.[a-z0-9-]+)+$ ]] || die "usage: cf-site.sh media NAME"
+  ip=$(server_ip); z=$(zone_id)
+  recs=$(cf GET "/zones/$z/dns_records?name=$name&per_page=100") || { need "Zone > DNS > Edit" "read the records of $name"; return 1; }
+  for r in $(jq -r '.result[] | select(.type == "A" or .type == "AAAA" or .type == "CNAME") | "\(.id)|\(.type)|\(.content)|\(.proxied)"' <<<"$recs"); do
+    IFS='|' read -r id t c p <<<"$r"
+    if [ "$t" = A ] && [ "$c" = "$ip" ] && [ -z "$keep" ]; then
+      keep="$id"
+      if [ "$p" != false ]; then cf PATCH "/zones/$z/dns_records/$id" '{"proxied":false}' > /dev/null || { need "Zone > DNS > Edit" "make $name DNS-only"; return 1; }; note "DNS: $name DNS-only"; fi
+      continue
+    fi
+    cf DELETE "/zones/$z/dns_records/$id" > /dev/null || { need "Zone > DNS > Edit" "remove $t $name -> $c"; return 1; }
+    note "DNS: removed $t $name -> $c"
+  done
+  if [ -n "$keep" ]; then say "$name: A $ip (DNS-only) already there"; return 0; fi
+  cf POST "/zones/$z/dns_records" "$(jq -nc --arg n "$name" --arg ip "$ip" '{type: "A", name: $n, content: $ip, proxied: false, ttl: 300, comment: "the media server for calls in the site (deploy-vps, r50)"}')" > /dev/null \
+    || { if denied; then need "Zone > DNS > Edit" "add A $name -> $ip"; else warn "A $name -> $ip was refused: $CF_ERR"; fi; return 1; }
+  note "DNS: A $name -> $ip (DNS-only, for the calls in the site)"
 }
 
 # drop_a NAME IP: the A records NAME -> IP removed (the rollback); nothing else of NAME is touched
@@ -285,7 +310,7 @@ live_on() {
 
 cmd="${1:-}"; shift || true
 # the zone once, in this shell (a function run under `|| true` would not stop on a failure)
-case "$cmd" in prepare|https-off|switch|unswitch|live-on|proxy) ZONE=$(zone_id) ;; esac
+case "$cmd" in prepare|https-off|switch|unswitch|live-on|proxy|media) ZONE=$(zone_id) ;; esac
 case "$cmd" in
   prepare) prepare ;;
   origin-cert) origin_cert "$@" ;;
@@ -295,5 +320,6 @@ case "$cmd" in
   live-on) live_on ;;
   server-ip) server_ip ;;
   proxy) proxy_a "$@" ;;
-  *) die "usage: cf-site.sh prepare | origin-cert <dir> [current.pem] | https-off | switch | unswitch | live-on | server-ip | proxy NAME on|off" ;;
+  media) media_a "$@"; report ;;
+  *) die "usage: cf-site.sh prepare | origin-cert <dir> [current.pem] | https-off | switch | unswitch | live-on | server-ip | proxy NAME on|off | media NAME" ;;
 esac

@@ -31,7 +31,7 @@ import { createHmac, randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { StringDecoder } from 'node:string_decoder';
 import { addNonce, nonceRewriter } from '../src/lib/security/nonce-stream.ts';
-import { cspHeader, embeddable, newNonce, securityHeaders, voicePage } from '../src/lib/security/csp.ts';
+import { callPage, cspHeader, embeddable, mediaOrigins, newNonce, securityHeaders, voicePage } from '../src/lib/security/csp.ts';
 import { ADMIN_AREA_HEADER, isAdminArea, viewAsRefusal, viewAsWriteRefused } from '../src/lib/security/view-as-guard.ts';
 import { crossSiteRefusal, crossSiteWriteRefused, unusedFrameworkPath } from '../src/lib/security/request-guard.ts';
 import { refreshSession } from '../src/lib/auth/edge-refresh.ts';
@@ -164,7 +164,7 @@ function htmlHeaders(h, o, nonce) {
   const framed = embeddable(pathname);
   // a signed-in page is the visitor's own: marked private, so no proxy between here and the browser keeps it
   h['cache-control'] = hasSession(cookieHeader) ? 'private, no-cache' : 'no-cache';
-  h['content-security-policy'] = cspHeader(nonce, { turnstile: true, connectOrigins: supabaseOrigin(), frameAncestors: framed ? 'https:' : undefined, upgrade: proto === 'https', voice: voicePage(pathname) });
+  h['content-security-policy'] = cspHeader(nonce, { turnstile: true, connectOrigins: supabaseOrigin(), frameAncestors: framed ? 'https:' : undefined, upgrade: proto === 'https', voice: voicePage(pathname), calls: callPage(pathname) ? mediaOrigins(process.env.LIVEKIT_URL) : undefined });
   // where the visitor is browsing from (country-region, e.g. CA-ON), for the cookie notice; not stored
   const g = geoCookie(geo, cookieHeader, proto === 'https');
   if (g) h['set-cookie'] = [...[].concat(h['set-cookie'] ?? []), g];

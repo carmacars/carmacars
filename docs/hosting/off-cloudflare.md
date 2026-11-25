@@ -299,3 +299,22 @@ then `deploy-vps` with action `deploy`.
 - After B: `gh workflow run deploy-vps.yml -f action=rollback`: the server's cron off first, then the A records to the
   server removed, the Worker's `carmacars.ca` and `www` custom domains and its cron `* * * * *` back, inbound mail back
   to the Worker. The next `ci` deploy reads `worker` from the zone and keeps the domains and the cron.
+
+## 8. The media server for the calls in the site (release 50, 5010)
+
+The weekly townhall and interview calls run on LiveKit on the same server (`infra/vps/livekit`), deployed by every
+`deploy-vps` deploy (`livekit_up`), with no new secret (key and secret derived from `LINK_SIGNING_KEY`).
+
+- DNS: `meet.carmacars.ca`, an A record to the server, **DNS-only** (WebRTC and TURN cannot pass the proxy), made by
+  `cf-site.sh media` with the CI token (Zone > DNS > Edit, which it already has).
+- Certificate: Let's Encrypt by Caddy (`caddy/sites/meet.caddy`) over HTTP-01 straight to the server; copied for TURN
+  over TLS by `/opt/carmacars/livekit/up.sh` (on deploy and daily by `carmacars-livekit-tls.timer`).
+- Firewall (ufw, opened by the deploy): 7881/tcp, 50000-50199/udp, 3478/udp, 5349/tcp; 7880 only from the Docker
+  networks (Caddy proxies `wss://meet.carmacars.ca` to it). OVH's own Network Firewall is off on a VPS unless it was
+  turned on in the OVH Control Panel; if it is on, the same ports must be allowed there.
+- Memory: 1 GB and 2 CPUs (inside the VPS-4 budget of `infra/vps/ai/docker-compose.yml`). Recording (LiveKit Egress)
+  does not fit beside the local AI models: see docs/changes/2026-11-24-r50-in-site-calls.md, Follow-up.
+- Down: the site's townhall page offers **Switch to the outside link** (Admin); interview candidates are told the call
+  is not available and the interviewer sees the outside link if one was set.
+- Check: `curl -sI https://meet.carmacars.ca` (LiveKit answers 200 OK on `/`), `docker logs carmacars-livekit --since 5m`,
+  `cat /opt/carmacars/livekit/state` (`tls=on` once the certificate is copied).

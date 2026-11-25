@@ -1,0 +1,14 @@
+{
+  "id": "interview-call",
+  "title": "Run an interview call",
+  "summary": "The candidate's video call in the site, with their details, the rubric and the outcome beside it.",
+  "who": ["admin"],
+  "start": "/admin/hiring?tab=calls",
+  "guide": { "portal": "admin", "slug": "hiring" },
+  "steps": [
+    { "id": "open", "target": "cand-join-call", "text": "Open the candidate from Calls, then Join the interview call. They join from the link in their email, no account needed.", "on": "/admin/hiring/*" },
+    { "id": "lobby", "target": "call-join", "text": "Allow your camera and microphone, then Join the call. The room is private to this slot.", "on": "/admin/hiring/*/call" },
+    { "id": "candidate", "target": "iv-candidate", "text": "Their details, answers and the role's questions are beside the video: score the rubric as you talk.", "on": "/admin/hiring/*/call", "page": "call-controls", "when": { "exists": "iv-candidate" } },
+    { "id": "outcome", "target": "iv-outcome", "text": "After the call: No show or Not hired here, or Hire and the decision email from the candidate's page.", "on": "/admin/hiring/*/call", "page": "call-controls", "when": { "exists": "iv-outcome" } }
+  ]
+}

@@ -109,7 +109,8 @@ export default async function Candidate({ params }: { params: Promise<{ id: stri
         <Card title={`Call${a.slot_starts_at ? `: ${fmtSlot(a.slot_starts_at)}` : ''}`} testId="cand-call-card">
           {a.slot_starts_at
             ? <p>{x.role.remote && <span className="small muted">{fmtSlot(a.slot_starts_at, MANILA)} in Manila. </span>}
-                {a.mode === 'video' ? (a.meet_url ? <a className="btn btn--ghost btn--sm" href={a.meet_url} rel="noopener" target="_blank">Join the video call</a> : 'Video')
+                {a.mode === 'video' ? (a.meet_url?.includes('/call/i/') ? <Link prefetch={false} className="btn btn--primary btn--sm" href={`${base}/${id}/call`} data-testid="cand-join-call" data-guide="cand-join-call">Join the interview call</Link>
+                  : a.meet_url ? <a className="btn btn--ghost btn--sm" href={a.meet_url} rel="noopener" target="_blank">Join the video call</a> : 'Video')
                   : tel ? <ContactButtons phone={a.phone} name={a.full_name} only="call" testId="cand-slot">Call {a.phone}</ContactButtons> : 'Phone'}</p>
             : <p className="muted small">No call booked{aiOpen && a.status === 'invited' ? ': the candidate has the AI interview link.' : a.status === 'invited' ? ': the candidate has the booking link.' : '.'}</p>}
         </Card>

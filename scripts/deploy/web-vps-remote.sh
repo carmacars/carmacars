@@ -173,6 +173,41 @@ ai_local() {
   say "AI models:${line% ;}"
 }
 
+# r50 (5010): the media server for the calls in the site (infra/vps/livekit). Never fails the deploy: while it is down
+# the site offers the outside call link (an Admin switches the townhall to it on the Townhall page).
+livekit_up() {
+  local L=/opt/carmacars/livekit gw net old=""
+  [ -s "$T/livekit.tgz" ] || { say "media server: not part of this deploy (CALLS_PROVIDER off)"; return 0; }
+  install -d -m 750 "$L"
+  tar -C "$L" -xzf "$T/livekit.tgz"; chmod 755 "$L/up.sh"
+  install -m 600 "$T/livekit.env" "$L/livekit.env"
+  # the firewall: WebRTC (TCP 7881, UDP 50000-50199) and TURN (UDP 3478, TLS 5349) from anywhere; the signal port 7880
+  # from the Docker networks only (Caddy proxies wss to it). Rules already there are left as they are.
+  if command -v ufw > /dev/null 2>&1; then
+    ufw allow 7881/tcp > /dev/null; ufw allow 50000:50199/udp > /dev/null; ufw allow 3478/udp > /dev/null; ufw allow 5349/tcp > /dev/null
+    ufw allow from 172.16.0.0/12 to any port 7880 proto tcp > /dev/null; ufw allow from 192.168.0.0/16 to any port 7880 proto tcp > /dev/null
+    say "media server: firewall open for 7881/tcp, 50000-50199/udp, 3478/udp, 5349/tcp (7880 from Docker only)"
+  fi
+  # Caddy reaches the host network through its own network's gateway
+  net=$(docker inspect -f '{{range $k, $v := .NetworkSettings.Networks}}{{$k}} {{end}}' supabase-caddy 2>/dev/null | awk '{print $1}')
+  gw=$(docker network inspect -f '{{range .IPAM.Config}}{{.Gateway}} {{end}}' "$net" 2>/dev/null | awk '{print $1}')
+  [[ "$gw" =~ ^[0-9.]+$ ]] || { say "WARNING: media server: the Docker gateway of $net was not found; the calls use the outside link"; return 0; }
+  [ -f "$S/caddy/sites/meet.caddy" ] && old="$(mktemp)" && cp "$S/caddy/sites/meet.caddy" "$old"
+  sed "s/__LIVEKIT_UPSTREAM__/$gw:7880/" "$T/meet.caddy" > "$S/caddy/sites/meet.caddy"; chmod 644 "$S/caddy/sites/meet.caddy"
+  if ! docker exec supabase-caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile > /dev/null 2>&1; then
+    if [ -n "$old" ]; then install -m 644 "$old" "$S/caddy/sites/meet.caddy"; else rm -f "$S/caddy/sites/meet.caddy"; fi
+    say "WARNING: Caddy refused the media server's site file; it keeps serving what it served"; return 0
+  fi
+  [ -n "$old" ] && rm -f "$old"
+  # the certificate for TURN over TLS: Caddy asks for it now; up.sh starts without TURN/TLS until it is there and the
+  # timer (and the run in 3 minutes) picks it up
+  install -m 644 "$T/carmacars-livekit-tls.service" /etc/systemd/system/carmacars-livekit-tls.service
+  install -m 644 "$T/carmacars-livekit-tls.timer" /etc/systemd/system/carmacars-livekit-tls.timer
+  systemctl daemon-reload && systemctl enable --now carmacars-livekit-tls.timer > /dev/null 2>&1 || true
+  "$L/up.sh" || true
+  systemd-run --on-active=180 --unit "carmacars-livekit-tls-$(date +%s)" --collect "$L/up.sh" > /dev/null 2>&1 || true
+}
+
 case "${1:-}" in
   deploy)
     install -d -m 750 "$W"
@@ -186,6 +221,7 @@ case "${1:-}" in
     start "$TAG"
     caddy_site
     ai_local || say "AI models: the warm-up could not be started (the site uses Workers AI and Gemini meanwhile)"
+    livekit_up || say "media server: not started (the calls use the outside link meanwhile)"
     # the last four images are kept (a rollback needs the one before)
     docker images carmacars-web --format '{{.CreatedAt}}\t{{.Tag}}' | sort -r | awk -F'\t' 'NR>4 {print $2}' | xargs -r -I{} docker rmi "carmacars-web:{}" > /dev/null 2>&1 || true
     ;;

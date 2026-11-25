@@ -29,10 +29,26 @@ AUTH_OAUTH_PROVIDERS CLOUDFLARE_ACCOUNT_ID WORKERS_AI_API_TOKEN LOCAL_LLM_URL LO
 SUPABASE_SERVICE_ROLE_KEY SUPABASE_JWT_SECRET STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET LINK_SIGNING_KEY PAYOUT_ENCRYPTION_KEY TURNSTILE_SECRET_KEY
 GOOGLE_MAPS_API_KEY GOOGLE_REVIEWS_CLIENT_ID GOOGLE_REVIEWS_CLIENT_SECRET QUO_API_KEY QUO_WEBHOOK_SECRET GEMINI_API_KEY META_APP_SECRET WHATSAPP_TOKEN
 RENTALCOVER_API_KEY TWILIO_ACCOUNT_SID TWILIO_API_KEY TWILIO_API_SECRET TWILIO_CALLER_ID TWILIO_AUTH_TOKEN TWILIO_TWIML_APP_SID AUTH_SMS_HOOK_SECRET VAPID_PUBLIC_KEY
-VAPID_PRIVATE_KEY WALLET_PASS_CERT WALLET_PASS_KEY WALLET_WWDR_CERT WALLET_PASS_TYPE_ID WALLET_TEAM_ID FCM_SERVICE_ACCOUNT RESEND_API_KEY"
+VAPID_PRIVATE_KEY WALLET_PASS_CERT WALLET_PASS_KEY WALLET_WWDR_CERT WALLET_PASS_TYPE_ID WALLET_TEAM_ID FCM_SERVICE_ACCOUNT RESEND_API_KEY
+CALLS_PROVIDER LIVEKIT_URL LIVEKIT_API_KEY LIVEKIT_API_SECRET"
+
+# r50 (5010): the media server for the calls in the site. No new secret: its API key and secret are derived from
+# LINK_SIGNING_KEY (as the email forwarder's), the host is meet.<DOMAIN> (CALLS_HOST overrides), the site signs each
+# person's token and checks the webhook with them. CALLS_PROVIDER=off keeps the outside call link only.
+calls_host() { local h="${CALLS_HOST:-meet.${DOMAIN:-carmacars.ca}}"; [[ "$h" =~ ^[a-z0-9-]+(\.[a-z0-9-]+)+$ ]] || die "CALLS_HOST is not a hostname"; echo "$h"; }
+calls_env() {
+  [ "${CALLS_PROVIDER:-livekit}" = off ] && { export CALLS_PROVIDER=off; return 0; }
+  [ -n "${LINK_SIGNING_KEY:-}" ] || { export CALLS_PROVIDER=off; echo "::warning title=deploy-vps::LINK_SIGNING_KEY is not set: the calls stay on the outside link"; return 0; }
+  _hmac() { printf '%s' "$1" | openssl dgst -sha256 -hmac "$LINK_SIGNING_KEY" | awk '{print $NF}'; }
+  export CALLS_PROVIDER=livekit LIVEKIT_URL="wss://$(calls_host)"
+  [ -n "${LIVEKIT_API_KEY:-}" ] || LIVEKIT_API_KEY="CC$(_hmac carmacars-livekit-key-v1 | cut -c1-14)"
+  [ -n "${LIVEKIT_API_SECRET:-}" ] || LIVEKIT_API_SECRET="$(_hmac carmacars-livekit-secret-v1)"
+  export LIVEKIT_API_KEY LIVEKIT_API_SECRET
+}
 
 envfile() {
   local out="$1" n v skipped=""
+  calls_env
   umask 077
   : > "$out"
   for n in $NAMES; do
@@ -61,6 +77,7 @@ hostnames() {
 ship() {
   local image="$1" envf="$2" tag="${WEB_IMAGE_TAG:?WEB_IMAGE_TAG}" hosts cron="${WEB_CRON:-keep}" t="/tmp/carmacars-web-deploy"
   hosts="$(hostnames)"
+  calls_env
   case "$cron" in keep|on|off) ;; *) die "WEB_CRON must be keep, on or off" ;; esac
   [[ "$tag" =~ ^[0-9a-f]{7,40}$ ]] || die "WEB_IMAGE_TAG must be a commit id"
   load_vps
@@ -90,6 +107,16 @@ ship() {
   cp "$ROOT/infra/vps/ai/docker-compose.yml" "$stage/ai-compose.yml"; cp "$ROOT/infra/vps/ai/models.env" "$stage/ai-models.env"
   cp "$ROOT/infra/vps/ai/warm.sh" "$stage/ai-warm.sh"; cp "$ROOT/infra/vps/ai/stt/Dockerfile" "$stage/ai-stt.Dockerfile"
   cp "$ROOT/infra/vps/ai/stt/entrypoint.sh" "$stage/ai-stt-entrypoint.sh"
+  # r50 (5010): the media server (infra/vps/livekit): its files, its Caddy site and its settings (mode 600)
+  if [ "${CALLS_PROVIDER:-}" = livekit ]; then
+    local ch; ch="$(calls_host)"
+    tar -C "$ROOT/infra/vps/livekit" -czf "$stage/livekit.tgz" docker-compose.yml livekit.yaml.tmpl up.sh
+    sed "s/^__CALLS_HOST__/$ch/" "$ROOT/infra/vps/livekit/meet.caddy" > "$stage/meet.caddy"
+    cp "$ROOT/infra/vps/systemd/carmacars-livekit-tls.service" "$ROOT/infra/vps/systemd/carmacars-livekit-tls.timer" "$stage/"
+    ( umask 077; printf "LIVEKIT_HOST='%s'\nLIVEKIT_API_KEY='%s'\nLIVEKIT_API_SECRET='%s'\nLIVEKIT_WEBHOOK='%s'\n" "$ch" "$LIVEKIT_API_KEY" "$LIVEKIT_API_SECRET" "https://${hosts%%,*}/api/calls/webhook" > "$stage/livekit.env" )
+    # its DNS-only record first, so Caddy can get its certificate as soon as it loads the site
+    "$HERE/cf-site.sh" media "$ch" || warn_ "the media host $ch has no DNS record yet (the token needs Zone > DNS > Edit): calls use the outside link until it has"
+  fi
   sed -e "s/@TAG@/$tag/" -e "s/@CRON@/$cron/" "$HERE/web-vps-remote.sh" > "$stage/remote.sh"
   vps_ssh "rm -rf $t && install -d -m 700 $t"
   vps_scp "$stage"/* "$t/"

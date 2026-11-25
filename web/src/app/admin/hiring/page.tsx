@@ -84,7 +84,8 @@ export default async function Hiring({ searchParams }: { searchParams: Promise<R
           { key: 'slot_starts_at', label: 'Time (Toronto)', render: (x) => (x.slot_starts_at ? fmtSlot(x.slot_starts_at, undefined, false) : '') },
           { key: 'full_name', label: 'Candidate', render: (x) => <Link prefetch={false} className="link" href={`${base}/${x.id}`}>{x.full_name}</Link> },
           { key: 'role', label: 'Role' }, { key: 'score', label: 'Screen', num: true },
-          { key: 'mode', label: 'How', render: (x) => (x.mode === 'video' ? (x.meet_url ? <a className="link" href={String(x.meet_url)} rel="noopener" target="_blank">Video link</a> : 'Video')
+          { key: 'mode', label: 'How', render: (x) => (x.mode === 'video' ? (String(x.meet_url ?? '').includes('/call/i/') ? <Link prefetch={false} className="link" href={`${base}/${x.id}/call`}>Join the call</Link>
+            : x.meet_url ? <a className="link" href={String(x.meet_url)} rel="noopener" target="_blank">Video link</a> : 'Video')
             : x.phone ? <ContactButtons phone={String(x.phone)} name={x.full_name ? String(x.full_name) : null} only="call" look="link" testId="hire-call">Call {String(x.phone)}</ContactButtons> : 'Phone') },
           // 0229: a remote role's call is confirmed by the candidate (24 hours before), or cancelled; shown under the status
           // (its own column pushed the table past the screen)

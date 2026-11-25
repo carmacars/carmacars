@@ -34,6 +34,20 @@ export interface CspOptions {
   /** r44 (2790): calls in the browser on the staff and Admin portals (Twilio's Voice SDK, self-hosted): its signalling
    *  (wss), its call quality reports and its ring sounds. Public pages never get these origins. */
   voice?: boolean;
+  /** r50 (5010): the company's media server for the calls in the site (LiveKit: its signalling wss and its API), on the
+   *  staff, Admin and candidate call pages only (callPage). The audio and video are WebRTC, which the policy does not cover. */
+  calls?: string[];
+}
+
+/** The pages with a call in the site (r50, 5010): the staff and Admin portals, and a candidate's interview call. */
+export function callPage(path: string): boolean {
+  return /^\/(staff|admin)(\/|$)/.test(path) || /^\/call\//.test(path);
+}
+
+/** The origins of the media server's URL (wss://meet.example.ca -> wss and https of that host); none when unset or not secure. */
+export function mediaOrigins(url: string | undefined | null): string[] {
+  const m = /^(wss|https):\/\/([a-z0-9.-]+(?::\d+)?)(\/|$)/i.exec(url ?? '');
+  return m ? [`wss://${m[2]!.toLowerCase()}`, `https://${m[2]!.toLowerCase()}`] : [];
 }
 
 // Twilio's Voice SDK: signalling on wss://*.twilio.com (voice-js and the regional chunderw hosts), call insights on
@@ -54,7 +68,7 @@ export function embeddable(path: string): boolean {
 export function cspHeader(nonce: string, o: CspOptions = {}): string {
   const turnstile = o.turnstile ? ' https://challenges.cloudflare.com' : '';
   const img = ['\'self\'', 'data:', 'blob:', ...(o.imgOrigins ?? [])].join(' ');
-  const connect = ['\'self\'', ...(o.connectOrigins ?? []), 'https://*.supabase.co', 'wss://*.supabase.co', STRIPE_API, STRIPE_LINK, HELCIM, R2_UPLOADS, ...(o.voice ? TWILIO_VOICE_CONNECT : [])].join(' ');
+  const connect = ['\'self\'', ...(o.connectOrigins ?? []), 'https://*.supabase.co', 'wss://*.supabase.co', STRIPE_API, STRIPE_LINK, HELCIM, R2_UPLOADS, ...(o.voice ? TWILIO_VOICE_CONNECT : []), ...(o.calls ?? [])].join(' ');
   return [
     `default-src 'self'`,
     // 'wasm-unsafe-eval': WebAssembly only (release 28: the VIN barcode reader, self-hosted zxing-wasm), never eval of strings

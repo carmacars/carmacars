@@ -1,6 +1,7 @@
 // Guide me (r51, migration 3950): the workflows, one declarative step file each (flows/*.json). A new workflow is a new
 // file listed here: the steps name data-guide="..." elements, an instruction and the condition that completes them.
 // r50 (4511): every step file is listed (the 4100 files were not), with the owner pipeline's two.
+// r50 (5010): Join the townhall, Run an interview call (the calls in the site).
 import type { Flow } from './engine';
 import academy from './flows/academy.json';
 import applyJob from './flows/apply-job.json';
@@ -16,6 +17,8 @@ import investorDashboard from './flows/investor-dashboard.json';
 import investorDocuments from './flows/investor-documents.json';
 import investorLibrary from './flows/investor-library.json';
 import investorStatements from './flows/investor-statements.json';
+import interviewCall from './flows/interview-call.json';
+import joinTownhall from './flows/join-townhall.json';
 import leadsFollowUp from './flows/leads-follow-up.json';
 import maintenanceCheck from './flows/maintenance-check.json';
 import marketingDay from './flows/marketing-day.json';
@@ -50,5 +53,5 @@ import timesheet from './flows/timesheet.json';
 import tollsImport from './flows/tolls-import.json';
 import turoTrips from './flows/turo-trips.json';
 
-export const FLOWS: Flow[] = [academy, applyJob, approveOwnerCar, bookingRequest, checkinVisit, createOffer, fieldExpense, fieldPay, fieldShifts, fieldSpendingReview, investorDashboard, investorDocuments, investorLibrary, investorStatements, leadsFollowUp, maintenanceCheck, marketingDay, ownerAddCar, ownerApply, ownerDocuments, ownerInvoices, ownerMoney, ownerProfile, ownerSign, ownerTransfer, paymentsDay, payrollRun, pickupHandover, recordPayment, renterBook, renterDeposit, renterEtransfer, renterExtend, renterLicence, renterLookup, renterPickup, renterReturn, renterRewards, renterSignPay, renterSignup, returnDeposit, salesMoveOwner, staffOnboarding, staffPayDetails, timesheet, tollsImport, turoTrips] as Flow[];
+export const FLOWS: Flow[] = [academy, applyJob, approveOwnerCar, bookingRequest, checkinVisit, createOffer, fieldExpense, fieldPay, fieldShifts, fieldSpendingReview, investorDashboard, investorDocuments, investorLibrary, investorStatements, interviewCall, joinTownhall, leadsFollowUp, maintenanceCheck, marketingDay, ownerAddCar, ownerApply, ownerDocuments, ownerInvoices, ownerMoney, ownerProfile, ownerSign, ownerTransfer, paymentsDay, payrollRun, pickupHandover, recordPayment, renterBook, renterDeposit, renterEtransfer, renterExtend, renterLicence, renterLookup, renterPickup, renterReturn, renterRewards, renterSignPay, renterSignup, returnDeposit, salesMoveOwner, staffOnboarding, staffPayDetails, timesheet, tollsImport, turoTrips] as Flow[];
 export const flowById = (id: string): Flow | undefined => FLOWS.find((f) => f.id === id);

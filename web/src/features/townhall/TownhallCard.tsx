@@ -19,7 +19,9 @@ export async function TownhallCard({ userId, admin = false }: { userId: string; 
       {c.warn && <p className="alert alert--warn" role="status" data-testid="townhall-card-warn"><span>{c.warn}</span></p>}
       <div className="row">
         {c.joinOpen && !c.checkedIn
-          ? (v.has_link
+          ? (v.in_site
+            ? <Link prefetch={false} className="btn btn--primary btn--sm" href={`${page}/live`} data-testid="townhall-card-join">Join the call</Link>
+            : v.has_link
             ? <a className="btn btn--primary btn--sm" href="/api/townhall-join" target="_blank" rel="noopener noreferrer" data-testid="townhall-card-join">Join / check in</a>
             : <Link prefetch={false} className="btn btn--primary btn--sm" href={page} data-testid="townhall-card-join">Check in</Link>)
           : <span className="btn btn--sm btn--ghost" aria-disabled="true" data-testid="townhall-card-join-later">{c.checkedIn ? 'Checked in' : 'Join opens 15 minutes before'}</span>}

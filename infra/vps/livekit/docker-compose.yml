@@ -1,0 +1,35 @@
+# r50 (5010): the media server for the calls in the site (the weekly townhall, interview calls, other staff calls):
+# LiveKit, open source (Apache 2.0), self-hosted, no vendor account. Installed to /opt/carmacars/livekit by deploy-vps
+# (scripts/deploy/web-vps-remote.sh livekit_up); up.sh writes livekit.yaml (keys, TURN certificate) and starts it.
+#
+# Host networking (LiveKit's recommendation: WebRTC needs the real addresses and a UDP range). What is open to the
+# internet, by ufw (the deploy adds the rules):
+#   7881/tcp            WebRTC over TCP (when UDP is blocked)
+#   50000-50199/udp     WebRTC media (about 200 participants' streams at once)
+#   3478/udp            TURN over UDP (embedded TURN)
+#   5349/tcp            TURN over TLS (networks that only allow TLS; 443 is Caddy's)
+# The signal port 7880 is NOT open: Caddy (meet.<domain>, Let's Encrypt) proxies wss to it over the Docker network's
+# gateway, which ufw allows from the Docker networks only.
+# Budget on the VPS-4 (infra/vps/ai/docker-compose.yml): 1 GB, at most 2 CPUs, OOM-killed before the database.
+name: carmacars-livekit
+
+services:
+  livekit:
+    container_name: carmacars-livekit
+    image: ${LIVEKIT_IMAGE:-livekit/livekit-server:v1.13.10}
+    restart: unless-stopped
+    network_mode: host
+    command: ["--config", "/etc/livekit.yaml"]
+    volumes:
+      - ./livekit.yaml:/etc/livekit.yaml:ro
+      - ./tls:/tls:ro
+    mem_limit: 1g
+    memswap_limit: 1g
+    cpus: 2
+    oom_score_adj: 700
+    pids_limit: 512
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options: { max-size: 10m, max-file: "3" }
