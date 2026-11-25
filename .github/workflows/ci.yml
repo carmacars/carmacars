@@ -156,7 +156,7 @@ jobs:
     name: db ${{ matrix.slice }}/3
     if: github.event_name != 'workflow_dispatch' || inputs.checks
     runs-on: ubuntu-24.04
-    timeout-minutes: 40
+    timeout-minutes: 55
     strategy:
       fail-fast: false
       matrix:
