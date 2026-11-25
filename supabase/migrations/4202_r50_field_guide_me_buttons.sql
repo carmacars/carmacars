@@ -1,0 +1,127 @@
+-- r50: the field guide's Guide me section names the real buttons (Guide me: a return, Guide me: an expense).
+-- Same content as 3951's field start-here section with the button names fixed; 3951 is left as it shipped to main.
+select app.guide_release_section('field', 'start-here', 'start', null, '### Who this guide is for
+
+CarmaCars field staff: drivers, detailers, and drivers who also detail. You hand cars over, take them back, move them and shoot listing photos. Everything is on your phone. Your jobs are under **Field work** in the staff portal; if you also hold another function (Sales, for example), its pages are in the same menu.
+
+### What you need
+
+- Your phone, charged, with a data connection (photos and signatures save as you take them)
+- The invitation email from CarmaCars (the link works for 24 hours)
+- A car charger and a cloth for the camera lens
+
+## Once you are hired
+
+You are not working a shift right away. First your training (the academy), then you claim your shifts online in the portal.
+
+1. Say hello in the team chat: the CarmaCars Team WhatsApp group (the link is in your portal once your agreement is signed and the academy is passed).
+2. In each WhatsApp group you are in, set your member tag as "Name - Position", for example "Ali - Field".
+
+## Your first sign-in
+
+1. Open the invitation email on your phone and press its link within 24 hours. Choose a password and press **Save the new password**.
+2. You land on **Today**. Next time, sign in at `carmacars.ca/sign-in` with your Email and Password.
+3. In your browser''s menu, choose **Add to Home Screen**. The portal then opens full screen, like an app.
+4. Open **Profile**, add your mobile number and press **Save my phone**.
+5. At the top of the page, fill in your Home address and Postal code and press **Save my home address**. You need it before you add a rental or earn a commission.
+
+![](/guides/img/field-04-profile-phone-f05000e2.jpg "phone; size: 390 920; pins: 4 92.3 78.3")
+
+> Good to know: Recommended: on Profile, press **Set up two-step sign-in** and follow the steps with an authenticator app.
+
+## Stuck on a page?
+
+If you work on a page for a few minutes without anything saving, see the same error three times, or go back and forth between the same two steps, a small box asks **Need a hand with** the page. **Open the guide section** opens this guide at the right chapter in a sheet from the bottom of the screen; **Back to what I was doing** closes it and everything you typed is still there. **Open the Academy lesson** opens the lesson in a new tab. **Not now** quiets it on that page for a day. It never shows while a renter signs.
+
+> Good to know: When we update our terms of use, our privacy policy or an agreement you signed with us, the next time you open your portal it shows **We''ve updated our terms**: a short summary of what changed and the new text. Tick that you read it and press **Accept** to continue. It does not change an agreement you already signed or a past booking.
+
+## Your first days
+
+Your portal opens in order: your staff agreement first, then the academy (Training), then your jobs. Welcome shows each step and asks for the name you go by. Once both are done, Welcome and Today show the team''s WhatsApp group: join it, then press **I joined**.
+
+## The weekly townhall (release 35)
+
+Every Wednesday at 1:00 pm Toronto time, and everyone attends. Open **Townhall**: **Join the call** there, or **Check in** from 15 minutes before, counts you as there. You get a reminder an hour before.
+
+## Report a bug (release 37)
+Something not working? Press **Report a bug** at the top of any page. A picture of the page is taken first (passwords and card fields are hidden); write what happened (at least 30 characters), what you expected and the steps if you know them, choose how bad it is (**Blocks my work** alerts the Admins at once) and add or paste more pictures. The page, your browser and its recent errors go with it. **My bug reports** shows each report and its status: new, being looked at, fixed or won''t fix.
+
+## The weekly townhall card (release 41)
+
+From the day before the weekly townhall until it ends, your home page shows the **Townhall** card: the day and time (Toronto), a countdown, **Join / check in** (it opens 15 minutes before; joining through it checks you in), **Add to calendar**, and a red line if you missed the last townhall: one more miss locks your account. You also get a reminder the day before at 10:00 am, the morning of at 9:00 am, an hour before, and 15 minutes before with the join link.
+
+## Work chats only
+
+All work communication happens in the group work chats (the CarmaCars Team and Sales WhatsApp groups, and the chats in the portal), never in private messages. Questions, handovers, problems and customer details go in the group, so the whole team sees them and nothing is lost when someone is away. If a colleague or an Admin writes to you privately about work, answer in the group.
+## Something to check on your record (release 48)
+
+When something on your record looks wrong, a box opens on any page of the portal and says exactly what, with the box to fix it right there: your staff agreement waiting for your driver''s licence number or home address, a home address outside Ontario while you work in person in Toronto (fix it, or press It''s correct and say why), a licence that expires within 30 days (or has expired), pay details missing, a phone number that is not valid, or your WhatsApp member tag not confirmed. Press **Save** and the box checks again.
+
+1. Your agreement waiting for something you give cannot be put off: once you save it, the agreement is made and appears under Documents to sign at once. The sign page says the same when nothing is ready to sign yet.
+2. Anything else you can put off with **Remind me later**: it comes back after a day.
+', 'Start here', 'Who this is for and your first sign-in.',
+  '### Who this guide is for
+
+CarmaCars field staff: drivers, detailers, and drivers who also detail. You hand cars over, take them back, move them and shoot listing photos. Everything is on your phone. Your jobs are under **Field work** in the staff portal; if you also hold another function (Sales, for example), its pages are in the same menu.
+
+### What you need
+
+- Your phone, charged, with a data connection (photos and signatures save as you take them)
+- The invitation email from CarmaCars (the link works for 24 hours)
+- A car charger and a cloth for the camera lens
+
+## Once you are hired
+
+You are not working a shift right away. First your training (the academy), then you claim your shifts online in the portal.
+
+1. Say hello in the team chat: the CarmaCars Team WhatsApp group (the link is in your portal once your agreement is signed and the academy is passed).
+2. In each WhatsApp group you are in, set your member tag as "Name - Position", for example "Ali - Field".
+
+## Your first sign-in
+
+1. Open the invitation email on your phone and press its link within 24 hours. Choose a password and press **Save the new password**.
+2. You land on **Today**. Next time, sign in at `carmacars.ca/sign-in` with your Email and Password.
+3. In your browser''s menu, choose **Add to Home Screen**. The portal then opens full screen, like an app.
+4. Open **Profile**, add your mobile number and press **Save my phone**.
+5. At the top of the page, fill in your Home address and Postal code and press **Save my home address**. You need it before you add a rental or earn a commission.
+
+![](/guides/img/field-04-profile-phone-f05000e2.jpg "phone; size: 390 920; pins: 4 92.3 78.3")
+
+> Good to know: Recommended: on Profile, press **Set up two-step sign-in** and follow the steps with an authenticator app.
+
+## Stuck on a page?
+
+If you work on a page for a few minutes without anything saving, see the same error three times, or go back and forth between the same two steps, a small box asks **Need a hand with** the page. **Open the guide section** opens this guide at the right chapter in a sheet from the bottom of the screen; **Back to what I was doing** closes it and everything you typed is still there. **Open the Academy lesson** opens the lesson in a new tab. **Not now** quiets it on that page for a day. It never shows while a renter signs.
+
+> Good to know: When we update our terms of use, our privacy policy or an agreement you signed with us, the next time you open your portal it shows **We''ve updated our terms**: a short summary of what changed and the new text. Tick that you read it and press **Accept** to continue. It does not change an agreement you already signed or a past booking.
+
+## Your first days
+
+Your portal opens in order: your staff agreement first, then the academy (Training), then your jobs. Welcome shows each step and asks for the name you go by. Once both are done, Welcome and Today show the team''s WhatsApp group: join it, then press **I joined**.
+
+## The weekly townhall (release 35)
+
+Every Wednesday at 1:00 pm Toronto time, and everyone attends. Open **Townhall**: **Join the call** there, or **Check in** from 15 minutes before, counts you as there. You get a reminder an hour before.
+
+## Report a bug (release 37)
+Something not working? Press **Report a bug** at the top of any page. A picture of the page is taken first (passwords and card fields are hidden); write what happened (at least 30 characters), what you expected and the steps if you know them, choose how bad it is (**Blocks my work** alerts the Admins at once) and add or paste more pictures. The page, your browser and its recent errors go with it. **My bug reports** shows each report and its status: new, being looked at, fixed or won''t fix.
+
+## The weekly townhall card (release 41)
+
+From the day before the weekly townhall until it ends, your home page shows the **Townhall** card: the day and time (Toronto), a countdown, **Join / check in** (it opens 15 minutes before; joining through it checks you in), **Add to calendar**, and a red line if you missed the last townhall: one more miss locks your account. You also get a reminder the day before at 10:00 am, the morning of at 9:00 am, an hour before, and 15 minutes before with the join link.
+
+## Work chats only
+
+All work communication happens in the group work chats (the CarmaCars Team and Sales WhatsApp groups, and the chats in the portal), never in private messages. Questions, handovers, problems and customer details go in the group, so the whole team sees them and nothing is lost when someone is away. If a colleague or an Admin writes to you privately about work, answer in the group.
+## Something to check on your record (release 48)
+
+When something on your record looks wrong, a box opens on any page of the portal and says exactly what, with the box to fix it right there: your staff agreement waiting for your driver''s licence number or home address, a home address outside Ontario while you work in person in Toronto (fix it, or press It''s correct and say why), a licence that expires within 30 days (or has expired), pay details missing, a phone number that is not valid, or your WhatsApp member tag not confirmed. Press **Save** and the box checks again.
+
+1. Your agreement waiting for something you give cannot be put off: once you save it, the agreement is made and appears under Documents to sign at once. The sign page says the same when nothing is ready to sign yet.
+2. Anything else you can put off with **Remind me later**: it comes back after a day.
+
+## Guide me
+
+**Guide me** walks you through a job step by step while you do it: a pickup, a return or an expense. Press **Guide me** at the top (or **Guide me: a pickup**, **Guide me: a return** or **Guide me: an expense** on Today). A card points at the next thing to do, with Step X of Y; it moves on by itself once you have done it. **Back**, **Skip** and the cross (exit) are always there, and it picks up where you were if you leave the page. Tick **Keep Guide me on** to have it offer each time.
+',
+  '<h3 class="gd-h3">Who this guide is for</h3><p class="gd-p">CarmaCars field staff: drivers, detailers, and drivers who also detail. You hand cars over, take them back, move them and shoot listing photos. Everything is on your phone. Your jobs are under <b class="gd-ui">Field work</b> in the staff portal; if you also hold another function (Sales, for example), its pages are in the same menu.</p><h3 class="gd-h3">What you need</h3><ul class="gd-ul"><li>Your phone, charged, with a data connection (photos and signatures save as you take them)</li><li>The invitation email from CarmaCars (the link works for 24 hours)</li><li>A car charger and a cloth for the camera lens</li></ul><section class="gd-task" id="start-here-once-you-are-hired" data-gd-task><h2 class="gd-h2">Once you are hired</h2><p class="gd-p">You are not working a shift right away. First your training (the academy), then you claim your shifts online in the portal.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Say hello in the team chat: the CarmaCars Team WhatsApp group (the link is in your portal once your agreement is signed and the academy is passed).</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">In each WhatsApp group you are in, set your member tag as &quot;Name - Position&quot;, for example &quot;Ali - Field&quot;.</div></li></ol></div></section><section class="gd-task" id="start-here-your-first-sign-in" data-gd-task><h2 class="gd-h2">Your first sign-in</h2><div class="gd-stepblock gd-stepblock--side"><div class="gd-stepcol"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Open the invitation email on your phone and press its link within 24 hours. Choose a password and press <b class="gd-ui">Save the new password</b>.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">You land on <b class="gd-ui">Today</b>. Next time, sign in at <span class="gd-url">carmacars.ca/sign-in</span> with your Email and Password.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">In your browser&#39;s menu, choose <b class="gd-ui">Add to Home Screen</b>. The portal then opens full screen, like an app.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Open <b class="gd-ui">Profile</b>, add your mobile number and press <b class="gd-ui">Save my phone</b>.</div></li><li><span class="gd-n" aria-hidden="true">5</span><div class="gd-t">At the top of the page, fill in your Home address and Postal code and press <b class="gd-ui">Save my home address</b>. You need it before you add a rental or earn a commission.</div></li></ol></div><figure class="gd-fig gd-fig--phone"><div class="gd-phone"><div class="gd-imgwrap" style="aspect-ratio:390/920"><img src="/guides/img/field-04-profile-phone-f05000e2.jpg" alt="" loading="lazy" decoding="async" width="390" height="920"><span class="gd-pin" style="left:92.3%;top:78.3%" aria-hidden="true">4</span></div></div></figure></div><aside class="gd-box"><span class="gd-lbl">Good to know</span><div>Recommended: on Profile, press <b class="gd-ui">Set up two-step sign-in</b> and follow the steps with an authenticator app.</div></aside></section><section class="gd-task" id="start-here-stuck-on-a-page" data-gd-task><h2 class="gd-h2">Stuck on a page?</h2><p class="gd-p">If you work on a page for a few minutes without anything saving, see the same error three times, or go back and forth between the same two steps, a small box asks <b class="gd-ui">Need a hand with</b> the page. <b class="gd-ui">Open the guide section</b> opens this guide at the right chapter in a sheet from the bottom of the screen; <b class="gd-ui">Back to what I was doing</b> closes it and everything you typed is still there. <b class="gd-ui">Open the Academy lesson</b> opens the lesson in a new tab. <b class="gd-ui">Not now</b> quiets it on that page for a day. It never shows while a renter signs.</p><aside class="gd-box"><span class="gd-lbl">Good to know</span><div>When we update our terms of use, our privacy policy or an agreement you signed with us, the next time you open your portal it shows <b class="gd-ui">We&#39;ve updated our terms</b>: a short summary of what changed and the new text. Tick that you read it and press <b class="gd-ui">Accept</b> to continue. It does not change an agreement you already signed or a past booking.</div></aside></section><section class="gd-task" id="start-here-your-first-days" data-gd-task><h2 class="gd-h2">Your first days</h2><p class="gd-p">Your portal opens in order: your staff agreement first, then the academy (Training), then your jobs. Welcome shows each step and asks for the name you go by. Once both are done, Welcome and Today show the team&#39;s WhatsApp group: join it, then press <b class="gd-ui">I joined</b>.</p></section><section class="gd-task" id="start-here-the-weekly-townhall-release-35" data-gd-task><h2 class="gd-h2">The weekly townhall (release 35)</h2><p class="gd-p">Every Wednesday at 1:00 pm Toronto time, and everyone attends. Open <b class="gd-ui">Townhall</b>: <b class="gd-ui">Join the call</b> there, or <b class="gd-ui">Check in</b> from 15 minutes before, counts you as there. You get a reminder an hour before.</p></section><section class="gd-task" id="start-here-report-a-bug-release-37" data-gd-task><h2 class="gd-h2">Report a bug (release 37)</h2><p class="gd-p">Something not working? Press <b class="gd-ui">Report a bug</b> at the top of any page. A picture of the page is taken first (passwords and card fields are hidden); write what happened (at least 30 characters), what you expected and the steps if you know them, choose how bad it is (<b class="gd-ui">Blocks my work</b> alerts the Admins at once) and add or paste more pictures. The page, your browser and its recent errors go with it. <b class="gd-ui">My bug reports</b> shows each report and its status: new, being looked at, fixed or won&#39;t fix.</p></section><section class="gd-task" id="start-here-the-weekly-townhall-card-release-41" data-gd-task><h2 class="gd-h2">The weekly townhall card (release 41)</h2><p class="gd-p">From the day before the weekly townhall until it ends, your home page shows the <b class="gd-ui">Townhall</b> card: the day and time (Toronto), a countdown, <b class="gd-ui">Join / check in</b> (it opens 15 minutes before; joining through it checks you in), <b class="gd-ui">Add to calendar</b>, and a red line if you missed the last townhall: one more miss locks your account. You also get a reminder the day before at 10:00 am, the morning of at 9:00 am, an hour before, and 15 minutes before with the join link.</p></section><section class="gd-task" id="start-here-work-chats-only" data-gd-task><h2 class="gd-h2">Work chats only</h2><p class="gd-p">All work communication happens in the group work chats (the CarmaCars Team and Sales WhatsApp groups, and the chats in the portal), never in private messages. Questions, handovers, problems and customer details go in the group, so the whole team sees them and nothing is lost when someone is away. If a colleague or an Admin writes to you privately about work, answer in the group.</p></section><section class="gd-task" id="start-here-something-to-check-on-your-record-release-48" data-gd-task><h2 class="gd-h2">Something to check on your record (release 48)</h2><p class="gd-p">When something on your record looks wrong, a box opens on any page of the portal and says exactly what, with the box to fix it right there: your staff agreement waiting for your driver&#39;s licence number or home address, a home address outside Ontario while you work in person in Toronto (fix it, or press It&#39;s correct and say why), a licence that expires within 30 days (or has expired), pay details missing, a phone number that is not valid, or your WhatsApp member tag not confirmed. Press <b class="gd-ui">Save</b> and the box checks again.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Your agreement waiting for something you give cannot be put off: once you save it, the agreement is made and appears under Documents to sign at once. The sign page says the same when nothing is ready to sign yet.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Anything else you can put off with <b class="gd-ui">Remind me later</b>: it comes back after a day.</div></li></ol></div></section><section class="gd-task" id="start-here-guide-me" data-gd-task><h2 class="gd-h2">Guide me</h2><p class="gd-p"><b class="gd-ui">Guide me</b> walks you through a job step by step while you do it: a pickup, a return or an expense. Press <b class="gd-ui">Guide me</b> at the top (or <b class="gd-ui">Guide me: a pickup</b>, <b class="gd-ui">a return</b> or <b class="gd-ui">an expense</b> on Today). A card points at the next thing to do, with Step X of Y; it moves on by itself once you have done it. <b class="gd-ui">Back</b>, <b class="gd-ui">Skip</b> and the cross (exit) are always there, and it picks up where you were if you leave the page. Tick <b class="gd-ui">Keep Guide me on</b> to have it offer each time.</p></section>');
