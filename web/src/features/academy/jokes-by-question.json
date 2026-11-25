@@ -1,0 +1,490 @@
+{
+  "admin-team:1": {
+    "prompt": "Is the academy gate on by default?",
+    "joke": "Yes, and it bites anyone who skips a lesson"
+  },
+  "admin-team:4": {
+    "prompt": "What does each scene of a lesson have?",
+    "joke": "Background music, a laugh track and popcorn"
+  },
+  "admin-team:5": {
+    "prompt": "Where are commission rates changed?",
+    "joke": "On a sticky note behind the office coffee machine"
+  },
+  "cs-requests:1": {
+    "prompt": "How long does opening a request to answer it hold it for you?",
+    "joke": "Forever, as long as you never blink"
+  },
+  "cs-requests:2": {
+    "prompt": "What is the first reply target in opening hours?",
+    "joke": "Whenever the renter's horoscope says so"
+  },
+  "cs-requests:3": {
+    "prompt": "When may Sales take a new website request?",
+    "joke": "After a coffee break and two naps"
+  },
+  "cs-requests:5": {
+    "prompt": "A caller is already on file with that phone number. What do you do?",
+    "joke": "Make a second record, so we get two customers"
+  },
+  "field-handover:2": {
+    "prompt": "How many photos does a handover take?",
+    "joke": "One: a blurry selfie with the steering wheel"
+  },
+  "field-handover:3": {
+    "prompt": "How is fuel recorded?",
+    "joke": "In vibes, from \"meh\" to \"full send\""
+  },
+  "fleet-cars:1": {
+    "prompt": "How long is the turnaround between trips?",
+    "joke": "Long enough for the car to finish its nap"
+  },
+  "fleet-cars:2": {
+    "prompt": "What does \"car ready\" mean?",
+    "joke": "Car ready means the car has had its morning coffee"
+  },
+  "fleet-field-jobs:1": {
+    "prompt": "A booking moves to a new date. What happens to its jobs?",
+    "joke": "The jobs stay put and the booking goes on vacation alone"
+  },
+  "marketplace-with-claude:2": {
+    "prompt": "Which line does every listing keep?",
+    "joke": "\"For sale, cheap, ask about the cupholders\""
+  },
+  "marketplace-with-claude:3": {
+    "prompt": "Facebook shows Claude a CAPTCHA. What does Claude do?",
+    "joke": "Solves it with a lucky guess about traffic lights"
+  },
+  "marketplace-with-claude:5": {
+    "prompt": "When is a post logged?",
+    "joke": "At midnight, when the car is asleep"
+  },
+  "new-bookings-r28-r32:5": {
+    "prompt": "A renter is running late with the car still out. What is best to suggest?",
+    "joke": "Tell them to drive faster"
+  },
+  "new-cars-r28-r32:1": {
+    "prompt": "How many photos can Add photos take at once?",
+    "joke": "Up to 3, if they are wearing sunglasses"
+  },
+  "new-cars-r28-r32:2": {
+    "prompt": "What completes a listing's photos?",
+    "joke": "Ten photos of the cupholder from different moods"
+  },
+  "new-cars-r28-r32:3": {
+    "prompt": "Turo cannot read our calendar. What do you do for a CarmaCars booking of a car on Turo?",
+    "joke": "Paint the Turo calendar on the windshield"
+  },
+  "new-cars-r28-r32:4": {
+    "prompt": "How does Start a listing take the VIN?",
+    "joke": "By a long, stern look at the dashboard"
+  },
+  "new-r33-bookings:1": {
+    "prompt": "A renter says they want to check in. What are they asking about?",
+    "joke": "They want to check into a hotel room in the trunk"
+  },
+  "new-r33-photos:1": {
+    "prompt": "Two folders look like the same model. What does the import page do?",
+    "joke": "Imports both, then flips a coin"
+  },
+  "new-r33-photos:3": {
+    "prompt": "Where do you import the photos of one car?",
+    "joke": "In the office group chat, as a surprise"
+  },
+  "new-r33-photos:5": {
+    "prompt": "A folder should not be imported. What do you do?",
+    "joke": "Delete the folder's whole computer"
+  },
+  "new-r34-caller-notes:2": {
+    "prompt": "You wrote a note with a mistake. What do you do?",
+    "joke": "Cross out the old note in invisible ink"
+  },
+  "new-r34-caller-notes:3": {
+    "prompt": "An unknown number calls. What is the one tap?",
+    "joke": "Hang up and hope they call back as a lead"
+  },
+  "new-r34-caller-notes:4": {
+    "prompt": "How long does the panel stay after the call ends?",
+    "joke": "Until the next full moon"
+  },
+  "new-r35-breaks-activity:1": {
+    "prompt": "How long can a break be?",
+    "joke": "Exactly as long as the coffee stays warm"
+  },
+  "new-r35-breaks-activity:5": {
+    "prompt": "Which of these counts as active?",
+    "joke": "A nap at your desk with your eyes open"
+  },
+  "new-r35-cs-calls-answers:1": {
+    "prompt": "Where do you find a recorded call's transcript?",
+    "joke": "Framed and hung on the break room wall"
+  },
+  "new-r35-cs-calls-answers:2": {
+    "prompt": "An automatic answer cannot reply to a question. What happens?",
+    "joke": "It gets a little sad and answers with an emoji"
+  },
+  "new-r35-field-add:4": {
+    "prompt": "Who is told about a service you record?",
+    "joke": "Nobody: the car keeps it to itself"
+  },
+  "new-r35-field-add:5": {
+    "prompt": "A car you see has a warning light on. Where do you report it?",
+    "joke": "Honk three times at the light until it goes away"
+  },
+  "new-r35-field-prep:1": {
+    "prompt": "Where do you see onboarding prep?",
+    "joke": "On the office wall, behind the calendar"
+  },
+  "new-r35-field-prep:4": {
+    "prompt": "What happens when every prep item is done?",
+    "joke": "Everyone claps, and the car takes a bow"
+  },
+  "new-r35-field-prep:5": {
+    "prompt": "Can Fleet give you prep on a day you have no shift?",
+    "joke": "Yes, at 3 am, if you are awake anyway"
+  },
+  "new-r35-field-shift-picker:1": {
+    "prompt": "Where do you set your availability first?",
+    "joke": "On a carrier pigeon flying past the office"
+  },
+  "new-r35-field-shift-picker:2": {
+    "prompt": "How far ahead does a standing weekly shift claim shifts?",
+    "joke": "Until the next leap year"
+  },
+  "new-r35-field-shift-picker:3": {
+    "prompt": "What is the default minimum?",
+    "joke": "Two coffees in seven minutes"
+  },
+  "new-r35-field-shift-picker:5": {
+    "prompt": "How do you claim a shift on the week calendar?",
+    "joke": "Wave at the screen until a shift waves back"
+  },
+  "new-r35-field-shifts-pay:1": {
+    "prompt": "You cannot work tomorrow's shift. What do you do?",
+    "joke": "Call in sick for tomorrow, yesterday"
+  },
+  "new-r35-field-shifts-pay:2": {
+    "prompt": "When is a give-up marked late?",
+    "joke": "Only on Mondays, during a full moon"
+  },
+  "new-r35-field-shifts-pay:5": {
+    "prompt": "A shift you gave up is offered to others. Who gets it?",
+    "joke": "Whoever runs to the car the fastest"
+  },
+  "new-r35-field-shifts-pay:6": {
+    "prompt": "You claim an open shift that shows \"2 pickups, 1 return\". What happens to those jobs?",
+    "joke": "They vanish, like socks in a dryer"
+  },
+  "new-r35-field-today:1": {
+    "prompt": "What is on one card?",
+    "joke": "Every snack in the car and a road trip playlist"
+  },
+  "new-r35-field-today:3": {
+    "prompt": "When do you do a clean check?",
+    "joke": "Only on your birthday"
+  },
+  "new-r35-field-today:5": {
+    "prompt": "You have spare time between jobs. What is on the list for it?",
+    "joke": "A nap and a snack, in that order"
+  },
+  "new-r35-finance-statements-payroll:5": {
+    "prompt": "Where do you see the daily email capacity?",
+    "joke": "Count the emails in your inbox by hand"
+  },
+  "new-r35-fleet-phone:1": {
+    "prompt": "A renter calls about the car they have on rent. Whose lane is it?",
+    "joke": "Whoever's ringtone is the loudest"
+  },
+  "new-r35-fleet-phone:2": {
+    "prompt": "Nobody on Fleet answers a call for 20 seconds. What happens?",
+    "joke": "Everyone takes a 20-second break, then forgets"
+  },
+  "new-r35-fleet-phone:3": {
+    "prompt": "Where is the Fleet inbox for calls and texts?",
+    "joke": "In a carrier pigeon nest on the roof"
+  },
+  "new-r35-fleet-phone:4": {
+    "prompt": "When do you press Returning now?",
+    "joke": "When the renter's coffee is ready"
+  },
+  "new-r35-fleet-phone:5": {
+    "prompt": "What does Returning now stop?",
+    "joke": "Your favourite song on the radio"
+  },
+  "new-r35-fleet-shifts-delivery:2": {
+    "prompt": "Where is delivery measured from?",
+    "joke": "From the nearest coffee shop"
+  },
+  "new-r35-fleet-shifts-delivery:5": {
+    "prompt": "Which car can be deleted?",
+    "joke": "A car with a name nobody can spell"
+  },
+  "new-r35-sales-rebook-intent:1": {
+    "prompt": "A renter you served books again. Who gets their request?",
+    "joke": "Nobody: the request goes to the car itself"
+  },
+  "new-r35-sales-rebook-intent:2": {
+    "prompt": "Which lead do you call first?",
+    "joke": "The lead with the nicest voicemail greeting"
+  },
+  "new-r35-sales-rebook-intent:3": {
+    "prompt": "What are the three steps of an offer?",
+    "joke": "Coffee, more coffee, and send"
+  },
+  "new-r35-team-rules:1": {
+    "prompt": "What is the pass mark of an academy quiz?",
+    "joke": "101%, with extra credit for neat handwriting"
+  },
+  "new-r35-team-rules:2": {
+    "prompt": "You failed a quiz. When can you try again?",
+    "joke": "Never: the quiz holds a grudge"
+  },
+  "new-r35-team-rules:3": {
+    "prompt": "How many tries of a quiz do you have a day?",
+    "joke": "As many as the cups of coffee you had that day"
+  },
+  "new-r35-team-rules:5": {
+    "prompt": "When is the idle alert paused?",
+    "joke": "Only while you are snoring at your desk"
+  },
+  "new-r37-calls-first:1": {
+    "prompt": "A missed call and an unanswered text are both waiting. Which do you do first?",
+    "joke": "Answer the text with a meme first"
+  },
+  "new-r37-calls-first:2": {
+    "prompt": "You call a renter and they do not answer. What next?",
+    "joke": "Send a fax, then a postcard"
+  },
+  "new-r37-calls-first:4": {
+    "prompt": "Which button comes first on a lead or a renter?",
+    "joke": "Send a postcard"
+  },
+  "new-r37-calls-first:6": {
+    "prompt": "You are in Sales and a lead says Being handled by Sam (Customer service). What do you do?",
+    "joke": "Arm wrestle for it in the group chat"
+  },
+  "new-r45-bookings-profile-versions:1": {
+    "prompt": "Where do you see which cars are free for a customer's dates?",
+    "joke": "In a dream, after a cup of chamomile"
+  },
+  "new-r45-bookings-profile-versions:4": {
+    "prompt": "A confirmed booking went from 7 days to 4, then back to 7 at a higher price. How do you put back the first price?",
+    "joke": "Sing it a lullaby until it forgets version 2"
+  },
+  "new-r45-calls-in-the-browser:1": {
+    "prompt": "Which number does a customer see when you call them from the portal?",
+    "joke": "The number on the back of a cereal box"
+  },
+  "new-r45-calls-in-the-browser:2": {
+    "prompt": "Whose browser rings for a call to the business number?",
+    "joke": "Only the vending machine in the hallway"
+  },
+  "new-r45-calls-in-the-browser:3": {
+    "prompt": "Nobody answers a call. What happens?",
+    "joke": "The caller hears elevator music forever"
+  },
+  "new-r45-calls-in-the-browser:5": {
+    "prompt": "Which controls does the bar have during a call?",
+    "joke": "Pause, rewind and fast-forward"
+  },
+  "new-r45-field-shifts-checkins:1": {
+    "prompt": "Which shifts are published by themselves by default?",
+    "joke": "All of them, every day, including holidays"
+  },
+  "new-r45-field-shifts-checkins:4": {
+    "prompt": "Nobody has claimed a shift 48 hours before it starts. What happens?",
+    "joke": "The shift claims itself out of boredom"
+  },
+  "new-r45-townhall-agreements:1": {
+    "prompt": "Nobody attended this week's townhall. Does it count as a miss?",
+    "joke": "Yes, and the office plant counts as present"
+  },
+  "new-r45-townhall-agreements:2": {
+    "prompt": "An Admin cancelled next week's townhall. What happens?",
+    "joke": "Everyone gets a double townhall as punishment"
+  },
+  "new-r48-lead-source-duplicates:1": {
+    "prompt": "Where do you see that a lead came from ChatGPT?",
+    "joke": "It asks for a tip at the end of every message"
+  },
+  "new-r48-lead-source-duplicates:2": {
+    "prompt": "A lead came from Google search and shows no search terms of its own. What does the card list instead?",
+    "joke": "The top searches for cat videos, just in case"
+  },
+  "new-r48-lead-source-duplicates:4": {
+    "prompt": "You press Merge on a duplicate. Which lead is kept?",
+    "joke": "The one with the nicest email signature"
+  },
+  "new-r48-lead-source-duplicates:5": {
+    "prompt": "A couple share one email and each wants a different car. What do you press?",
+    "joke": "Merge them into one very confused person"
+  },
+  "r48-admin-guide-cases:1": {
+    "prompt": "A staff member asks how a screen works and the guide answers it. What do you send?",
+    "joke": "A link to a cute cat video"
+  },
+  "r48-admin-guide-cases:2": {
+    "prompt": "The guide did not answer a staff question. What do you do?",
+    "joke": "Stop answering and take a long lunch"
+  },
+  "r48-admin-guide-cases:4": {
+    "prompt": "In what order does a new staff member open their portal?",
+    "joke": "Lunch, coffee, nap, approval"
+  },
+  "r48-cs-guide-cases:1": {
+    "prompt": "A renter asks you something you are not sure about. What do you do first?",
+    "joke": "Smile and say \"probably\""
+  },
+  "r48-cs-guide-cases:2": {
+    "prompt": "Where does the Assistant panel point you before you ask?",
+    "joke": "To the snack drawer"
+  },
+  "r48-cs-guide-cases:3": {
+    "prompt": "How fast should you reply to a request in opening hours?",
+    "joke": "Within the next business month"
+  },
+  "r48-cs-guide-cases:7": {
+    "prompt": "The car asked for is booked. How do you decline?",
+    "joke": "Decline without a word and run away"
+  },
+  "r48-field-guide-cases:6": {
+    "prompt": "Before asking the office how a screen works, what do you open?",
+    "joke": "Ask the car how the screen works"
+  },
+  "r48-fleet-guide-cases:1": {
+    "prompt": "A shift has jobs and nobody on it. When are you alerted?",
+    "joke": "Every hour, with a marching band"
+  },
+  "r48-fleet-guide-cases:6": {
+    "prompt": "Work lands on a day with no shifts. What happens to the renter's pickup time?",
+    "joke": "It changes every time you blink"
+  },
+  "r48-ops-screens:1": {
+    "prompt": "A renter brings the car back. What is that called?",
+    "joke": "A car spa day"
+  },
+  "r48-ops-screens:2": {
+    "prompt": "Which two jobs does the calendar show at the end of a trip?",
+    "joke": "A road trip and a car wash"
+  },
+  "r48-ops-screens:4": {
+    "prompt": "The calendar shows 12 of 140 cars and one you need seems missing. What first?",
+    "joke": "Press Undo on the calendar until the car reappears"
+  },
+  "r48-ops-screens:5": {
+    "prompt": "You work in Sales and Field work. How do you get to your field jobs?",
+    "joke": "Ask the car to drive you there"
+  },
+  "r48-ops-screens:6": {
+    "prompt": "Where does everyones list of Unfinished rentals show?",
+    "joke": "On a sticky note on the fridge"
+  },
+  "r48-renter-errors:1": {
+    "prompt": "How long do links in our emails work?",
+    "joke": "Forever, like a diamond"
+  },
+  "r48-renter-errors:2": {
+    "prompt": "A renter sees Error 1102. What do you tell them?",
+    "joke": "Blow on the screen like an old game cartridge"
+  },
+  "r48-renter-errors:3": {
+    "prompt": "A renter cannot remember their password. What can they do?",
+    "joke": "Shout guesses at the screen until one works"
+  },
+  "r48-renter-errors:5": {
+    "prompt": "A renter replied STOP. How do they get texts again?",
+    "joke": "Text STOP backwards: POTS"
+  },
+  "r48-renter-offer:1": {
+    "prompt": "How long does an offer stay open by default?",
+    "joke": "Until the renter's coffee gets cold"
+  },
+  "r48-renter-offer:3": {
+    "prompt": "What does the renter press on an expired offer?",
+    "joke": "Throw it in the trash and wait for a new one"
+  },
+  "r48-renter-offer:4": {
+    "prompt": "How often can a renter ask to reopen an offer?",
+    "joke": "Once a year, on their birthday"
+  },
+  "r48-renter-offer:5": {
+    "prompt": "What does the booking show after the renter approves but before paying?",
+    "joke": "Booked, waiting for a fireworks show"
+  },
+  "r48-renter-pickup:1": {
+    "prompt": "What does Do this next on the booking show?",
+    "joke": "A recipe for banana bread"
+  },
+  "r48-renter-pickup:4": {
+    "prompt": "From when can a renter check in themselves?",
+    "joke": "As soon as they think about it really hard"
+  },
+  "r48-renter-pickup:5": {
+    "prompt": "How many stages does the rental walkthrough have?",
+    "joke": "Twelve, plus an intermission"
+  },
+  "r48-renter-request:2": {
+    "prompt": "Where is the car code a renter can read to you?",
+    "joke": "Hidden under the rear bumper"
+  },
+  "r48-renter-return-deposit:4": {
+    "prompt": "Where does the renter find the photo report and the statement?",
+    "joke": "In the glovebox, under the snacks"
+  },
+  "r48-renter-trip-extend:1": {
+    "prompt": "Which lengths can a renter pick on Extend?",
+    "joke": "1 minute, 1 decade or until the cows come home"
+  },
+  "r48-rewards-calendar-notifications:4": {
+    "prompt": "When is a post from the content calendar published?",
+    "joke": "As soon as the office plant posts it"
+  },
+  "r48-rewards-calendar-notifications:5": {
+    "prompt": "An approved TikTok post is due. What do you do?",
+    "joke": "Dance it out live in the parking lot"
+  },
+  "r48-rewards-calendar-notifications:6": {
+    "prompt": "Which notification can you NOT switch off?",
+    "joke": "The one for free coffee"
+  },
+  "r48-sales-guide-cases:7": {
+    "prompt": "Before asking a colleague how a Sales screen works, what do you open?",
+    "joke": "Ask the vending machine for advice"
+  },
+  "r48-whatsapp-tag:1": {
+    "prompt": "What is your member tag in a WhatsApp group?",
+    "joke": "Your star sign and a fun fact"
+  },
+  "r48-whatsapp-tag:5": {
+    "prompt": "Where do you set your member tag?",
+    "joke": "In permanent marker on the office fridge"
+  },
+  "r48-work-chats:1": {
+    "prompt": "Where does work communication happen?",
+    "joke": "In the elevator, by whisper"
+  },
+  "r48-work-chats:2": {
+    "prompt": "A colleague messages you privately about a handover. What do you do?",
+    "joke": "Reply with a meme and go on lunch break"
+  },
+  "r48-work-chats:5": {
+    "prompt": "Which chats count as work chats?",
+    "joke": "Only the group chat about pizza toppings"
+  },
+  "sales-remote:1": {
+    "prompt": "What is the remote Sales activity minimum?",
+    "joke": "400 cups of coffee a month"
+  },
+  "sales-remote:3": {
+    "prompt": "Which hours are the peak hours?",
+    "joke": "When the coffee machine is full, 2 am to 4 am"
+  },
+  "sales-remote:4": {
+    "prompt": "What is the reply target on your shift?",
+    "joke": "Only after the next coffee break"
+  },
+  "sales-requests-and-quotes:3": {
+    "prompt": "An enquiry is about an example car. What do you offer?",
+    "joke": "A cute toy car of the same colour"
+  }
+}

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { opsAct } from '@/server/actions/ops';
 import { ScenePlayer } from './ScenePlayer';
 import { LessonVideo } from './LessonVideo';
-import { jokeQuip, pct, waitLeft, type QuizResult, type QuizStart, type QuizWait, type SectionView } from './model';
+import { ownJokeQuip, pct, waitLeft, type QuizResult, type QuizStart, type QuizWait, type SectionView } from './model';
 
 // A section to study (Release 21b, item 9): its lessons, each a scene player, then its quiz. The quiz is graded in the database;
 // the pass mark opens the next section of the path. 1154: opening the section starts its reading clock; the quiz opens after the
@@ -92,8 +92,9 @@ function Quiz({ s, base, wait, setWait, onPassed }: { s: SectionView; base: stri
                 );
               })}
               {r && (() => {
-                // 4200: each question carries one funny wrong option; picking it is simply wrong, with a playful line
-                const quip = r.given === null ? '' : jokeQuip(q.options[q.keys.indexOf(r.given)]);
+                // 4720: some questions carry their own funny wrong option (q.joke: where it is shown); picking it is simply wrong, with a playful line
+                const shown = r.given === null ? -1 : q.keys.indexOf(r.given);
+                const quip = shown >= 0 && q.joke === shown ? ownJokeQuip(q.options[shown]) : '';
                 return <p className={`small ${r.right ? 'is-right' : 'is-wrong'}`} data-testid={quip ? `q-${qi}-joke` : undefined}>{r.right ? 'Right.' : 'Not quite.'}{quip ? ` ${quip}` : ''} {r.explain}</p>;
               })()}
             </fieldset>

@@ -5,14 +5,16 @@ import { requireAdmin } from '@/server/admin/data';
 import { adminRead } from '@/server/admin/api';
 import { Card, PageHead } from '@/features/admin/ui';
 import { Act } from '@/features/admin/Act';
-import { jokeOf, type Scene } from '@/features/academy/model';
+import { type Scene } from '@/features/academy/model';
 import { LessonPreview } from '@/features/academy/LessonPreview';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Edit an academy section', path: '/admin/academy', noindex: true, description: 'The lessons, scenes and questions of a section.' });
 
 type Sec = { id: string; slug: string; title: string; blurb: string; paths: string[]; lessons: Array<{ id: string; sort: number; title: string; scenes: Scene[] }>;
-  questions: Array<{ id: string; sort: number; prompt: string; options: string[]; answer: number; explain: string }> };
+  questions: Array<{ id: string; sort: number; prompt: string; options: string[]; answer: number; explain: string; joke: string | null }> };
+// 4720: the edit form shows the real options only; the trigger puts the question's own joke back when it is saved
+const plain = (q: Sec['questions'][number]) => ({ options: q.options.filter((o) => o !== q.joke), answer: q.answer - q.options.slice(0, q.answer).filter((o) => o === q.joke).length });
 const SCENES_HINT = 'A list of scenes: {"caption": "...", "say": "the words the voice says", "visual": {"kind": "title" | "chat" | "list" | "steps" | "money" | "rule" | "shot", ...}}. title: heading, text; chat: lines [{who, text}] (who "you" is us); list and steps: heading, items; money: heading, rows [[label, amount]], total; rule: heading, text, tone ok or warn; shot (a guide screenshot): heading, guide (portal/slug, for example renter/sign-and-pay), img (a file name from the guide images), text.';
 
 // The editor of one section (Release 21b, item 9): its title, each lesson's scenes (with a preview), each question.
@@ -45,16 +47,16 @@ export default async function AcademySectionEdit({ params }: { params: Promise<{
           fields={[{ name: 'title', label: 'Title', required: true }, { name: 'scenes', label: 'Scenes', type: 'json', required: true, value: [{ caption: 'The point', say: 'What the voice says.', visual: { kind: 'title', heading: 'The point' } }], hint: SCENES_HINT }]} />
       </Card>
       <Card title={`Quiz (${s.questions.length} questions)`}>
-        <p className="small muted">Every question also carries one funny wrong option. It is added by itself when a question is saved, always wrong, and never counts as the right answer.</p>
+        <p className="small muted">About one question in three carries its own funny wrong option, written for that question. It is put back by itself when the question is saved, is always wrong and never counts as the right answer. A new or reworded question has none until a joke is written for it.</p>
         <ol className="stack">{s.questions.map((q) => (
           <li key={q.id} data-testid={`qe-${q.sort}`}>
             <p><b>{q.prompt}</b></p>
-            <ol type="a" className="small">{q.options.map((o, i) => <li key={i}>{o}{i === q.answer ? ' (right answer)' : ''}{jokeOf(o) ? ' (a joke, always wrong)' : ''}</li>)}</ol>
+            <ol type="a" className="small">{q.options.map((o, i) => <li key={i}>{o}{i === q.answer ? ' (right answer)' : ''}{o === q.joke ? ' (a joke, always wrong)' : ''}</li>)}</ol>
             <p className="small muted">{q.explain}</p>
             <span className="row" style={{ gap: 'var(--s-2)', flexWrap: 'wrap' }}>
               <Act action="academy_question_save" payload={{ id: q.id }} label="Edit" testId={`qedit-${q.sort}`} refresh={[here]} done="Saved."
-                fields={[{ name: 'prompt', label: 'Question', type: 'textarea', required: true, value: q.prompt }, { name: 'options', label: 'Options (a list)', type: 'json', required: true, value: q.options },
-                  { name: 'answer', label: 'Right answer (0 is the first option)', type: 'number', required: true, value: q.answer, min: 0, max: 6 }, { name: 'explain', label: 'Why', type: 'textarea', value: q.explain }]} />
+                fields={[{ name: 'prompt', label: 'Question', type: 'textarea', required: true, value: q.prompt }, { name: 'options', label: 'Options (a list)', type: 'json', required: true, value: plain(q).options },
+                  { name: 'answer', label: 'Right answer (0 is the first option)', type: 'number', required: true, value: plain(q).answer, min: 0, max: 6 }, { name: 'explain', label: 'Why', type: 'textarea', value: q.explain }]} />
               <Act action="academy_question_delete" payload={{ id: q.id }} label="Delete" variant="danger" confirm="Delete this question?" refresh={[here]} />
             </span>
           </li>))}</ol>
