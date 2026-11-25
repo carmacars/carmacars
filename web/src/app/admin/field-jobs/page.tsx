@@ -7,6 +7,7 @@ import { requestNow } from '@/features/va/lanes';
 import { carPhotos } from '@/server/car-photos';
 import { PrepPanel, WorkListsPanel, type PrepList, type WorkLists } from '@/features/field-portal/FleetPanels';
 import { MissingHandovers } from '@/features/handover/MissingHandovers';
+import { ShiftFeedCard } from '@/features/shift-feed/ShiftFeedCard';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Field jobs', path: '/admin/field-jobs', noindex: true, description: 'Field job scheduling, shifts and assignment.' });
@@ -22,5 +23,5 @@ export default async function AdminFieldJobs({ searchParams }: { searchParams: P
   const photos = await carPhotos([...b.unscheduled, ...b.jobs]);
   // r35 part X (0930): each person's list of the day with its completion, and the onboarding prep
   const [wl, prep] = await Promise.all([door<WorkLists>(user.id, 'ops_read', 'field_work_lists', {}).catch(() => null), door<PrepList>(user.id, 'ops_read', 'field_prep', {}).catch(() => null)]);
-  return <>{wl && <WorkListsPanel w={wl} />}<FieldJobsBoard b={b} cal={cal} now={now} photos={photos} base="/admin" focus={{ job: one(sp.job), slot: one(sp.slot) }} />{prep && <PrepPanel p={prep} />}<MissingHandovers userId={user.id} mode="admin" base="/admin" /></>;
+  return <>{wl && <WorkListsPanel w={wl} />}<FieldJobsBoard b={b} cal={cal} now={now} photos={photos} base="/admin" focus={{ job: one(sp.job), slot: one(sp.slot) }} />{prep && <PrepPanel p={prep} />}<MissingHandovers userId={user.id} mode="admin" base="/admin" /><ShiftFeedCard userId={user.id} call="admin_read" /></>;
 }

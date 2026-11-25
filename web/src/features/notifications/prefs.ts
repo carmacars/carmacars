@@ -16,8 +16,13 @@ export interface PrefState {
     text: { on: boolean; why_not: string | null; chosen: string | null; paused: boolean };
   };
   summary: { hour: number; weekly_dow: number };
+  /** r50 (5051): on the Admin's page only: the Admin's email rules (email switched on means each one on its own) */
+  admin_email?: { digest: string } | null;
   groups: PrefGroup[];
 }
+
+/** r50 (5051): what an Admin's Email switch means. */
+export const ADMIN_EMAIL_NOTE = 'Admin email: only what needs you now comes on its own (a card dispute, a failed payment on a confirmed booking, a security alert, a booked live interview, a request to book no salesperson holds, an urgent To do). Everything else is in the bell at once and in one email at 7:00 am. Switch Email on for a kind to get each one on its own.';
 /** One change the page sends: a switch, the quiet hours, the rhythm, or everything optional off. */
 export type PrefChange =
   | { type: string; channel: Channel; on: boolean }

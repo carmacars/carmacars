@@ -59,26 +59,27 @@ update notification_outbox set sent_at = sent_at + interval '400 days' where id 
 -- ================================================================ staff inboxes
 select test.mk_user('ev_admin', 'admin');
 select test.mk_user('ev_quiet', 'admin');
+select test.mk_user('ev_inbox', 'va', 'finance'); -- r50 (5051): an Admin's alerts follow the Admin rules (99_r50_admin_email_quiet); these are a staff member's
 update users set staff_email_digest = 'off' where id = test.id('ev_quiet');
 create or replace function test.ev_staff(p_user text, p_code text, p_key text) returns text language sql as $$
   insert into notification_outbox (code, category, priority, audience, recipient_user_id, to_address, to_name, payload, dedupe_key, status, send_after)
   values (p_code, 'transactional', 3, 'staff_admin', test.id(p_user), p_user || '@example.test', 'Ev', jsonb_build_object('booking_number', 'EV-1', 'amount', '$10.00', 'vehicle_name', 'Ev car', 'review_rating', '5'),
           'ev-staff-' || p_key, 'queued', now())
   returning status || ':' || coalesce(status_reason, '') $$;
-select test.eq('an alert that is not urgent goes into the digest, not an email', test.ev_staff('ev_admin', 'staff_review_received', 'r1'), 'skipped:in the staff email digest');
-select test.eq('a payment declined goes at once', test.ev_staff('ev_admin', 'staff_payment_failed', 'p1'), 'queued:urgent');
-select test.ev_staff('ev_admin', 'staff_payment_failed', 'p2');
-select test.ev_staff('ev_admin', 'staff_payment_failed', 'p3');
-select test.eq('a 4th urgent one in the hour joins the digest', test.ev_staff('ev_admin', 'staff_payment_failed', 'p4'), 'skipped:in the staff email digest');
-select test.eq('the digest holds both, with their lines', (select count(*) || ':' || bool_and(line <> '') from staff_email_digest_items where user_id = test.id('ev_admin') and digested_at is null), '2:true');
+select test.eq('an alert that is not urgent goes into the digest, not an email', test.ev_staff('ev_inbox', 'staff_review_received', 'r1'), 'skipped:in the staff email digest');
+select test.eq('a payment declined goes at once', test.ev_staff('ev_inbox', 'staff_payment_failed', 'p1'), 'queued:urgent');
+select test.ev_staff('ev_inbox', 'staff_payment_failed', 'p2');
+select test.ev_staff('ev_inbox', 'staff_payment_failed', 'p3');
+select test.eq('a 4th urgent one in the hour joins the digest', test.ev_staff('ev_inbox', 'staff_payment_failed', 'p4'), 'skipped:in the staff email digest');
+select test.eq('the digest holds both, with their lines', (select count(*) || ':' || bool_and(line <> '') from staff_email_digest_items where user_id = test.id('ev_inbox') and digested_at is null), '2:true');
 select test.ok('one digest email for the person', app.staff_email_digests(now()) >= 1);
-select test.ok('it carries the mailing address every email shows', (select payload ? 'company_address' from notification_outbox where code = 'staff_digest_hourly' and recipient_user_id = test.id('ev_admin')));
-select test.eq('it is queued with the two alerts', (select (payload ->> 'digest_count') || ':' || status from notification_outbox where code = 'staff_digest_hourly' and recipient_user_id = test.id('ev_admin')), '2:queued');
-select test.ev_staff('ev_admin', 'staff_review_received', 'r2');
+select test.ok('it carries the mailing address every email shows', (select payload ? 'company_address' from notification_outbox where code = 'staff_digest_hourly' and recipient_user_id = test.id('ev_inbox')));
+select test.eq('it is queued with the two alerts', (select (payload ->> 'digest_count') || ':' || status from notification_outbox where code = 'staff_digest_hourly' and recipient_user_id = test.id('ev_inbox')), '2:queued');
+select test.ev_staff('ev_inbox', 'staff_review_received', 'r2');
 select app.staff_email_digests(now() + interval '10 minutes');
-select test.eq('within the hour: no second digest', (select count(*) from notification_outbox where code = 'staff_digest_hourly' and recipient_user_id = test.id('ev_admin')), 1::bigint);
+select test.eq('within the hour: no second digest', (select count(*) from notification_outbox where code = 'staff_digest_hourly' and recipient_user_id = test.id('ev_inbox')), 1::bigint);
 select app.staff_email_digests(now() + interval '61 minutes');
-select test.eq('an hour later: the next one', (select count(*) from notification_outbox where code = 'staff_digest_hourly' and recipient_user_id = test.id('ev_admin')), 2::bigint);
+select test.eq('an hour later: the next one', (select count(*) from notification_outbox where code = 'staff_digest_hourly' and recipient_user_id = test.id('ev_inbox')), 2::bigint);
 select test.ev_staff('ev_quiet', 'staff_review_received', 'q1');
 select app.staff_email_digests(now());
 select test.ok('Off: no digest email, the alert is marked done (in-app and phone only)',

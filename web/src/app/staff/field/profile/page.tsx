@@ -18,6 +18,7 @@ import { Act } from '@/features/admin/Act';
 import { BirthdaySection } from '@/features/staff/Birthday';
 import { ResignSection } from '@/features/staff/Resign';
 import { AvailabilityGrid } from '@/features/field-portal/AvailabilityGrid';
+import { ShiftFeedCard } from '@/features/shift-feed/ShiftFeedCard';
 import type { Availability } from '@/features/field-portal/shift-picker';
 
 export const dynamic = 'force-dynamic';
@@ -52,6 +53,7 @@ export default async function Profile() {
       <section className="fd-card stack" aria-labelledby="avail-t" id="availability"><h2 className="d4" id="avail-t">When you can work</h2>
         <p className="small">Tick the times you can usually work. Fleet sees it when they publish shifts and asks the people who are free.</p>
         <AvailabilityGrid value={avail} testId="profile-availability" /></section>
+      <ShiftFeedCard userId={user.id} call="field_read" className="fd-card stack" />
       <section className="fd-card" aria-labelledby="pay-t"><h2 className="d4" id="pay-t">Pay details</h2>
         <p className="small">Your legal name, SIN, void cheque and how you are paid are on <Link prefetch={false} className="link" href="/staff/field/pay#pay-details">My pay</Link>.</p></section>
       <section className="fd-card stack" aria-labelledby="sales-t" data-testid="sales-optin"><h2 className="d4" id="sales-t">Sales</h2>
