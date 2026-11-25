@@ -90,6 +90,13 @@ export function Effects() {
       const covered = { v: false };
       const d = document as DocVT;
       if (d.startViewTransition && document.visibilityState === 'visible') {
+        // r50: a car card opens its car page with its photo growing into the page's first photo (motion-kit.css names
+        // the car page's photo mo-car-hero); this page's own car photo, if any, steps aside so the name is unique
+        const card = /^\/cars\/[^/]+\/?$/.test(url.pathname) ? a.closest('.car-card')?.querySelector<HTMLElement>('.car-card__media') : null;
+        const own = card ? document.querySelector<HTMLElement>('.gallery__track > li:first-child > img') : null;
+        if (card) { card.style.viewTransitionName = 'mo-car-hero'; if (own) own.style.viewTransitionName = 'none'; }
+        const unname = () => { if (card) card.style.viewTransitionName = ''; if (own) own.style.viewTransitionName = ''; };
+        window.setTimeout(unname, 1200);
         try {
           const t = d.startViewTransition(() => new Promise<void>((res) => {
             const done = () => { if (resolve === done) resolve = null; res(); };
@@ -221,7 +228,7 @@ function countUp(el: HTMLElement) {
   const dec = m[1] ? m[1].length - 1 : 0; const grouped = m[0].includes(',');
   const before = original.slice(0, m.index), after = original.slice((m.index ?? 0) + m[0].length);
   const fmt = (v: number) => grouped ? v.toLocaleString('en-CA', { minimumFractionDigits: dec, maximumFractionDigits: dec }) : v.toFixed(dec);
-  const t0 = performance.now(), dur = Math.min(1400, 700 + String(Math.round(target)).length * 120);
+  const t0 = performance.now(), dur = 300; // r50: every UI move 300 ms or less (the owner's rule)
   el.classList.add('is-counting');
   let last = original;
   const step = (now: number) => {

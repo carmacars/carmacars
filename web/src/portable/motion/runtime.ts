@@ -7,9 +7,14 @@
 //   - stagger: list items added after the first paint rise in, one after another;
 //   - press highlight: a soft flash from the pointer on buttons marked mo-ripple;
 //   - drive-off: a cut-out car leaves its frame on hover (desktop) or once when scrolled into view (touch).
+//   - feedback (release 50, interact.ts): busy, success morph and error nudge on buttons, nudges on invalid fields,
+//     "Copied", inline validation ticks, rolling prices, collapsing rows, skeleton fades, sheets dragged closed, haptics.
 // Nothing on screen at first paint is hidden or moved (no layout shift); everything stops under reduced motion.
+import { isSuccessText } from './feedback.ts';
+import { startFeedback, type FeedbackHooks } from './interact.ts';
+export { moResult, nudge } from './interact.ts';
 
-export interface MotionHooks {
+export interface MotionHooks extends FeedbackHooks {
   /** extra tab bars (each is the parent of its tabs) */
   tabs?: string;
   /** extra figures to count up */
@@ -87,11 +92,12 @@ function countUp(el: HTMLElement) {
   const fmt = (v: number) => { const s = v.toFixed(dec); return comma ? Number(s).toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec }) : s; };
   const t0 = performance.now(), ms = 300;
   el.style.fontVariantNumeric = 'tabular-nums';
+  el.dataset.moCounting = '1'; // not a price change (interact.ts bump)
   const tick = (t: number) => {
-    if (node.nodeValue !== text && !node.nodeValue?.startsWith(text.slice(0, m.index))) return; // the app changed it
+    if (node.nodeValue !== text && !node.nodeValue?.startsWith(text.slice(0, m.index))) { delete el.dataset.moCounting; return; } // the app changed it
     const p = Math.min(1, (t - t0) / ms), e = 1 - Math.pow(1 - p, 3);
     node.nodeValue = text.slice(0, m.index) + fmt(target * e) + text.slice(m.index + m[0].length);
-    if (p < 1) requestAnimationFrame(tick); else node.nodeValue = text;
+    if (p < 1) requestAnimationFrame(tick); else { node.nodeValue = text; window.setTimeout(() => delete el.dataset.moCounting, 50); }
   };
   requestAnimationFrame(tick);
 }
@@ -156,10 +162,10 @@ export function startMotion(hooks: MotionHooks = {}): () => void {
     } else io?.observe(el);
   });
 
-  // success ticks: a status that now says "Saved"
+  // success ticks: a status that now says it finished ("Saved", "Sent", "Done", "Link copied": feedback.ts isSuccessText)
   const markSaved = (el: Element) => { if (el.children.length) return; // a plain-text status only (never a toast stack)
     if (!hydrated(el)) { later(el); return; }
-    if (/^\s*saved\b/i.test(el.textContent ?? '') && !el.querySelector('[data-mo-saved]')) (el as HTMLElement).setAttribute('data-mo-saved', ''); else if (!/^\s*saved\b/i.test(el.textContent ?? '')) el.removeAttribute('data-mo-saved'); };
+    if (isSuccessText(el.textContent)) el.setAttribute('data-mo-saved', ''); else el.removeAttribute('data-mo-saved'); };
 
   // a line drawing that has played: not again this session (a client navigation back mounts it again)
   const onDrawn = (e: AnimationEvent) => { if ((e.target as Element | null)?.classList?.contains('mo-draw__fill')) document.documentElement.dataset.moDraw = 'done'; };
@@ -274,5 +280,6 @@ export function startMotion(hooks: MotionHooks = {}): () => void {
   const first = () => { scanTabs(); watchCounters(document); watchDrives(document); polish(document); document.querySelectorAll<HTMLElement>('[data-mo-burst]').forEach(burst); };
   const ric = (window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number }).requestIdleCallback;
   if (ric) ric(first, { timeout: 1200 }); else window.setTimeout(first, 200);
+  off.push(startFeedback(hooks));
   return () => off.forEach((f) => f());
 }

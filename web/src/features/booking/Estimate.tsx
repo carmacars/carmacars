@@ -1,4 +1,5 @@
 'use client';
+import { motionOK } from '@/lib/motion';
 import { useEffect, useRef, useState } from 'react';
 import { browserRpc } from '@/lib/browser-rpc';
 import { emitTrack } from '@/lib/track/emit';
@@ -91,9 +92,9 @@ export function Tween({ cents, className }: { cents: number; className?: string 
   const from = useRef(cents);
   useEffect(() => {
     const start = from.current; from.current = cents;
-    if (start === cents || window.matchMedia('(prefers-reduced-motion: reduce)').matches) { setShown(cents); return; }
+    if (start === cents || !motionOK()) { setShown(cents); return; } // r50: the footer's Pause animations too
     const t0 = performance.now(); let raf = 0;
-    const step = (now: number) => { const k = 1 - Math.pow(1 - Math.min(1, (now - t0) / 380), 3); setShown(Math.round(start + (cents - start) * k)); if (k < 1) raf = requestAnimationFrame(step); };
+    const step = (now: number) => { const k = 1 - Math.pow(1 - Math.min(1, (now - t0) / 280), 3); setShown(Math.round(start + (cents - start) * k)); if (k < 1) raf = requestAnimationFrame(step); };
     raf = requestAnimationFrame(step); return () => cancelAnimationFrame(raf);
   }, [cents]);
   return <b className={className} data-moving={shown !== cents || undefined}>{money(shown, { cents: true })}</b>;

@@ -31,3 +31,36 @@
   .toast button, .gallery__thumbs button, .car-card__dots { position: relative; }
   .toast button::before, .gallery__thumbs button::before { content: ""; position: absolute; left: 50%; top: 50%; width: max(100%, var(--k-hit)); height: max(100%, var(--k-hit)); transform: translate(-50%, -50%); }
 }
+/* ---------------------------------------------------------------- release 50: the feedback half (portable/motion/feedback.css, interact.ts) */
+:root { --mo-err: var(--red-700, #a50e16); }
+/* figures in tabular numbers wherever they count, roll or total */
+:where(.pt-total, .ow-amount, .pu-stat__value, .fd-big, .num, .bookbar__price, .estimate__lines td, .gc-total, .ob-choice__total, .fd-stepper__n) { font-variant-numeric: tabular-nums; }
+/* the portals' action tiles lift too (fine pointers only; not the Admin's daily cards) */
+@media (prefers-reduced-motion: no-preference) and (hover: hover) and (pointer: fine) {
+  html:not([data-motion="reduced"]) :where(a.pu-action) { transition: translate var(--mo-base) var(--mo-ease); }
+  html:not([data-motion="reduced"]) :where(a.pu-action):hover { translate: 0 var(--mo-lift); }
+}
+/* a toast's Undo (lib/toast.ts, features/admin/shell/toast.ts) */
+.toast__undo, .ad-toast__undo { min-height: 36px; padding: 0 0.6rem; border: 0; border-radius: 8px; background: rgb(255 255 255 / 0.12); color: inherit; font: inherit; font-weight: 700; cursor: pointer; }
+@media (hover: hover) { .toast__undo:hover, .ad-toast__undo:hover { background: rgb(255 255 255 / 0.2); } }
+.ad-toast:has(.ad-toast__undo) { grid-template-columns: auto minmax(0, 1fr) auto auto; }
+/* a phone: the modal dialogs are bottom sheets with a handle, dragged down to close (interact.ts) */
+@media (max-width: 40rem) {
+  dialog:is(.ad-dialog, .modal, .pt-card, .so-dialog, .mt-dialog):modal:not([data-mo-sheet="off"]) {
+    margin: auto 0 0; width: 100%; max-width: 100%; max-height: 92dvh; border-radius: 16px 16px 0 0; border-bottom: 0;
+    padding-bottom: max(var(--s-4), env(safe-area-inset-bottom, 0px)); touch-action: pan-y;
+  }
+  dialog:is(.ad-dialog, .modal, .pt-card, .so-dialog, .mt-dialog):modal:not([data-mo-sheet="off"])::before {
+    content: ""; display: block; width: 40px; height: 4px; margin: calc(var(--s-2) * -1) auto var(--s-3); border-radius: 2px; background: var(--grey-300, #cfcfcf);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    html:not([data-motion="reduced"]) body dialog:is(.ad-dialog, .modal, .pt-card, .so-dialog, .mt-dialog)[open]:modal { animation: mo-sheet-up var(--mo-slow) var(--mo-ease-out) both; }
+  }
+}
+@keyframes mo-sheet-up { from { translate: 0 100%; } }
+/* the car card's photo becomes the car page's first photo (components/Effects.tsx names the pressed card's photo) */
+@media (prefers-reduced-motion: no-preference) {
+  html:not([data-motion="reduced"]) .gallery__track > li:first-child > img { view-transition-name: mo-car-hero; }
+  ::view-transition-group(mo-car-hero) { animation-duration: 280ms; animation-timing-function: var(--mo-ease); }
+  ::view-transition-old(mo-car-hero), ::view-transition-new(mo-car-hero) { animation-duration: 280ms; animation-timing-function: var(--mo-ease); height: 100%; object-fit: cover; }
+}

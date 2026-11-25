@@ -229,7 +229,8 @@ function evaluate(form: Scope) {
     const fresh = problems.filter((p, i) => !st.seen.has(keys[i]!) && !p.stale);
     keys.forEach((k) => st.seen.add(k));
     const pick = st.focusPending ? problems.find((p) => !p.stale) : fresh[0];
-    if (pick) { st.focusPending = false; goTo(pick.id); }
+    // r50: the field also gets the motion kit's nudge (a short shake; colour and focus only under reduced motion)
+    if (pick) { st.focusPending = false; goTo(pick.id); document.getElementById(pick.id)?.dispatchEvent(new Event('mo:nudge', { bubbles: true })); }
     else if (!problems.length) {
       const a = alerts.find((x) => !st.stale.has(x.text) && !st.seen.has(`alert|${x.text}`));
       if (a) a.el.scrollIntoView({ block: 'nearest', behavior: reduceMotion() ? 'auto' : 'smooth' });
@@ -303,6 +304,22 @@ export function installFormGuard(): () => void {
     if (c.hasAttribute('data-fg-own') && (c as HTMLElement).dataset.fgSrc === 'server') st.dismissed.set(c, (c as HTMLElement).dataset.fgMsg ?? '');
     schedule(form);
   };
+  // r50 inline validation: a field left with a value the browser's check refuses (a wrong email, too short) is marked at
+  // once with its message (an empty required field waits for the attempt); the mark goes as soon as the value is right
+  const edited = new WeakSet<Element>();
+  const blurMarked = new WeakSet<Element>();
+  const onType = (e: Event) => {
+    const c = e.target as Element;
+    edited.add(c);
+    if (blurMarked.has(c) && isControl(c) && c.validity.valid) { blurMarked.delete(c); if (!stateOwner(c)) clearMark(c); }
+  };
+  const onLeave = (e: Event) => {
+    const c = e.target as Element;
+    if (!isControl(c) || !edited.has(c) || !c.willValidate || !c.value.trim()) return;
+    const form = formOf(c);
+    if (!form || off(form) || c.validity.valid || c.validity.valueMissing || !NOT_STEP(c.validity)) return;
+    applyMark(c, nativeMessage(c), 'native'); blurMarked.add(c);
+  };
   const onGo = (e: Event) => {
     const a = (e.target as Element | null)?.closest?.('a[data-fg-go]');
     if (!a) return;
@@ -315,6 +332,8 @@ export function installFormGuard(): () => void {
   document.addEventListener('click', onGo);
   document.addEventListener('input', onEdit, true);
   document.addEventListener('change', onEdit, true);
+  document.addEventListener('input', onType, true);
+  document.addEventListener('focusout', onLeave, true);
   return () => {
     installed = false;
     document.removeEventListener('invalid', onInvalid, true);
@@ -323,5 +342,7 @@ export function installFormGuard(): () => void {
     document.removeEventListener('click', onGo);
     document.removeEventListener('input', onEdit, true);
     document.removeEventListener('change', onEdit, true);
+    document.removeEventListener('input', onType, true);
+    document.removeEventListener('focusout', onLeave, true);
   };
 }
