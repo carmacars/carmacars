@@ -27931,6 +27931,9 @@ export type Database = {
           next_try_at: string | null;
           made_at: string | null;
           updated_at: string;
+          kind: string;
+          plate_path: string | null;
+          box: Json | null;
         };
         Insert: {
           vehicle_id: string;
@@ -27947,6 +27950,9 @@ export type Database = {
           next_try_at?: string | null;
           made_at?: string | null;
           updated_at?: string;
+          kind?: string;
+          plate_path?: string | null;
+          box?: Json | null;
         };
         Update: {
           vehicle_id?: string;
@@ -27963,6 +27969,9 @@ export type Database = {
           next_try_at?: string | null;
           made_at?: string | null;
           updated_at?: string;
+          kind?: string;
+          plate_path?: string | null;
+          box?: Json | null;
         };
         Relationships: [];
       };
