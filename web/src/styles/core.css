@@ -411,7 +411,7 @@ dialog.modal[open] { display: flex; flex-direction: column; animation: modal-in 
 .pgate__input--code { letter-spacing: 0.3em; }
 .pgate__field.is-ok .pgate__input { border-color: var(--black); }
 .pgate__state { position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); font-size: var(--fs-sm); font-weight: 600; color: var(--black); pointer-events: none; }
-.pgate__spin { display: block; width: 20px; height: 20px; border-radius: 50%; border: 2.5px solid var(--grey-300); border-top-color: var(--red-600); animation: pgate-spin 700ms linear infinite; }
+.pgate__spin { display: block; width: 20px; height: 20px; border-radius: 50%; border: 2.5px solid var(--grey-300); border-top-color: var(--red-600); animation: pgate-spin 700ms linear infinite; } /* design-allow: a spinner */
 .pgate__err { min-height: 1.25em; font-size: var(--fs-sm); color: var(--red-600); font-weight: 500; }
 .pgate__err:empty { min-height: 0; margin-top: calc(var(--s-3) * -1); }
 .pgate__links { display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-4); font-size: var(--fs-sm); }
@@ -444,7 +444,7 @@ dialog.modal[open] { display: flex; flex-direction: column; animation: modal-in 
 
 /* ---------- skeletons ---------- */
 .skeleton { position: relative; overflow: hidden; background: var(--grey-200); border-radius: 2px; color: transparent; }
-.skeleton::after { content: ""; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 20%, rgb(255 255 255 / 0.75) 50%, transparent 80%); transform: translateX(-100%); animation: shimmer 1.3s linear infinite; }
+.skeleton::after { content: ""; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 20%, rgb(255 255 255 / 0.75) 50%, transparent 80%); transform: translateX(-100%); animation: shimmer 1.3s linear infinite; } /* design-allow: the shimmer skeleton */
 @keyframes shimmer { to { transform: translateX(100%); } }
 .sk-line { height: 0.9em; margin: 0.35em 0; }
 .sk-title { height: 1.8rem; width: 60%; }
@@ -530,18 +530,18 @@ dialog.modal[open] { display: flex; flex-direction: column; animation: modal-in 
 .fx-line { transform-origin: left; }
 @media (prefers-reduced-motion: no-preference) {
   @supports (animation-timeline: view()) {
-    .fx-wipe { animation: fx-wipe linear both; animation-timeline: view(); animation-range: entry 5% entry 75%; }
-    .fx-wipe img { animation: fx-settle linear both; animation-timeline: view(); animation-range: entry 0% cover 55%; }
-    .fx-drift img { animation: fx-drift linear both; animation-timeline: view(); animation-range: cover 0% cover 100%; }
-    .fx-line { animation: fx-line linear both; animation-timeline: view(); animation-range: entry 20% cover 35%; }
-    .fx-grow-y { transform-origin: top; animation: fx-grow-y linear both; animation-timeline: view(); animation-range: entry 30% exit 40%; }
+    .fx-wipe { animation: fx-wipe var(--ease-out) both; animation-timeline: view(); animation-range: entry 5% entry 75%; }
+    .fx-wipe img { animation: fx-settle var(--ease-out) both; animation-timeline: view(); animation-range: entry 0% cover 55%; }
+    .fx-drift img { animation: fx-drift var(--ease-in-out) both; animation-timeline: view(); animation-range: cover 0% cover 100%; }
+    .fx-line { animation: fx-line var(--ease-out) both; animation-timeline: view(); animation-range: entry 20% cover 35%; }
+    .fx-grow-y { transform-origin: top; animation: fx-grow-y var(--ease-out) both; animation-timeline: view(); animation-range: entry 30% exit 40%; }
   }
   @supports not (animation-timeline: view()) {
     .js .fx-wipe { clip-path: inset(0 0 100% 0); transition: clip-path var(--t-4) var(--ease); }
     .js .fx-wipe.is-in { clip-path: inset(0 0 0 0); }
     .js .fx-line { transform: scaleX(0); transition: transform var(--t-4) var(--ease); }
     .js .fx-line.is-in { transform: none; }
-    .js .fx-grow-y { transform-origin: top; transform: scaleY(0); transition: transform 1.4s var(--ease); }
+    .js .fx-grow-y { transform-origin: top; transform: scaleY(0); transition: transform 300ms var(--ease); }
     .js .fx-grow-y.is-in { transform: none; }
   }
 }
@@ -666,7 +666,7 @@ a[href^="tel:"] { white-space: nowrap; }
 .pscan__sub { margin: 0; font-size: var(--fs-sm); color: var(--text-2); line-height: 1.45; max-width: 46rem; }
 .pscan__actions { display: flex; flex-wrap: wrap; gap: var(--s-2); }
 .pscan__bar { height: 3px; border-radius: 3px; overflow: hidden; background: var(--grey-200); }
-.pscan__bar span { display: block; height: 100%; width: 40%; background: var(--black); animation: pscan-run 1.1s var(--ease-in-out) infinite; }
+.pscan__bar span { display: block; height: 100%; width: 40%; background: var(--black); animation: pscan-run 1.1s var(--ease-in-out) infinite /* design-allow: an indeterminate progress bar */; }
 @keyframes pscan-run { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
 .pscan__err { margin: 0; font-size: var(--fs-sm); color: var(--red-700); }
 .pscan__result { display: grid; gap: var(--s-3); grid-template-columns: minmax(0, 1fr); }
@@ -682,7 +682,7 @@ a[href^="tel:"] { white-space: nowrap; }
 .pscan__row.is-ok .pscan__state { background: #e7f4ea; color: #1d6b34; }
 .pscan__row.is-check { background: #fff8e6; }
 .pscan__row.is-check .pscan__state { background: #fde7b0; color: #7a4b00; }
-.pscan__problems { margin: 0; padding: var(--s-3) var(--s-4) var(--s-3) 2.1rem; border-radius: var(--r-2); background: #fff8e6; border: 1px solid #f4d68a; font-size: var(--fs-sm); display: grid; gap: var(--s-1); grid-column: 1 / -1; }
+.pscan__problems { margin: 0; padding: var(--s-3) var(--s-4) var(--s-3) 2.1rem; border-radius: var(--r-2); background: #fff8e6; border: 1px solid var(--k-border); font-size: var(--fs-sm); display: grid; gap: var(--s-1); grid-column: 1 / -1; }
 .field.is-from-permit .input, .field.is-from-permit .select { box-shadow: inset 3px 0 0 #1d6b34; }
 /* The store app (migration 0390): <html data-shell="app"> is set before the first paint inside the CarmaCars app
    (lib/native/shell.ts). The site's long footer of place and make links and the giant wordmark are for search engines
@@ -712,9 +712,9 @@ html[data-shell="app"] body { overscroll-behavior-y: none; }
 /* the brand icon on loading screens and in the menu header (r32) */
 .brand-mark { display: inline-block; border-radius: 22%; flex: none; }
 .brand-wait { display: grid; place-items: center; min-height: 40vh; }
-.brand-wait .brand-mark { animation: brand-pulse 1.4s ease-in-out infinite; }
+.brand-wait .brand-mark { animation: brand-pulse 1.4s ease-in-out infinite; } /* design-allow: the loading mark (a spinner) */
 .pu-sk__mark { display: flex; justify-content: center; padding-bottom: var(--s-3); }
-.pu-sk__mark .brand-mark { animation: brand-pulse 1.4s ease-in-out infinite; }
+.pu-sk__mark .brand-mark { animation: brand-pulse 1.4s ease-in-out infinite; } /* design-allow: the skeleton's loading mark (a spinner) */
 .ad__mark { width: 22px; height: 22px; vertical-align: -6px; margin-right: 8px; }
 @keyframes brand-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
 @media (prefers-reduced-motion: reduce) { .brand-wait .brand-mark, .pu-sk__mark .brand-mark { animation: none; } }
@@ -748,7 +748,7 @@ html[data-shell="app"] body { overscroll-behavior-y: none; }
 
 /* ---------- r49 polish (the reels' rules; docs/blueprint/00-overview.md section 11, rules 9 to 18) ---------- */
 /* headlines break evenly (no lone word on the last line); body copy avoids orphans */
-h1, h2, h3, .lead { text-wrap: balance; }
+h1, h2, h3, h4, .lead { text-wrap: balance; }
 p, li, dd, figcaption, .muted { text-wrap: pretty; }
 /* prices, totals and counters keep their width as the digits change (no jiggle) */
 td, th, .badge, .ad-b, .pt__count, .ui-count, .bk-tabs__n, output,

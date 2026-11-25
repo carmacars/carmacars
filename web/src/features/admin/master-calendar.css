@@ -150,7 +150,7 @@
 .mcal .mcal__item.has-clash { box-shadow: 0 0 0 2px var(--red-600); padding-right: 16px; }
 .mcal .mcal__item.has-clash::after { content: "!"; position: absolute; right: 0; top: 0; bottom: 0; width: 13px; display: grid; place-items: center;
   background: var(--red-600); color: var(--white); font-weight: 700; font-style: normal; border-radius: 0 5px 5px 0; }
-.mcal .mcal__item.is-late { animation: cal-pulse 1.4s ease-in-out infinite; }
+.mcal .mcal__item.is-late { animation: cal-pulse 300ms var(--ease-in-out) 3; }
 @keyframes cal-pulse { 50% { box-shadow: 4px 0 0 0 var(--red-600); } }
 @media (prefers-reduced-motion: reduce) { .mcal .mcal__item.is-late { animation: none; border-right: 4px solid var(--red-700); } }
 .mcal .mcal__item.is-dragging { opacity: 0.9; z-index: 6; box-shadow: 0 6px 16px rgb(0 0 0 / 0.25); }

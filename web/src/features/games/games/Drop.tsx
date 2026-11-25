@@ -12,9 +12,9 @@ export default function Drop({ prize, reduced, onReveal }: GameProps) {
     if (phase !== 'idle') return;
     if (reduced) { setPhase('open'); timers.current.push(setTimeout(onReveal, 700)); return; }
     setPhase('turning');
-    timers.current.push(setTimeout(() => setPhase('dropped'), 900));
-    timers.current.push(setTimeout(() => setPhase('open'), 2100));
-    timers.current.push(setTimeout(onReveal, 3300));
+    timers.current.push(setTimeout(() => setPhase('dropped'), 400));
+    timers.current.push(setTimeout(() => setPhase('open'), 800));
+    timers.current.push(setTimeout(onReveal, 2000));
   }
   return (
     <div className="ccg-stage">

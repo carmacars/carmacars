@@ -22,7 +22,7 @@
 .cpop-state .cpop-timer::before { content: "·"; margin-right: 6px; color: var(--text-2); }
 .cpop-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--grey-500); flex: none; }
 .is-live .cpop-dot { background: var(--cp-live); }
-@media (prefers-reduced-motion: no-preference) { .is-live .cpop-dot { animation: cpop-pulse 1.4s ease-in-out infinite; } }
+@media (prefers-reduced-motion: no-preference) { .is-live .cpop-dot { animation: cpop-pulse 1.4s ease-in-out infinite; } } /* design-allow: a live status indicator (a spinner: something is running now) */
 @keyframes cpop-pulse { 50% { opacity: 0.35; } }
 .cpop-sub { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; color: var(--text-2); }
 .cpop-kind { display: inline-block; padding: 1px 8px; border-radius: var(--r-pill); background: var(--surface); color: var(--text); font-weight: 600; font-size: var(--fs-xs); }

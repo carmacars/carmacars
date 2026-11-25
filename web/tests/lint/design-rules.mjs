@@ -5,10 +5,11 @@
 //   hex     a solid border in a hex colour (borders use alpha colours: rgb(0 0 0 / 0.12), oklch(... / a), a token);
 //   input   a field (input, select, textarea) under 16px (iOS zooms in);
 //   slow    a transition or animation over 300 ms.
-// A line (or the line above it) with "design-allow" and a reason is let through. What the code base had when the check
-// came in is listed in design-rules.baseline.json and reported as a count, so only new breaches fail:
-//   node tests/lint/design-rules.mjs            fails on a breach not in the baseline
-//   node tests/lint/design-rules.mjs --update   writes the baseline (only ever to remove fixed entries)
+// A line (or the line above it) with "design-allow" and a reason is let through: only true spinners, progress bars,
+// shimmer skeletons and live status lights. Release 50 (design zero) fixed every breach the code base had, so
+// design-rules.baseline.json is empty and any breach fails:
+//   node tests/lint/design-rules.mjs            fails on any breach not in the baseline (the baseline is empty)
+//   node tests/lint/design-rules.mjs --update   writes the baseline (only ever to remove fixed entries; keep it empty)
 import { readFileSync, writeFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join, relative, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -85,5 +86,5 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     console.error(`design rules: ${fresh.length} new breach(es) (vh: use 100dvh; linear: ease; hex: an alpha border; input: 16px or more; slow: 300 ms or less), ${known} known`);
     process.exit(1);
   }
-  console.log(`design rules: no new breach (${known} known in the baseline, to fix over time)`);
+  console.log(known ? `design rules: no new breach (${known} known in the baseline, to fix)` : 'design rules: 0 breaches');
 }
