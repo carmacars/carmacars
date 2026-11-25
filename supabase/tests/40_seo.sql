@@ -27,7 +27,7 @@ select test.eq('settings: the search budget, attempts, retry, similarity, landin
      from (select (app.settings()).*) s), '4000/3/6/5000/2/3/3/t');
 -- 0095 made the business address the street address the site shows (one name, address and phone everywhere)
 select test.eq('settings: the business name, address and phone for the listings and the structured data',
-  (select concat_ws('|', business_name, business_street, business_city, business_region, business_postal_code) from site_settings), 'CarmaCars|1570 Midland Ave|Toronto|ON|M1P 3C3');
+  (select concat_ws('|', business_name, business_street, business_city, business_region, business_postal_code) from site_settings), 'CarmaCars|1940 Eglinton Ave E|Toronto|ON|M1L 4R1');
 select test.ok('settings: an IndexNow key of 32 hex characters is made once', (select indexnow_key ~ '^[a-f0-9]{32}$' from site_settings));
 select test.ok('settings: the banned phrases gained the AI words (the row in force when 0061 ran)', exists (select 1 from program_settings where 'unleash' = any (listing_banned_phrases) and 'seamless' = any (listing_banned_phrases)));
 select test.throws('settings: a Google verification value is checked', $$update site_settings set google_site_verification = 'bad value <meta>'$$, 'google_site_verification');

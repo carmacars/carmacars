@@ -1,5 +1,6 @@
 import { AutoReplies } from '@/features/auto-reply/AutoReplies';
 import { MONTHS, birthdayOfKey } from '@/features/staff/birthday';
+import { dayWords, resignBadge, type StaffResignation } from '@/features/staff/resign';
 import { VoiceSelfCheck } from '@/features/phone/VoiceSelfCheck';
 import { ChannelPolicyCard } from '@/features/channel-policy/ChannelPolicy';
 import type { PolicyList } from '@/features/channel-policy/model';
@@ -550,6 +551,9 @@ export default async function Section({ params, searchParams }: { params: Promis
     // r43: who waits for approval is the first thing on this page (the alert lands here), with Approve and Reject; the pipeline of hiring and onboarding is under People > Hiring
     const approvals = await door<ApprovalRow[]>(user.id, 'ops_read', 'staff_onboarding_approvals', {}).catch(() => [] as ApprovalRow[]);
     const waitingFor = new Map(approvals.map((a) => [a.user_id, a]));
+    // r50 (5020): who resigned: Resigning (the last day, the reason, the To do) or Resigned, with the dates
+    const resigned = await door<Record<string, StaffResignation>>(user.id, 'admin_read', 'staff_resignations', {}).catch(() => ({} as Record<string, StaffResignation>));
+    const torontoToday = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
     return (<>{head}
       {approvals.length > 0 && <Card title="Waiting for your approval" id="onboarding-approvals-card" testId="staff-top-approvals" tone="next"><OnboardingApprovals admin refresh={['/admin/settings/staff']} rows={approvals} /></Card>}
       {/* r48 FE (3197): what looks wrong on each staff member's record */}
@@ -569,7 +573,11 @@ export default async function Section({ params, searchParams }: { params: Promis
       })()}
       <Card title="Staff"><Table rows={s.staff} testId="staff" defaultSort="newest" cols={[{ key: 'full_name', label: 'Name', render: (r) => <>{String(r.full_name ?? '')}{access[String(r.id)]?.preferred_name ? <span className="small muted"> ({access[String(r.id)]!.preferred_name})</span> : null}{access[String(r.id)]?.locked_at ? <> <span className="ad-flag ad-flag--red" data-testid={`locked-${String(r.email)}`}>{access[String(r.id)]!.lock_reason === 'townhall' ? 'Locked: two townhalls missed' : 'Locked for inactivity'}</span></> : null}
           {access[String(r.id)]?.location ? <span className="cr-sub small muted">{access[String(r.id)]!.location}</span> : null}
-          {(access[String(r.id)]?.townhalls_missed ?? 0) > 0 ? <> <span className="ad-flag" data-testid={`th-missed-${String(r.email)}`}>Missed {access[String(r.id)]!.townhalls_missed} townhall{access[String(r.id)]!.townhalls_missed === 1 ? '' : 's'} (8 weeks)</span></> : null}</> }, { key: 'email', label: 'Email' }, { key: 'roles', label: 'Roles', render: (r) => (r.roles as string[] | null)?.join(', ') },
+          {(access[String(r.id)]?.townhalls_missed ?? 0) > 0 ? <> <span className="ad-flag" data-testid={`th-missed-${String(r.email)}`}>Missed {access[String(r.id)]!.townhalls_missed} townhall{access[String(r.id)]!.townhalls_missed === 1 ? '' : 's'} (8 weeks)</span></> : null}
+          {(() => { const x = resigned[String(r.id)]; const b = resignBadge(x, r.status === 'active'); if (!x || !b) return null;
+            return <span className="cr-sub small" id={`resign-${String(r.id)}`} data-testid={`resign-${String(r.email)}`}><span className={`ad-flag${b.tone === 'amber' ? ' ad-flag--red' : ''}`}>{b.label}</span>
+              {' '}Notice given {dayWords(x.resigned_on)}{x.by_self ? '' : ` (recorded by ${x.recorded_by})`}{x.started_on ? `; started ${dayWords(x.started_on)}` : ''}.{x.reason ? ` Reason: ${x.reason}` : ''}
+              {x.task_id ? <> <Link prefetch={false} className="link" href="/admin/tasks?queue=admin" data-testid={`resign-todo-${String(r.email)}`}>{x.task_open ? 'Offboarding To do' : 'Offboarding To do (done)'}</Link></> : null}</span>; })()}</> }, { key: 'email', label: 'Email' }, { key: 'roles', label: 'Roles', render: (r) => (r.roles as string[] | null)?.join(', ') },
         { key: 'fn', label: 'Functions', render: (r) => { const p = r.profile as R | null; if (!p) return ''; return staffFns(p).map((f) => `${STAFF_FN_LABEL[f]}${f === 'sales' && p.sales_work_mode ? ` (${p.sales_work_mode === 'remote' ? 'remote' : 'in person'})` : ''}${f === 'field' && p.field_function ? ` (${label(p.field_function)})` : ''}`).join(', '); } }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'last_sign_in_at', label: 'Last sign-in', render: (r) => t(r.last_sign_in_at ?? access[String(r.id)]?.last_active_at ?? null) },
         { key: 'limits', label: 'Limits', render: (r) => { const p = r.profile as R | null; return p ? `${$(p.single_limit_cents)} / ${$(p.dual_approval_threshold_cents)}` : ''; } },
         { key: 'academy', label: 'Academy', render: (r) => { const a = academy?.get(String(r.id)); return a && a.sections ? <Link prefetch={false} className="link" href={`/admin/academy/staff/${String(r.id)}`} data-testid={`academy-${String(r.email)}`}>{a.done ? 'Passed' : `${a.passed} of ${a.sections}`}</Link> : ''; } },
@@ -592,7 +600,16 @@ export default async function Section({ params, searchParams }: { params: Promis
             <Link prefetch={false} className="link small" href={`/admin/staff/${String(r.id)}/scorecard`}>Scorecard</Link>
             <Link prefetch={false} className="link small" href={`/admin/staff/${String(r.id)}/sales`} data-testid={`sales-${String(r.email)}`}>Sales</Link>
 </> : null}
-          {r.status === 'active' ? <Act action="staff_end" payload={{ user: r.id }} label="End access" variant="danger" confirm={`End ${String(r.full_name)}'s access now? The staff portal closes to them at once.`} refresh={['/admin/settings/staff']} />
+          {(r.profile as R | null) && r.status === 'active' && (resigned[String(r.id)]?.status === 'pending'
+            ? <>
+              <Act action="staff_resign_last_day" payload={{ user: r.id }} label="Change last day" title={`${String(r.full_name)}'s last day`} submitLabel="Save" testId={`resign-day-${String(r.email)}`} refresh={['/admin/settings/staff']}
+                done="Saved: they are emailed the new last day." fields={[{ name: 'last_day', label: 'Last day', type: 'date', required: true, value: resigned[String(r.id)]!.last_day, hint: 'Earlier or later, from today. Their access ends after this day.' }]} />
+              <Act action="staff_resign_withdraw" payload={{ user_id: r.id }} label="Withdraw resignation" confirm={`Withdraw ${String(r.full_name)}'s resignation? They stay on the team and the offboarding To do closes.`} testId={`resign-withdraw-${String(r.email)}`} refresh={['/admin/settings/staff']} done="Withdrawn." />
+            </>
+            : <Act action="staff_resign" payload={{ user_id: r.id }} label="Record a resignation" title={`${String(r.full_name)} resigned`} submitLabel="Record" testId={`resign-record-${String(r.email)}`} refresh={['/admin/settings/staff']}
+                done="Recorded: they are emailed the confirmation and the offboarding To do is open."
+                fields={[{ name: 'last_day', label: 'Last day', type: 'date', required: true, value: torontoToday, hint: 'Today ends their access now; a later day ends it after that day.' }, { name: 'reason', label: 'Reason (as they gave it)', type: 'textarea' }]} />)}
+          {r.status === 'active' ? <Act action="staff_end" payload={{ user: r.id }} label={resigned[String(r.id)]?.status === 'pending' ? 'End access now' : 'End access'} variant="danger" confirm={`End ${String(r.full_name)}'s access now? The staff portal closes to them at once.`} refresh={['/admin/settings/staff']} />
             : <Act action="staff_restore" payload={{ user: r.id }} label="Restore" refresh={['/admin/settings/staff']} />}</span> }]} /></Card>
       {await (async () => {
         const sm = await read<SalesModes>('sales_modes').catch(() => null);

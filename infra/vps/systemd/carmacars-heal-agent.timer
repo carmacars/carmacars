@@ -1,0 +1,11 @@
+[Unit]
+Description=CarmaCars heal agent every minute (r50, 4800)
+
+[Timer]
+OnBootSec=90
+OnUnitActiveSec=60
+AccuracySec=10
+Persistent=true
+
+[Install]
+WantedBy=timers.target

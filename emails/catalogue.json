@@ -55,7 +55,7 @@
       "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
     }
   ],
-  "count": 291,
+  "count": 294,
   "emails": [
     {
       "code": "account_password_reset",
@@ -20577,6 +20577,133 @@
       "template_text": "templates/staff_payouts_due.txt"
     },
     {
+      "code": "staff_resignation_received",
+      "audience": "staff_admin",
+      "also_sent_to": [
+        "staff_va_finance"
+      ],
+      "category": "transactional",
+      "trigger": "Release 50 (5020): a staff member resigned in their portal, or an Admin recorded a resignation. To the Admins, and to Finance for the final pay. An offboarding To do opens at the same time (one per resignation).",
+      "timing": "Immediate, once per resignation",
+      "digest": false,
+      "from": "CarmaCars <hello@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "Resignation: {{staff_name}}, last day {{last_day}}",
+      "preheader": "{{role_label}}. Final pay up to the last day; the offboarding To do is open.",
+      "sample_subject": "Resignation: Sam Example, last day Wed, Dec 2, 2026",
+      "variables": [
+        {
+          "name": "admin_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/admin/settings/staff#resign-3f1c7a2e"
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "final_pay_text",
+          "type": "string",
+          "sample": "Every hour worked up to Wed, Dec 2, 2026, with vacation pay, on the pay date of the period that ends Sat, Dec 5, 2026."
+        },
+        {
+          "name": "handover_text",
+          "type": "string",
+          "sample": "Went back to the queue after the last day: 2 field jobs and 3 shifts. Still theirs: 4 open jobs, 0 leads, 1 chats, 2 To dos."
+        },
+        {
+          "name": "last_day",
+          "type": "string",
+          "sample": "Wed, Dec 2, 2026"
+        },
+        {
+          "name": "notice_text",
+          "type": "string",
+          "sample": "7 days (7 asked)"
+        },
+        {
+          "name": "reason",
+          "type": "string",
+          "sample": "Moving to another city"
+        },
+        {
+          "name": "recorded_by",
+          "type": "string",
+          "sample": "Themselves, in their portal"
+        },
+        {
+          "name": "resigned_on",
+          "type": "string",
+          "sample": "Wed, Nov 25, 2026"
+        },
+        {
+          "name": "role_label",
+          "type": "string",
+          "sample": "Field staff"
+        },
+        {
+          "name": "staff_name",
+          "type": "string",
+          "sample": "Sam Example"
+        }
+      ],
+      "template_html": "templates/staff_resignation_received.html",
+      "template_text": "templates/staff_resignation_received.txt"
+    },
+    {
+      "code": "staff_resignation_withdrawn",
+      "audience": "staff_admin",
+      "also_sent_to": [
+        "staff_va_finance"
+      ],
+      "category": "transactional",
+      "trigger": "Release 50 (5020): a staff member withdrew their resignation before the last day (or an Admin withdrew it for them). To the Admins and Finance; the offboarding To do closes by itself.",
+      "timing": "Immediate",
+      "digest": false,
+      "from": "CarmaCars <hello@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "{{staff_name}} withdrew their resignation",
+      "preheader": "They stay on the team. The offboarding To do is closed.",
+      "sample_subject": "Sam Example withdrew their resignation",
+      "variables": [
+        {
+          "name": "admin_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/admin/settings/staff#resign-3f1c7a2e"
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "last_day",
+          "type": "string",
+          "sample": "Wed, Dec 2, 2026"
+        },
+        {
+          "name": "role_label",
+          "type": "string",
+          "sample": "Field staff"
+        },
+        {
+          "name": "staff_name",
+          "type": "string",
+          "sample": "Sam Example"
+        },
+        {
+          "name": "withdrawn_by",
+          "type": "string",
+          "sample": "Themselves, in their portal"
+        }
+      ],
+      "template_html": "templates/staff_resignation_withdrawn.html",
+      "template_text": "templates/staff_resignation_withdrawn.txt"
+    },
+    {
       "code": "staff_seo_digest",
       "audience": "staff_admin",
       "category": "transactional",
@@ -25855,6 +25982,80 @@
       ],
       "template_html": "templates/staff_pay_statement.html",
       "template_text": "templates/staff_pay_statement.txt"
+    },
+    {
+      "code": "staff_resignation_confirmed",
+      "audience": "staff_field",
+      "category": "transactional",
+      "trigger": "Release 50 (5020): a staff member resigned in their portal (My profile, Resign), or an Admin recorded their resignation. Sent again, as an update, when an Admin changes the last day. Covers the final pay timing from their agreement or pay settings, what to return, and how to withdraw until the last day.",
+      "timing": "Immediate, on resigning and on a new last day",
+      "digest": false,
+      "from": "CarmaCars <hello@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "Your resignation: last day {{last_day}}",
+      "preheader": "What happens next: your final pay, what to return, and how to withdraw.",
+      "sample_subject": "Your resignation: last day Wed, Dec 2, 2026",
+      "variables": [
+        {
+          "name": "access_ends",
+          "type": "string",
+          "sample": "At the end of Wed, Dec 2, 2026"
+        },
+        {
+          "name": "can_withdraw",
+          "type": "boolean",
+          "sample": true
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "final_pay_text",
+          "type": "string",
+          "sample": "Every hour you work up to Wed, Dec 2, 2026, with your vacation pay and any commission earned, is paid on the pay date of the pay period that ends Sat, Dec 5, 2026 (you are paid every two weeks), within the time Ontario's Employment Standards Act requires (Field Staff Agreement 9.4)."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Sam",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "is_update",
+          "type": "boolean",
+          "sample": false
+        },
+        {
+          "name": "last_day",
+          "type": "string",
+          "sample": "Wed, Dec 2, 2026"
+        },
+        {
+          "name": "profile_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/staff/field/profile#resign"
+        },
+        {
+          "name": "resigned_on",
+          "type": "string",
+          "sample": "Wed, Nov 25, 2026"
+        },
+        {
+          "name": "return_text",
+          "type": "string",
+          "sample": "Return every key, fob, fuel or company card and item of equipment you have on or before your last day, and within 7 days return or delete any CarmaCars information on your own devices."
+        },
+        {
+          "name": "withdraw_text",
+          "type": "string",
+          "sample": "Changed your mind? Open your profile and press Withdraw my resignation, any time up to Wed, Dec 2, 2026."
+        }
+      ],
+      "template_html": "templates/staff_resignation_confirmed.html",
+      "template_text": "templates/staff_resignation_confirmed.txt"
     },
     {
       "code": "staff_reward_update",

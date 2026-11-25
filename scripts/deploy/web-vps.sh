@@ -117,6 +117,8 @@ ship() {
     # its DNS-only record first, so Caddy can get its certificate as soon as it loads the site
     "$HERE/cf-site.sh" media "$ch" || warn_ "the media host $ch has no DNS record yet (the token needs Zone > DNS > Edit): calls use the outside link until it has"
   fi
+  # r50 (4800): the heal agent (infra/vps/bin/heal-agent) and its timer, installed by the remote script
+  cp "$ROOT/infra/vps/bin/heal-agent" "$ROOT/infra/vps/systemd/carmacars-heal-agent.service" "$ROOT/infra/vps/systemd/carmacars-heal-agent.timer" "$stage/"
   sed -e "s/@TAG@/$tag/" -e "s/@CRON@/$cron/" "$HERE/web-vps-remote.sh" > "$stage/remote.sh"
   vps_ssh "rm -rf $t && install -d -m 700 $t"
   vps_scp "$stage"/* "$t/"
