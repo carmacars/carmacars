@@ -34,7 +34,7 @@
 .call-chat__list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-2); max-height: min(50dvh, 26rem); overflow-y: auto; font-size: var(--fs-sm); overflow-wrap: anywhere; }
 .call-chat__list li.is-me b { color: var(--red-700); }
 .call-chat__form { display: flex; gap: var(--s-2); }
-.call-chat__form input { flex: 1 1 auto; min-width: 0; min-height: 44px; padding: 0 var(--s-3); border: 1px solid var(--grey-300); border-radius: var(--r-1, 6px); font: inherit; }
+.call-chat__form input { flex: 1 1 0; width: 0; min-width: 0; min-height: 44px; padding: 0 var(--s-3); border: 1px solid var(--grey-300); border-radius: var(--r-1, 6px); font: inherit; }
 .call-chat__form .btn { min-height: 44px; }
 .call-people { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-2); }
 .call-people li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0 var(--s-2); }
@@ -42,4 +42,4 @@
 .call-lobby__opts { display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-4); }
 .call-check { display: inline-flex; gap: var(--s-2); align-items: center; min-height: 44px; cursor: pointer; }
 .call-check input { width: 1.1rem; height: 1.1rem; accent-color: var(--red-600); }
-.call-layout { display: grid; gap: var(--s-4); }
+.call-layout { display: grid; gap: var(--s-4); grid-template-columns: minmax(0, 1fr); }

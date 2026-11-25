@@ -222,8 +222,9 @@ test('staff Finance: Money with Admin\'s tabs and Owner money, each at its own a
   await sql.end();
 });
 
+// r50 (4000): customer service's group has Check-in visits, so the cs menu is eight links (five in its own group)
 // the r27 audit: each role's own group is always open, its jobs one tap away; a page group shows only the role's tabs
-for (const [fn, links, hub] of [['cs', 7, ['/staff/messages', 'Renters', 'Messages']], ['fleet', 8, ['/staff/checks', 'Checks', 'Daily checks']]] as const) {
+for (const [fn, links, hub] of [['cs', 8, ['/staff/messages', 'Renters', 'Messages']], ['fleet', 8, ['/staff/checks', 'Checks', 'Daily checks']]] as const) {
   test(`staff ${fn}: a short menu, the role's group open, page groups with the role's tabs`, async ({ browser }) => {
     test.setTimeout(120_000);
     const sql = db();

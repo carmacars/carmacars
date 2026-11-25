@@ -117,9 +117,13 @@ test('Sales bring in owners: invite, start an application, ask for a commission;
   await expect(op.getByTestId('sales-owners')).toBeVisible({ timeout: 30_000 });
   await expect(op.getByTestId('so-empty')).toBeVisible();
   await expect(op.getByText(`Nora Owner ${t}`)).toHaveCount(0);
-  // the whole owner pipeline is not for Sales (0342): the old page goes to My sales, and Buyer leads lists no owner lead
+  // r50 (4511): Sales open the owner pipeline of the owners they brought in, so a second rep sees none of these; the prospective-owner
+  // board (0342) stays customer service's, and Buyer leads lists no owner lead
   await op.goto('/staff/owner-pipeline', { waitUntil: 'networkidle' });
-  await op.waitForURL('**/staff/my-sales**');
+  await expect(op).toHaveURL(/\/staff\/owner-pipeline/);
+  await expect(op.getByRole('heading', { name: 'Owner pipeline' }).first()).toBeVisible();
+  await expect(op.getByText(`Nora Owner ${t}`)).toHaveCount(0);
+  await expect(op.getByText(`Ivan Invitee ${t}`)).toHaveCount(0);
   await op.goto('/staff/leads', { waitUntil: 'networkidle' });
   await expect(op.getByTestId('leads-owners-moved')).toBeVisible({ timeout: 30_000 });
   await expect(op.getByText(`Ivan Invitee ${t}`)).toHaveCount(0);

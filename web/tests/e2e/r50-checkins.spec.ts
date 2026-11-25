@@ -100,7 +100,10 @@ test('check-in visits: the renter books a slot, Fleet does the visit on the phon
   await expect(fp.getByTestId('checkin-issues')).toContainText('tire tread 2.5 mm');
   await check(fp, 'the checklist');
   await fp.getByTestId('checkin-save').click();
-  await expect(fp.getByTestId('checkin-msg')).toContainText('A To do is raised');
+  // the saved visit replaces the checklist at once (the page refreshes), so its answer is the "What we found" card, not the form's message
+  await expect(fp.getByTestId('checkin-found')).toContainText('A Fleet To do is open for the maintenance', { timeout: 20_000 });
+  await expect(fp.getByTestId('checkin-found')).toContainText('23,450 km');
+  await expect(fp.getByTestId('checkin-checklist')).toHaveCount(0);
   const [v] = await sql`select v.status, v.odometer_km, (select count(*)::int from tasks k where k.task_type = 'checkin_maintenance' and k.booking_id = v.booking_id) as todos
                           from checkin_visits v join bookings b on b.id = v.booking_id where b.booking_number = ${n}`;
   expect([v!.status, v!.odometer_km, v!.todos]).toEqual(['done', 23450, 1]);

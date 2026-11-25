@@ -196,7 +196,10 @@ test('owner pipeline: Admin adds a lead and moves it; Sales sees the board; the 
   const sa = await ctx(browser, phone);
   await signIn(sa, sales.email, '/staff');
   await sa.goto('/staff/owner-pipeline', { waitUntil: 'networkidle' });
-  await sa.waitForURL('**/staff/my-sales**');
+  // r50 (4511): Sales open the owner pipeline of their own owners by step; the prospective-owner board stays customer service's (their own are on My sales)
+  await expect(sa.getByRole('heading', { name: 'Owner pipeline' }).first()).toBeVisible();
+  await expect(sa).toHaveURL(/\/staff\/owner-pipeline/);
+  await expect(sa.getByTestId('op-col-call_booked')).toHaveCount(0);
   await expect(sa.getByText(who)).toHaveCount(0);
   await sql.end();
 });
