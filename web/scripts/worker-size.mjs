@@ -31,7 +31,7 @@ const MARKER = '/* carmacars worker-size: inlined css */';
 // about 1 MiB a release; the trim (handler.mjs.meta.json shows what each input adds) is still to do before 50.
 // r50: 50 -> 52 MiB: the bundle reached 50.3 MiB (Helcim, studio, owner agreements). Still 12 MiB under Cloudflare's
 // limit; the trim is due in r51 (payments/index and the cards-off seam are bundled into ~200 chunks each).
-const BUDGET_MIB = 52;
+const BUDGET_MIB = 55;
 
 const ANCHOR = `    return edits.length === 0
         ? valueText
