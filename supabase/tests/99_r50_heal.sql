@@ -168,5 +168,9 @@ select test.ok('6 browsers never call the engine or read the tables directly',
 select test.lives('6 the Admin resolves what is left', format($$select app.heal_resolve(%L, jsonb_build_object('incident', %L, 'note', 'Test done'))$$, test.id('heal_admin'),
   (test.heal_inc('site_error:/heal-c')).id));
 
+-- the test alerts' phone pushes are not left in the queue for the suites after this one
+update push_outbox set status = 'skipped', last_error = 'test: self-healing suite'
+ where status = 'queued' and notification_id in (select n.id from notifications n where n.entity_id in (select id from heal_incidents union select id from heal_playbooks));
+
 -- the test playbooks leave the library (their attempts keep their history)
 delete from heal_playbooks where key like 'test.heal-%' or created_by = test.id('heal_admin');
