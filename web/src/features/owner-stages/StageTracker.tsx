@@ -50,7 +50,7 @@ function Car({ t, d, base, refresh, agent }: { t: Track; d: Stages; base: '/admi
       </div>
       <p className="small" data-testid="os-progress">{progressLine(t, d.viewer)}{c && t.days_in_stage !== null ? ` In this step ${daysWords(t.days_in_stage)}.` : ''}</p>
       {c && <section className={`os-now ${c.actor === 'owner' && owner ? 'os-now--mine' : ''}`} aria-label={`Now: ${c.label}`} data-testid="os-now" data-guide="os-now" data-step={c.code}>
-        <p className="pt-kicker">{waitsOn(c.actor, d.viewer)}</p>
+        <p className="pt-kicker os-kicker">{waitsOn(c.actor, d.viewer)}</p>
         <h4 className="d4">{c.label}</h4>
         {c.blockers.length > 0 && <div className="alert alert--warn" role="status" data-testid="os-blockers"><span className="alert__title">First</span>
           <ul className="os-blockers">{c.blockers.map((b) => <li key={b}>{b}</li>)}</ul></div>}

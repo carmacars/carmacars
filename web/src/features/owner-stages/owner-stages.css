@@ -31,3 +31,6 @@
   .os-cta { max-width: none; }
   .os-facts { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* the kicker can name CarmaCars: never uppercased (the brand is spelled CarmaCars) */
+.os-kicker { text-transform: none; letter-spacing: 0; }
