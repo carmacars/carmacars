@@ -102,7 +102,7 @@ export function Effects() {
             const done = () => { if (resolve === done) resolve = null; res(); };
             resolve = done; window.setTimeout(done, WAIT_MS);
           }));
-          covered.v = true; t.ready.catch(() => {}); t.finished.catch(() => {});
+          covered.v = true; t.ready.catch(() => {}); t.finished.catch(() => {}); (t as { updateCallbackDone?: Promise<void> }).updateCallbackDone?.catch(() => {});
         } catch { covered.v = false; }
       }
       watch(location.href, covered);

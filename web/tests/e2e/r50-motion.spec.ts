@@ -54,12 +54,14 @@ test.describe('with motion', () => {
   });
 
   test('a save shows the success morph on its button and the tick on its status', async ({ browser }, info) => {
+    // one project only: both would save the same settings row at once (the phone's morph is the same code)
+    test.skip(info.project.name.includes('phone'), 'one save of the shared settings row');
     const sql = db();
     const id = randomUUID(); const email = `admin.r50mo.${Date.now()}.${randomBytes(3).toString('hex')}@example.test`;
     await sql`insert into local_auth.users (id, email, password_hash) values (${id}, ${email}, ${hash(PW)})`;
     await sql`insert into users (id, email, full_name) values (${id}, ${email}, 'Mo Motion')`;
     await sql`insert into user_roles (user_id, role) values (${id}, 'admin')`;
-    const [before] = await sql`select promo_default_valid_days v from program_settings where id = 'current'`;
+    const [before] = await sql`select promo_default_valid_days v from program_settings limit 1`;
     const ctx = await browser.newContext({ baseURL: info.project.use.baseURL, viewport: info.project.use.viewport, hasTouch: info.project.use.hasTouch, reducedMotion: 'no-preference' });
     const page = await ctx.newPage();
     try {
@@ -72,7 +74,9 @@ test.describe('with motion', () => {
       await page.goto('/admin/settings/promo-codes', { waitUntil: 'networkidle' });
       const form = page.getByTestId('promo-rules-form');
       const days = form.locator('input[id$="-promo_default_valid_days"]');
-      const next = String(Number(await days.inputValue() || 30) === 30 ? 31 : 30);
+      const now = Number(await days.inputValue() || 30);
+      let next = String(now);
+      while (next === String(now)) next = String(20 + Math.floor(Math.random() * 40));
       await days.fill(next);
       const save = page.getByTestId('promo-rules-form-save');
       await save.click();
@@ -83,7 +87,7 @@ test.describe('with motion', () => {
       expect(await save.evaluate((el) => getComputedStyle(el, '::after').content)).toContain('Saved');
       await expect(save).not.toHaveAttribute('data-mo-result', /./, { timeout: 4000 });
     } finally {
-      await sql`update program_settings set promo_default_valid_days = ${before!.v} where id = 'current'`;
+      await sql`update program_settings set promo_default_valid_days = ${before!.v}`;
       await sql`delete from user_roles where user_id = ${id}`;
       await ctx.close(); await sql.end();
     }
