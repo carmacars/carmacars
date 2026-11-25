@@ -79,6 +79,8 @@ declare
   v_skipped text[] := coalesce((select array_agg(left(x, 60)) from jsonb_array_elements_text(case when jsonb_typeof(p -> 'skipped') = 'array' then p -> 'skipped' else '[]'::jsonb end) x), '{}');
 begin
   if not app.guide_me_staff(p_by) then raise exception 'Guide me is for staff' using errcode = '42501'; end if;
+  if v_op not in ('pref', 'start', 'step', 'end') then raise exception 'Unknown Guide me operation' using errcode = '22023'; end if;
+  if v_op = 'end' and coalesce(p ->> 'status', '') not in ('completed', 'exited') then raise exception 'Not a way to end a run' using errcode = '22023'; end if;
   -- a run that loops never floods the tables (the audit log included)
   if (select count(*) from guide_me_runs where user_id = p_by and updated_at > now() - interval '1 day') >= 400 then return jsonb_build_object('ok', false, 'reason', 'limit'); end if;
   if v_op = 'pref' then
@@ -102,7 +104,6 @@ begin
     return jsonb_build_object('ok', true, 'id', v_run.id);
   end if;
   if v_op = 'end' then
-    if coalesce(p ->> 'status', '') not in ('completed', 'exited') then raise exception 'Not a way to end a run' using errcode = '22023'; end if;
     update guide_me_runs set status = p ->> 'status', finished_at = now(), skipped = v_skipped,
            step_index = case when p ->> 'status' = 'completed' then steps_total else least(greatest(coalesce(v_index, step_index), 0), steps_total) end,
            step_id = coalesce(v_step, step_id)

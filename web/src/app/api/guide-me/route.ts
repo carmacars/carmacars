@@ -29,9 +29,9 @@ export async function POST(req: Request) {
   const op = typeof b.op === 'string' && ['pref', 'start', 'step', 'end'].includes(b.op) ? b.op : null;
   if (!op) return json({ error: 'Unknown operation' }, 400);
   const run = typeof b.run === 'string' && /^[0-9a-f-]{36}$/i.test(b.run) ? b.run : null;
-  const p = { op, on: b.on === true, flow: id(b.flow), portal: id(b.portal, 10), total: Number.isInteger(b.total) ? b.total : null, run,
-    index: Number.isInteger(b.index) ? b.index : null, step: id(b.step), status: b.status === 'completed' || b.status === 'exited' ? b.status : null,
-    skipped: Array.isArray(b.skipped) ? b.skipped.map((x) => id(x)).filter(Boolean).slice(0, 60) : [] };
+  const p = { op, on: b.on === true, flow: id(b.flow), portal: id(b.portal, 10), total: Number.isInteger(b.total) ? (b.total as number) : null, run,
+    index: Number.isInteger(b.index) ? (b.index as number) : null, step: id(b.step), status: b.status === 'completed' || b.status === 'exited' ? b.status : null,
+    skipped: Array.isArray(b.skipped) ? b.skipped.map((x) => id(x)).filter((x): x is string => !!x).slice(0, 60) : [] };
   const r = await rpc('guide_me_do', { p_by: user.id, p }, SR).catch(() => null);
   return r ? json(r) : json({ ok: false }, 400);
 }

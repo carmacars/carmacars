@@ -10518,6 +10518,72 @@ export type Database = {
         };
         Relationships: [];
       };
+      guide_me_prefs: {
+        Row: {
+          user_id: string;
+          keep_on: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          keep_on?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          keep_on?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      guide_me_runs: {
+        Row: {
+          id: string;
+          user_id: string;
+          flow: string;
+          portal: string;
+          steps_total: number;
+          step_index: number;
+          step_id: string | null;
+          skipped: string[];
+          status: string;
+          started_at: string;
+          updated_at: string;
+          finished_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          flow: string;
+          portal: string;
+          steps_total: number;
+          step_index?: number;
+          step_id?: string | null;
+          skipped?: string[];
+          status?: string;
+          started_at?: string;
+          updated_at?: string;
+          finished_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          flow?: string;
+          portal?: string;
+          steps_total?: number;
+          step_index?: number;
+          step_id?: string | null;
+          skipped?: string[];
+          status?: string;
+          started_at?: string;
+          updated_at?: string;
+          finished_at?: string | null;
+        };
+        Relationships: [];
+      };
       guide_pdfs: {
         Row: {
           id: string;
@@ -36009,6 +36075,9 @@ export type Database = {
       game_terms: { Args: never; Returns: string };
       guide_banner: { Args: { p_by: string; p_portal: string }; Returns: boolean };
       guide_dismiss: { Args: { p_by: string; p_portal: string }; Returns: boolean };
+      guide_me_do: { Args: { p_by: string; p: Json }; Returns: Json };
+      guide_me_report: { Args: { p_by: string }; Returns: Json };
+      guide_me_state: { Args: { p_by: string }; Returns: Json };
       guide_opened: { Args: { p_by: string; p_portal: string }; Returns: Json };
       guide_pdf_file: { Args: { p_by: string; p_portal: string }; Returns: Json };
       guide_read: { Args: { p_by: string; p_portal: string }; Returns: Json };
