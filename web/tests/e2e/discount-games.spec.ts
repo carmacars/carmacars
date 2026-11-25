@@ -459,14 +459,16 @@ test('a signed-in visitor sees the game on the site too, and is offered it in th
   await sql`insert into user_roles (user_id, role) values (${id}, 'renter')`;
   const { page } = await visitor(browser, sql, 'wheel', PRIZE10);
   await page.goto('/sign-in', { waitUntil: 'networkidle' });
-  const b = page.getByRole('button', { name: 'Necessary only' }).first();
-  if (await b.isVisible().catch(() => false)) await b.click();
+  // the game waits for the cookie answer: wait for the banner (it opens after hydration) rather than look once
+  await answerCookies(page);
   await page.locator('input[type="email"]').fill(email);
   await page.locator('input[type="password"]').fill(PW);
   await page.getByRole('button', { name: 'Sign in' }).click();
   await page.waitForURL((u) => !u.pathname.startsWith('/sign-in'), { timeout: 20_000 });
   // r50 (5040): signed in, the site shows the game too (the portals never do: r50-games.spec.ts)
-  for (const s of ['toyota-corolla', 'tesla-model-3', 'kia-forte']) await page.goto(`/cars/${s}`, { waitUntil: 'load' });
+  // one car page, counted by the watcher (car_pages 1): a quick run through several pages fires the game on one and leaves
+  // it, which counts as shown and closed, so the last page waits for the reshow rule (2 pages or 60 seconds)
+  await carPage(page, 'toyota-corolla');
   await expect(page.getByTestId('game')).toBeVisible({ timeout: 30_000 });
   await page.getByTestId('game-close').click();
   await expect(page.getByTestId('game')).toHaveCount(0);

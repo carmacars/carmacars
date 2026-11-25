@@ -21,7 +21,13 @@ select 'renter_review_request', 'transactional', 3, 'renter', 'in-sent-' || g ||
 select test.ok('no hourly pace since 1750 (the day''s budget is the only limit): the day''s cap is not used up',
   coalesce((app.email_pace(test.in_t()) ->> 'day_used')::int, 0) < (app.email_pace(test.in_t()) ->> 'day_cap')::int);
 
--- (other suites leave urgent alerts queued: counted before, so the test counts its own)
+-- other suites leave urgent alerts queued (5051: an urgent To do emails every Admin, and the suites make many Admins), more
+-- than the 50 app.outbox_urgent_waiting counts and the 20 a claim takes: their waiting events become notices first (as the
+-- kick below would do), then they are held while this suite runs, and queued again at its end
+select app.process_events(null, now());
+create temp table in_held as select id from notification_outbox
+ where status = 'queued' and coalesce(channel, 'email') = 'email' and app.outbox_urgent(status_reason, priority, created_at, test.in_t());
+update notification_outbox set status = 'skipped' where id in (select id from in_held);
 create temp table in_before as select app.outbox_urgent_waiting(test.in_t()) n;
 insert into notification_outbox (code, category, priority, audience, to_address, to_name, payload, dedupe_key, status, status_reason, send_after, created_at)
 values ('staff_payment_failed', 'transactional', 2, 'staff_admin', 'in-urgent@in.example.test', 'In', '{}'::jsonb, 'in-urgent', 'queued', 'urgent', test.in_t() - interval '1 minute', test.in_t() - interval '1 minute'),
@@ -44,4 +50,5 @@ select test.ok('a push never waits for its email''s due time', position('_send_a
 select test.ok('only the service key may kick', not has_function_privilege('authenticated', 'public.server_notify_kick(text[])', 'execute')
   and not has_function_privilege('anon', 'public.server_notify_kick(text[])', 'execute') and has_function_privilege('service_role', 'public.server_notify_kick(text[])', 'execute'));
 
+update notification_outbox set status = 'queued' where id in (select id from in_held) and status = 'skipped';
 update program_settings set email_low_class_stop_pct = 60, email_auth_reserve = 10;

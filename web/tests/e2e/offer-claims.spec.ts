@@ -88,6 +88,9 @@ test('two staff on one request: the claim, the takeover and the late send', asyn
   const errors = watch(b1);
   await signIn(b1, cs.email, '/staff');
   await b1.addInitScript(() => { (window as unknown as { __ccClaimPollMs: number }).__ccClaimPollMs = 3_600_000; });
+  // and no live update (release 41): its 2-second read would refresh this page as soon as the Admin sends, and the late
+  // send below would find the offer already on screen (on a slow runner the refresh won that race)
+  await b1.route(/\/rpc\/live_poll$/, (r) => r.abort());
   await b1.goto(`/staff/bookings/${r.booking_number}?tab=review`, { waitUntil: 'networkidle' });
   await expect(banner(b1)).toContainText('You are answering this request', { timeout: 30_000 });
 

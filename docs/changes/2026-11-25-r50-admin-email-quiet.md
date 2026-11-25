@@ -29,6 +29,8 @@ database has no send history, and `notification_outbox` in production is the pla
   (`dispute_deadline`) and a To do created or raised to `urgent` email every active Admin once
   (`app.admin_now_email`, the staff digest's template with the one line), except an Admin whose alert emails are Off,
   who turned every optional notification off, or who switched that kind's email off.
+  5063: the same cap of 3 immediate emails an hour per Admin holds here too; at the cap the line waits in that
+  Admin's daily digest (once per key). Before 5063 one Admin could get one email per urgent To do with no cap.
 - **Everything else**: the gate (`app.admin_email_gate`, a trigger that runs before the preferences and the staff
   digest) keeps it in the bell and puts a line in the person's digest. The Admins' digest moves from hourly to **daily at
   7:00 Toronto** (only Admins still on the old default; one the audit log shows choosing hourly keeps it; a new Admin

@@ -8,6 +8,7 @@ select test.mk_user('aeq_admin', 'admin');
 select test.mk_user('aeq_cs', 'va', 'cs');
 select test.mk_user('aeq_sales', 'va', 'sales');
 select test.mk_user('aeq_admin_off', 'admin');
+select test.mk_user('aeq_admin2', 'admin');
 select test.mk_user('aeq_admin_nosys', 'admin');
 update users set staff_email_digest = 'off' where id = test.id('aeq_admin_off');
 insert into notify_prefs (subject_kind, subject_id, type, push, email, sms) values ('user', test.id('aeq_admin_nosys'), 'staff_system', true, false, true);
@@ -85,17 +86,24 @@ select test.eq('a fourth waits for the digest', test.aeq_mail('aeq_admin', 'staf
 
 -- ================================================================ needs you now, with no email of its own
 select app.raise_task(p_type => 'aeq_check', p_title => 'Aeq urgent thing', p_queue => 'admin', p_priority => 'urgent', p_dedupe => 'aeq_urgent');
-select test.ok('an urgent To do emails the Admins at once', exists (select 1 from notification_outbox o where o.recipient_user_id = test.id('aeq_admin')
+select test.ok('an urgent To do emails an Admin under the cap at once', exists (select 1 from notification_outbox o where o.recipient_user_id = test.id('aeq_admin2')
   and o.dedupe_key like 'admin_now|task:%' and o.status = 'queued' and o.status_reason = 'urgent' and o.payload ->> 'digest_summary' = 'Needs you now: Urgent To do: Aeq urgent thing'));
+-- 5063: the same cap of 3 an hour: an Admin who already had 3 gets the line in the daily digest, once
+select test.ok('at the cap the urgent To do waits in the digest', exists (select 1 from notification_outbox o join staff_email_digest_items i on i.outbox_id = o.id
+  where o.recipient_user_id = test.id('aeq_admin') and o.dedupe_key like 'admin_now|task:%' and o.status = 'skipped' and i.digested_at is null
+    and i.line = 'Needs you now: Urgent To do: Aeq urgent thing'));
+select test.eq('and no immediate email past the cap', (select count(*) from notification_outbox o where o.recipient_user_id = test.id('aeq_admin') and o.dedupe_key like 'admin_now|%' and o.status = 'queued'), 0::bigint);
+select test.eq('once per key', app.admin_now_email('task:' || (select id from tasks where dedupe_key = 'aeq_urgent'), 'Urgent To do: Aeq urgent thing', '/admin/tasks', 'staff_system'), 0);
+select test.eq('one digest line for it', (select count(*) from staff_email_digest_items where user_id = test.id('aeq_admin') and line = 'Needs you now: Urgent To do: Aeq urgent thing'), 1::bigint);
 select app.raise_task(p_type => 'aeq_check', p_title => 'Aeq normal thing', p_queue => 'admin', p_priority => 'normal', p_dedupe => 'aeq_normal');
-select test.eq('with no "next digest" time', (select o.payload ->> 'digest_next' from notification_outbox o where o.recipient_user_id = test.id('aeq_admin') and o.dedupe_key like 'admin_now|task:%' limit 1), '');
+select test.eq('with no "next digest" time', (select o.payload ->> 'digest_next' from notification_outbox o where o.recipient_user_id = test.id('aeq_admin2') and o.dedupe_key like 'admin_now|task:%' limit 1), '');
 select test.ok('not to an Admin whose alert emails are off', not exists (select 1 from notification_outbox o where o.recipient_user_id = test.id('aeq_admin_off') and o.dedupe_key like 'admin_now|%'));
 select test.ok('not to an Admin who switched that kind''s email off', not exists (select 1 from notification_outbox o where o.recipient_user_id = test.id('aeq_admin_nosys') and o.dedupe_key like 'admin_now|task:%'));
-select test.ok('a normal To do does not', not exists (select 1 from notification_outbox o where o.recipient_user_id = test.id('aeq_admin') and o.payload ->> 'digest_summary' like '%Aeq normal thing%'));
+select test.ok('a normal To do does not', not exists (select 1 from notification_outbox o where o.recipient_user_id = test.id('aeq_admin2') and o.payload ->> 'digest_summary' like '%Aeq normal thing%'));
 update tasks set priority = 'urgent' where dedupe_key = 'aeq_normal' and status = 'open';
-select test.ok('raised to urgent: it emails', exists (select 1 from notification_outbox o where o.recipient_user_id = test.id('aeq_admin') and o.payload ->> 'digest_summary' like '%Aeq normal thing%'));
+select test.ok('raised to urgent: it emails', exists (select 1 from notification_outbox o where o.recipient_user_id = test.id('aeq_admin2') and o.payload ->> 'digest_summary' like '%Aeq normal thing%'));
 select app.staff_alert('live_call_booked', 'hiring_alert', test.id('aeq_app'), 'booked:1', 'Live call booked: Aeq Applicant, Thu 2:00 pm', 'Driver', '{"path_admin": "/admin/hiring"}');
-select test.ok('a booked live interview emails the Admins', exists (select 1 from notification_outbox o where o.recipient_user_id = test.id('aeq_admin')
+select test.ok('a booked live interview emails the Admins', exists (select 1 from notification_outbox o where o.recipient_user_id = test.id('aeq_admin2')
   and o.dedupe_key like 'admin_now|live_call_booked:%' and o.status_reason = 'urgent' and o.payload::text like '%/admin/hiring%'));
 select test.ok('staff get no such email', not exists (select 1 from notification_outbox o where o.recipient_user_id = test.id('aeq_cs') and o.dedupe_key like 'admin_now|%'));
 
