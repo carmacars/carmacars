@@ -8,6 +8,7 @@ import returnDeposit from './flows/return-deposit.json';
 import approveOwnerCar from './flows/approve-owner-car.json';
 import fieldExpense from './flows/field-expense.json';
 import bookingRequest from './flows/booking-request.json';
+import checkinVisit from './flows/checkin-visit.json';
 
-export const FLOWS: Flow[] = [createOffer, bookingRequest, recordPayment, pickupHandover, returnDeposit, approveOwnerCar, fieldExpense] as Flow[];
+export const FLOWS: Flow[] = [createOffer, bookingRequest, recordPayment, pickupHandover, returnDeposit, approveOwnerCar, fieldExpense, checkinVisit] as Flow[];
 export const flowById = (id: string): Flow | undefined => FLOWS.find((f) => f.id === id);

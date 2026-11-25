@@ -55,7 +55,7 @@
       "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
     }
   ],
-  "count": 281,
+  "count": 285,
   "emails": [
     {
       "code": "account_password_reset",
@@ -2844,6 +2844,175 @@
       ],
       "template_html": "templates/renter_chat_transcript.html",
       "template_text": "templates/renter_chat_transcript.txt"
+    },
+    {
+      "code": "renter_checkin_followup",
+      "audience": "renter",
+      "category": "transactional",
+      "trigger": "Release 50 (4000): the monthly check-in visit of a long-term rental reached its due date and no time was picked. One gentle follow-up per visit, never more.",
+      "timing": "On the due date, once",
+      "digest": false,
+      "from": "CarmaCars <bookings@carmacars.ca>",
+      "reply_to": "bookings@carmacars.ca",
+      "subject": "Still time for your check-in visit",
+      "preheader": "Pick a time for the {{vehicle_name}} when it suits you. Free, about 15 minutes.",
+      "sample_subject": "Still time for your check-in visit",
+      "variables": [
+        {
+          "name": "booking_number",
+          "type": "string",
+          "sample": "CC-10482",
+          "note": "Agreement and booking number shown to the customer."
+        },
+        {
+          "name": "checkin_due_date",
+          "type": "string",
+          "sample": "Monday, December 14"
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Maya",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        },
+        {
+          "name": "vehicle_name",
+          "type": "string",
+          "sample": "2024 Honda Civic Sport",
+          "note": "Year, make, model and trim."
+        }
+      ],
+      "template_html": "templates/renter_checkin_followup.html",
+      "template_text": "templates/renter_checkin_followup.txt"
+    },
+    {
+      "code": "renter_checkin_reminder",
+      "audience": "renter",
+      "category": "transactional",
+      "trigger": "Release 50 (4000): a long-term rental (longer than the check-in minimum, 28 days by default, a long-term weekly rental, or a booking with check-ins switched on) has its monthly check-in visit coming up: sent the reminder lead (5 days by default) before the visit is due, once per visit. A suggestion, never a requirement or a fee.",
+      "timing": "Days before the visit is due (Program settings)",
+      "digest": false,
+      "from": "CarmaCars <bookings@carmacars.ca>",
+      "reply_to": "bookings@carmacars.ca",
+      "subject": "Your monthly check-in visit: around {{checkin_due_date}}",
+      "preheader": "A quick look at the {{vehicle_name}} to keep it in top shape. Nothing to pay. Pick a time that suits you.",
+      "sample_subject": "Your monthly check-in visit: around Monday, December 14",
+      "variables": [
+        {
+          "name": "booking_number",
+          "type": "string",
+          "sample": "CC-10482",
+          "note": "Agreement and booking number shown to the customer."
+        },
+        {
+          "name": "checkin_due_date",
+          "type": "string",
+          "sample": "Monday, December 14"
+        },
+        {
+          "name": "checkin_place",
+          "type": "string",
+          "sample": "Our office, 123 Example Road, Toronto"
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Maya",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        },
+        {
+          "name": "vehicle_name",
+          "type": "string",
+          "sample": "2024 Honda Civic Sport",
+          "note": "Year, make, model and trim."
+        }
+      ],
+      "template_html": "templates/renter_checkin_reminder.html",
+      "template_text": "templates/renter_checkin_reminder.txt"
     },
     {
       "code": "renter_comeback_1m",
@@ -22065,6 +22234,117 @@
       ],
       "template_html": "templates/staff_car_photos_ready.html",
       "template_text": "templates/staff_car_photos_ready.txt"
+    },
+    {
+      "code": "staff_checkin_booked",
+      "audience": "staff_va_fleet",
+      "also_sent_to": [
+        "staff_admin"
+      ],
+      "category": "transactional",
+      "trigger": "Release 50 (4000): a renter on a long-term rental picked a time for the monthly check-in visit (at the office, or by request). Immediate, once per time picked, to Fleet and the Admins.",
+      "timing": "Immediate",
+      "digest": false,
+      "from": "CarmaCars <bookings@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "Check-in visit booked: {{vehicle_name}}, {{checkin_time}}",
+      "preheader": "{{renter_name}}, booking {{booking_number}}: {{checkin_place}}.",
+      "sample_subject": "Check-in visit booked: 2024 Honda Civic Sport, Monday, December 14, 2:30 pm",
+      "variables": [
+        {
+          "name": "booking_number",
+          "type": "string",
+          "sample": "CC-10482",
+          "note": "Agreement and booking number shown to the customer."
+        },
+        {
+          "name": "checkin_note",
+          "type": "string",
+          "sample": "None"
+        },
+        {
+          "name": "checkin_place",
+          "type": "string",
+          "sample": "At the office"
+        },
+        {
+          "name": "checkin_time",
+          "type": "string",
+          "sample": "Monday, December 14, 2:30 pm"
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "renter_name",
+          "type": "string",
+          "sample": "Maya Okafor"
+        },
+        {
+          "name": "vehicle_name",
+          "type": "string",
+          "sample": "2024 Honda Civic Sport",
+          "note": "Year, make, model and trim."
+        }
+      ],
+      "template_html": "templates/staff_checkin_booked.html",
+      "template_text": "templates/staff_checkin_booked.txt"
+    },
+    {
+      "code": "staff_checkin_today",
+      "audience": "staff_va_fleet",
+      "also_sent_to": [
+        "staff_admin"
+      ],
+      "category": "transactional",
+      "trigger": "Release 50 (4000): a monthly check-in visit is booked for today, or is due today without a time. Once per visit per day, from 7 am Toronto time, to Fleet and the Admins.",
+      "timing": "The morning of the day",
+      "digest": false,
+      "from": "CarmaCars <bookings@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "Check-in visit today: {{vehicle_name}}",
+      "preheader": "{{renter_name}}, booking {{booking_number}}: {{checkin_time}}.",
+      "sample_subject": "Check-in visit today: 2024 Honda Civic Sport",
+      "variables": [
+        {
+          "name": "booking_number",
+          "type": "string",
+          "sample": "CC-10482",
+          "note": "Agreement and booking number shown to the customer."
+        },
+        {
+          "name": "checkin_place",
+          "type": "string",
+          "sample": "At the office"
+        },
+        {
+          "name": "checkin_time",
+          "type": "string",
+          "sample": "Due today, no time picked yet"
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "renter_name",
+          "type": "string",
+          "sample": "Maya Okafor"
+        },
+        {
+          "name": "vehicle_name",
+          "type": "string",
+          "sample": "2024 Honda Civic Sport",
+          "note": "Year, make, model and trim."
+        }
+      ],
+      "template_html": "templates/staff_checkin_today.html",
+      "template_text": "templates/staff_checkin_today.txt"
     },
     {
       "code": "staff_digest_eod_va_fleet",

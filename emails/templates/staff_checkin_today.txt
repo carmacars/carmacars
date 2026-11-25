@@ -1,0 +1,26 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Check-in visit]
+On today
+
+The monthly check-in visit of the {{vehicle_name}} ({{renter_name}}) is today.
+
+When: {{checkin_time}}
+Where: {{checkin_place}}
+
+Open check-in visits:
+https://carmacars.ca/staff/check-ins
+
+Not booked yet? It is a suggestion to the renter: a friendly call is fine, never a charge.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/

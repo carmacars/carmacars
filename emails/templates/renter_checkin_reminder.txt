@@ -1,0 +1,35 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Check-in visit]
+Time for a quick check-in
+
+Hi {{first_name}}. Your {{vehicle_name}} is due for its monthly check-in visit around {{checkin_due_date}}. It takes about 15 minutes.
+
+- We look the car over and note its condition, so it stays in top shape for you
+- We catch maintenance early (oil, tires, brakes), before it becomes a problem on the road
+- There is nothing to pay: the visit is free and part of your rental
+
+Around: {{checkin_due_date}}
+Where: {{checkin_place}}
+Car: {{vehicle_name}}
+
+Pick a time:
+https://carmacars.ca/account/bookings/{{booking_number}}/check-in
+
+It is a suggestion, not a requirement. If the dates do not suit you, pick another time or ask us to come to you.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

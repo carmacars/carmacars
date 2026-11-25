@@ -31,6 +31,8 @@ import { cardPayments } from '@/server/card-provider';
 import type { HandoverReportData } from '@/features/handover/types';
 import { AnimatedNumber, Disclosure, DocumentList, DocumentRow, MoneyCard, PortalCard, ProgressRing, QuickAction, QuickActions, type MoneyPart } from '@/components/portal-ui';
 import { TripHero, ourAddress, tripPhoto } from '@/features/portal/trip';
+import { CheckinCard } from '@/features/checkins/CheckinCard';
+import { renterCheckin } from '@/server/checkins';
 import { placeText } from '@/features/portal/Blocks';
 import { nextAction, stageSummary, stages, todos } from '@/features/portal/next-action';
 import { quickLinks } from '@/features/portal/quick-links';
@@ -142,6 +144,8 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
   // r48 part 2 (3053): after the return, the receipt offers a tip for the team
   const tips = ['returned', 'closed'].includes(b.status) && b.booking_type !== 'owner'
     ? ((await rpc('server_tip_options', { p_booking: b.id }, { role: 'service_role' }).catch(() => null)) as unknown as TipOptions | null) : null;
+  // r50 (4000): the monthly check-in visit of a long rental
+  const checkin = ['confirmed', 'on_rent'].includes(b.status) && b.booking_type !== 'owner' ? await renterCheckin(user.id, b.booking_number) : null;
   const addr = ourAddress(s);
   const act = nextAction(b, step, { pickupPlace: placeText(b.pickup_place ?? addr, b.pickup_method, true), returnPlace: placeText(b.return_place ?? addr, b.return_method, false),
     balanceCents: balanceDue, needs: stillNeededOf(b), reviewDue });
@@ -189,6 +193,7 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
         <p className="small muted" data-testid="status-blurb">{awaitingSignature(b) ? AWAITING_SIGNATURE.blurb : STATUS[b.status].blurb}
           {b.status === 'confirmed' && <> Bring your original licence{card ? ` and the card ending ${card.card_last4}` : ' and the card you paid with'}.</>}</p>
       </TripHero>
+      {checkin?.on && <CheckinCard s={checkin} number={b.booking_number} />}
 
       {showEtDep && etDep && <EtransferPay s={etDep} title="Send the deposit by e-Transfer" />}
       {depOwed?.pending && !showEtDep && (

@@ -1,0 +1,16 @@
+/* Monthly check-in visits (release 50): the renter's time picker and the staff checklist. Phone first (320 px and up),
+   the kit's spacing tokens only. */
+.ci-modes { gap: var(--s-4); flex-wrap: wrap; }
+.ci-day { border: 0; padding: 0; margin: 0; min-width: 0; }
+.ci-slots { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+.ci-slots .btn { min-width: 5.5rem; min-height: 44px; }
+.ci-photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr)); gap: var(--s-3); }
+.ci-photo { display: flex; flex-direction: column; gap: var(--s-1); min-width: 0; }
+.ci-photo input[type='file'] { max-width: 100%; }
+.ci-photo__state { overflow-wrap: anywhere; }
+.ci-list { display: grid; gap: var(--s-3); padding: 0; margin: 0; list-style: none; }
+.ci-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s-2); min-width: 0; }
+.ci-row > * { min-width: 0; overflow-wrap: anywhere; }
+.ci-tabs { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+.ci-check { display: grid; gap: var(--s-4); max-width: 40rem; }
+@media (max-width: 380px) { .ci-slots .btn { min-width: calc(50% - var(--s-2)); } }

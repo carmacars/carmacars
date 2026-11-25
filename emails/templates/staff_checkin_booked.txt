@@ -1,0 +1,27 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Check-in visit]
+A visit is booked
+
+{{renter_name}} booked the monthly check-in visit of the {{vehicle_name}}.
+
+When: {{checkin_time}}
+Where: {{checkin_place}}
+Renter note: {{checkin_note}}
+
+Open check-in visits:
+https://carmacars.ca/staff/check-ins
+
+Do the visit from the queue: photos of the four sides and the odometer, damage, tires, fluids and warning lights, notes.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/

@@ -1,0 +1,90 @@
+{
+  "id": "checkin-visit",
+  "title": "Do a check-in visit",
+  "summary": "Check-in visits: open the visit, take the five photos, the odometer, damage, tires, fluids and warning lights, then Save the visit.",
+  "who": [
+    "admin",
+    "fleet",
+    "cs",
+    "field"
+  ],
+  "start": {
+    "admin": "/admin/check-ins",
+    "va": "/staff/check-ins",
+    "field": "/staff/field/check-ins"
+  },
+  "guide": {
+    "portal": "va",
+    "slug": "fleet"
+  },
+  "steps": [
+    {
+      "id": "queue",
+      "target": "checkin-queue",
+      "text": "Check-in visits: Booked first, then Due and Overdue. Overdue is soft: the visit is a suggestion to the renter, never a fee.",
+      "read": true,
+      "done": {
+        "exists": "checkin-checklist"
+      },
+      "skipIfDone": true
+    },
+    {
+      "id": "open",
+      "target": "checkin-open",
+      "text": "Press Do the visit on the car in front of you.",
+      "done": {
+        "exists": "checkin-checklist"
+      },
+      "skipIfDone": true
+    },
+    {
+      "id": "photos",
+      "target": "checkin-photos",
+      "text": "Take the five photos: front, rear, left side, right side and the odometer. Each one uploads as you take it.",
+      "read": true
+    },
+    {
+      "id": "odometer",
+      "target": "checkin-odometer",
+      "text": "Type the odometer reading in km. It goes into the car's maintenance, which shows the next service due.",
+      "done": {
+        "filled": "checkin-km"
+      }
+    },
+    {
+      "id": "damage",
+      "target": "checkin-damage",
+      "text": "Any new damage? Yes, with where and what, logs it for the Admins with your photos.",
+      "read": true
+    },
+    {
+      "id": "tread",
+      "target": "checkin-tread",
+      "text": "Measure the tire tread (the lowest, in mm). Under 3 mm raises a Fleet To do.",
+      "read": true
+    },
+    {
+      "id": "fluids",
+      "target": "checkin-fluids",
+      "text": "Check the oil, coolant and washer, and note any warning light on the dashboard.",
+      "read": true
+    },
+    {
+      "id": "save",
+      "target": "checkin-save",
+      "text": "Press Save the visit. Anything to look after becomes a To do; the visit shows on the booking's timeline and the owner's car page.",
+      "done": {
+        "any": [
+          {
+            "attr": "checkin-checklist",
+            "name": "data-sent",
+            "equals": "yes"
+          },
+          {
+            "gone": "checkin-checklist"
+          }
+        ]
+      }
+    }
+  ]
+}

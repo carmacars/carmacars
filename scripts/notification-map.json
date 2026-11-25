@@ -127,6 +127,10 @@
   "payment.etransfer_renter_reported": {"staff_va_finance": "staff_etransfer_reported", "staff_admin": "staff_etransfer_reported"},
   "payment.etransfer_renter_confirmed": {"renter": "renter_etransfer_confirmed"},
   "payment.etransfer_renter_declined": {"renter": "renter_etransfer_declined"},
-  "payment.card_payments_paused": {"staff_admin": "admin_card_payments_paused"}
+  "payment.card_payments_paused": {"staff_admin": "admin_card_payments_paused"},
+  "booking.checkin_due": {"renter": "renter_checkin_reminder"},
+  "booking.checkin_not_booked": {"renter": "renter_checkin_followup"},
+  "booking.checkin_booked": {"staff_va_fleet": "staff_checkin_booked", "staff_admin": "staff_checkin_booked"},
+  "booking.checkin_today": {"staff_va_fleet": "staff_checkin_today", "staff_admin": "staff_checkin_today"}
  }
 }

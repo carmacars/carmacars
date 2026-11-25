@@ -21,6 +21,13 @@ export function ServiceHistory({ h }: { h: OwnerHistory }) {
             <span className="ow-meta"><span>{day(r.done_on)}</span>{r.odometer_km ? <span>{r.odometer_km.toLocaleString('en-CA')} km</span> : null}{r.shop ? <span>{r.shop}</span> : null}<span>Paid by: {r.paid_by}</span></span></li>))}
         </ul>
       ) : <p className="muted small">No service recorded yet.</p>}
+      {/* r50 (4000): the monthly check-in visits of a long rental: the car's condition as we found it */}
+      {(h.checkins?.length ?? 0) > 0 && <>
+        <h3 className="d5" id="ow-ci">Check-in visits</h3>
+        <ul className="ow-rows" aria-labelledby="ow-ci" data-testid="owner-checkins">{h.checkins!.map((c, n) => (
+          <li key={n}><span>{c.summary}</span><span className="ow-amount" />
+            <span className="ow-meta"><span>{day(c.done_on)}</span>{c.odometer_km ? <span>{c.odometer_km.toLocaleString('en-CA')} km</span> : null}{c.tread_mm !== null ? <span>Tread {c.tread_mm} mm</span> : null}{c.next_service ? <span>Next: {c.next_service}</span> : null}</span></li>))}
+        </ul></>}
     </section>
   );
 }
