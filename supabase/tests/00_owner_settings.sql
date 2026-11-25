@@ -2,7 +2,7 @@
 -- settings. The rest of the legal review is in 33_legal_review.sql.
 select test.suite('00 owner settings');
 select test.eq('settings: the mailing address and the street address, each with its postal code (0079 added the street''s)',
-  (select mailing_address || ' | ' || street_address from site_settings where singleton), '2967 Dundas St W, Unit 208B, Toronto, ON M6P 1Z2 | 1570 Midland Ave, Toronto, ON M1P 3C3');
+  (select mailing_address || ' | ' || street_address from site_settings where singleton), '2967 Dundas St W, Unit 208B, Toronto, ON M6P 1Z2 | 1940 Eglinton Ave E, Toronto, ON M1L 4R1');
 select test.eq('settings: the signing officer and the date of the standing authorization',
   (select coalesce(signing_officer_name, '-') || '/' || coalesce(signing_officer_title, '-') || '/' || (signing_officer_authorized_on is not null) from app.settings()),
   (select coalesce(signing_officer_name, '-') || '/' || coalesce(signing_officer_title, '-') || '/true' from app.settings()));

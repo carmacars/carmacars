@@ -8,9 +8,9 @@ select test.suite('99 r35fix owner decisions');
 -- the migration put the lot on the settings rows that existed then (the oldest row here); earlier suites insert rows with
 -- column defaults and move the current row's coordinates (13 sets Dundas St W), so the current row takes the lot back first
 select test.eq('the origin is a Program setting: the address',
-  (select delivery_origin_address from program_settings order by effective_from limit 1), '1570 Midland Ave, Scarborough, ON');
+  (select delivery_origin_address from program_settings order by effective_from limit 1), '1940 Eglinton Ave E, Toronto, ON M1L 4R1'); -- 5041: the location moved
 select test.eq('the origin: its coordinates (approximate)',
-  (select format('%s,%s', company_latitude, company_longitude) from program_settings order by effective_from limit 1), '43.771000,-79.269000');
+  (select format('%s,%s', company_latitude, company_longitude) from program_settings order by effective_from limit 1), '43.728143,-79.288716'); -- 5041
 update program_settings p set delivery_origin_address = '1570 Midland Ave, Scarborough, ON', company_latitude = 43.771, company_longitude = -79.269
  where p.effective_from = (select max(effective_from) from program_settings where effective_from <= app.local_date(now()));
 select test.eq('the current settings read the lot', (app.settings()).delivery_origin_address, '1570 Midland Ave, Scarborough, ON');

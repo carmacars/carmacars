@@ -14,7 +14,8 @@ update site_settings set
   updated_at = now()
  where singleton;
 
-update program_settings set delivery_origin_address = '1940 Eglinton Ave E, Toronto, ON M1L 4R1'
+update program_settings set delivery_origin_address = '1940 Eglinton Ave E, Toronto, ON M1L 4R1',
+  company_latitude = 43.728143, company_longitude = -79.288716
  where delivery_origin_address ilike '%1570 Midland%';
 
 -- the wording of the guides and the academy (the published copy too, so readers see it at once)

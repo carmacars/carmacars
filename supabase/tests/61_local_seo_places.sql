@@ -40,7 +40,7 @@ select test.eq('leads: every kind is still allowed after 0088, 0093 and 0095',
 
 -- ================================================================ 2. one name, address and phone; the rating
 select test.eq('NAP: the business address is the street address the site shows',
-  (select concat_ws('|', business_street, business_city, business_region, business_postal_code) from site_settings), '1570 Midland Ave|Toronto|ON|M1P 3C3');
+  (select concat_ws('|', business_street, business_city, business_region, business_postal_code) from site_settings), '1940 Eglinton Ave E|Toronto|ON|M1L 4R1');
 select test.ok('rating: none below seo_rating_min_reviews published reviews',
   public.business_rating() is null or ((public.business_rating() ->> 'count')::integer >= (app.settings()).seo_rating_min_reviews));
 
