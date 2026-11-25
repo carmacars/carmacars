@@ -118,3 +118,21 @@ test('email route (2600): booking and system email SES then Resend; marketing Re
   assert.deepEqual(emailProviderOrder({ ...on, category: 'transactional' }), ['ses', 'cf', 'resend']);
   assert.deepEqual(emailProviderOrder({ ...on, category: 'marketing' }), ['resend']);
 });
+
+// r50 infra: postgres.js sends a JS string bound to `${x}::jsonb` as a JSON string, so the function got the scalar
+// "{\"seen\":true}" and took its failure branch (ses_seen_at never set, SES never tried: 0 sends). Every JSON argument of
+// an Edge Function goes as ::text::jsonb, as calendar-sync and owner-debit do.
+test('edge functions: a JSON argument is bound as ::text::jsonb, never ::jsonb', async () => {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../../../supabase/functions');
+  const bad: string[] = [];
+  for (const d of fs.readdirSync(root)) {
+    const dir = path.join(root, d);
+    if (!fs.statSync(dir).isDirectory()) continue;
+    for (const f of fs.readdirSync(dir).filter((x) => x.endsWith('.ts'))) {
+      fs.readFileSync(path.join(dir, f), 'utf8').split('\n').forEach((l, i) => { if (/\}::jsonb/.test(l)) bad.push(`${d}/${f}:${i + 1}`); });
+    }
+  }
+  assert.deepEqual(bad, []);
+});

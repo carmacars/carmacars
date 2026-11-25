@@ -159,7 +159,7 @@ origin_tls() {
   elif [ "$ok" != 1 ]; then warn_ "TLS: a hostname outside $dom and *.$dom ($hosts): Let's Encrypt over HTTP-01"
   else
     vps_ssh "sudo cat /opt/carmacars/supabase/caddy/sites/origin/cert.pem 2>/dev/null || true" > "$stage/current.pem" || : > "$stage/current.pem"
-    st=$(DOMAIN="$dom" "$HERE/cf-site.sh" origin-cert "$stage/origin" "$stage/current.pem") || st=none
+    st=$(DOMAIN="$dom" ORIGIN_HOSTS="$hosts" "$HERE/cf-site.sh" origin-cert "$stage/origin" "$stage/current.pem") || st=none
     if [ "$st" = new ]; then
       install -m 600 "$stage/origin/cert.pem" "$stage/origin-cert.pem"; install -m 600 "$stage/origin/key.pem" "$stage/origin-key.pem"
     fi

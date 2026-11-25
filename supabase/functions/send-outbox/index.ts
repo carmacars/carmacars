@@ -237,7 +237,7 @@ async function sendOne(r: Row): Promise<'sent' | 'failed' | Held> {
       if ('id' in s) {
         await sql`select app.outbox_mark_sent(${r.id}::uuid, ${'ses:' + s.id}, ${text})`;
         budget.sesLeft--;
-        if (!sesReported) { sesReported = true; await sql`select public.server_ses_email_result(${JSON.stringify({ ok: true })}::jsonb)`.catch(() => {}); }
+        if (!sesReported) { sesReported = true; await sql`select public.server_ses_email_result(${JSON.stringify({ ok: true })}::text::jsonb)`.catch(() => {}); }
         return 'sent';
       }
       // SES's sending rate: this email goes again in a minute, attempts untouched
@@ -248,11 +248,11 @@ async function sendOne(r: Row): Promise<'sent' | 'failed' | Held> {
       // once a run, and the Admins get one alert a day with the AWS console step
       if (s.kind === 'email' && /not verified/i.test(s.error) && !sesSandboxReported) {
         sesSandboxReported = true;
-        await sql`select public.server_ses_email_result(${JSON.stringify({ sandbox: true, error: s.error })}::jsonb)`.catch(() => {});
+        await sql`select public.server_ses_email_result(${JSON.stringify({ sandbox: true, error: s.error })}::text::jsonb)`.catch(() => {});
       }
       if (s.kind === 'account') {
         sesOn = false;
-        await sql`select public.server_ses_email_result(${JSON.stringify({ ok: false, error: s.error })}::jsonb)`.catch(() => {});
+        await sql`select public.server_ses_email_result(${JSON.stringify({ ok: false, error: s.error })}::text::jsonb)`.catch(() => {});
       }
     }
     const noteSes = async () => { if (sesError) await sql`select public.server_outbox_note_ses_fallback(${r.id}::uuid, ${sesError})`.catch(() => {}); };
@@ -276,7 +276,7 @@ async function sendOne(r: Row): Promise<'sent' | 'failed' | Held> {
       const cf = await viaCloudflare({ from: fromHeader(r.from_address), to: r.to_address, reply_to: r.reply_to || undefined, subject, html, text,
         headers: Object.keys(headers).length ? headers : undefined, attachments: files.length ? files : undefined });
       if ('id' in cf) {
-        await sql`select public.server_cf_email_result(${JSON.stringify({ ok: true })}::jsonb)`;
+        await sql`select public.server_cf_email_result(${JSON.stringify({ ok: true })}::text::jsonb)`;
         await sql`select app.outbox_mark_sent(${r.id}::uuid, ${'cf:' + cf.id}, ${text})`;
         budget.cfLeft--;
         lastVia = 'cf';
@@ -286,7 +286,7 @@ async function sendOne(r: Row): Promise<'sent' | 'failed' | Held> {
       // not this time: reported (Cloudflare rests 15 minutes), and this email goes through Resend
       cfOn = false;
       cfError = cfRest = cf.error;
-      await sql`select public.server_cf_email_result(${JSON.stringify({ ok: false, error: cf.error })}::jsonb)`;
+      await sql`select public.server_cf_email_result(${JSON.stringify({ ok: false, error: cf.error })}::text::jsonb)`;
     }
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -307,14 +307,14 @@ async function sendOne(r: Row): Promise<'sent' | 'failed' | Held> {
           if ('id' in cf) {
             cfOn = true;
             // 0535: a send here counts as Cloudflare working too (before, Cloudflare "never" sent: its last success was not kept)
-            await sql`select public.server_cf_email_result(${JSON.stringify({ ok: true })}::jsonb)`;
+            await sql`select public.server_cf_email_result(${JSON.stringify({ ok: true })}::text::jsonb)`;
             await sql`select app.outbox_mark_sent(${r.id}::uuid, ${'cf:' + cf.id}, ${text})`;
             budget.cfLeft--;
             lastVia = 'cf';
             await noteSes();
             return 'sent';
           }
-          await sql`select public.server_cf_email_result(${JSON.stringify({ ok: false, error: cf.error })}::jsonb)`;
+          await sql`select public.server_cf_email_result(${JSON.stringify({ ok: false, error: cf.error })}::text::jsonb)`;
         }
         await defer(r, h); return h;
       }
@@ -351,7 +351,7 @@ Deno.serve(async (req) => {
   // 2570: the keys are set: the database may count SES's day (it tries SES only while this was seen within the hour)
   sesReported = false;
   sesSandboxReported = false;
-  if (SES) await sql`select public.server_ses_email_result(${JSON.stringify({ seen: true })}::jsonb)`.catch(() => {});
+  if (SES) await sql`select public.server_ses_email_result(${JSON.stringify({ seen: true })}::text::jsonb)`.catch(() => {});
   await loadBudgets();
   sesOn = emailProviderOrder({ sesConfigured: !!SES, sesEnabled: budget.sesEnabled, sesLeft: budget.sesLeft, sesResting: budget.sesResting,
     cfOn, cfLeft: budget.cfLeft, resendLeft: budget.resendLeft })[0] === 'ses';

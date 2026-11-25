@@ -140,6 +140,9 @@ test('the Origin CA certificate: made once, then reused while it covers the doma
   const pub = (args) => execFileSync('openssl', args, { encoding: 'utf8' });
   assert.equal(pub(['x509', '-in', `${dir}/cert.pem`, '-noout', '-pubkey']), pub(['pkey', '-in', `${dir}/key.pem`, '-pubout']), 'the key matches the certificate');
   assert.equal((fs.statSync(`${dir}/key.pem`).mode & 0o777).toString(8), '600');
+  // r50 infra: the exact web hostnames, never *.DOMAIN (a wildcard in Caddy also takes api. and meet., which are DNS-only)
+  assert.match(pub(['x509', '-in', `${dir}/cert.pem`, '-noout', '-ext', 'subjectAltName']), /DNS:carmacars\.ca, DNS:www\.carmacars\.ca/);
+  assert.doesNotMatch(pub(['x509', '-in', `${dir}/cert.pem`, '-noout', '-ext', 'subjectAltName']), /\*/);
   const b = await run(['origin-cert', path.join(tmp, 'o2'), `${dir}/cert.pem`]);
   assert.equal(b.out, 'reuse', b.err);
   assert.equal(W.certs, 1);
@@ -148,6 +151,14 @@ test('the Origin CA certificate: made once, then reused while it covers the doma
   await run(['origin-cert', path.join(tmp, 'o3')]);
   W.certDays = 5475;
   assert.equal((await run(['origin-cert', path.join(tmp, 'o4'), path.join(tmp, 'o3', 'cert.pem')])).out, 'new');
+  // a wildcard certificate (made before r50 infra) is replaced; the hostnames asked are the ones made
+  fs.mkdirSync(path.join(tmp, 'ow'), { recursive: true });
+  fs.writeFileSync(path.join(tmp, 'ow', 'cert.pem'), sign(execFileSync('openssl', ['req', '-new', '-key', `${dir}/key.pem`, '-subj', '/CN=carmacars.ca'], { encoding: 'utf8' }), ['carmacars.ca', '*.carmacars.ca'], 5475));
+  const hosts = { ORIGIN_HOSTS: 'new.carmacars.ca,carmacars.ca,www.carmacars.ca' };
+  const w = await run(['origin-cert', path.join(tmp, 'o6'), path.join(tmp, 'ow', 'cert.pem')], hosts);
+  assert.equal(w.out, 'new', w.err);
+  assert.equal((await run(['origin-cert', path.join(tmp, 'o7'), path.join(tmp, 'o6', 'cert.pem')], hosts)).out, 'reuse');
+  assert.equal((await run(['origin-cert', path.join(tmp, 'o8'), path.join(tmp, 'o6', 'cert.pem')], { ORIGIN_HOSTS: 'carmacars.ca,shop.carmacars.ca' })).out, 'new', 'a hostname not covered: a new one');
 });
 
 test('a token without SSL and Certificates permission: none, the permission named, the run goes on', async () => {
