@@ -9,7 +9,7 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
   { id: 'rentals', title: 'Rentals and rules', about: 'Timings, fees, classes, delivery and the extras renters buy',
     keys: ['program', 'fees', 'deposits', 'km', 'classes', 'class-rules', 'airports', 'coverage', 'addons', 'promo-codes', 'forms'] },
   { id: 'payments', title: 'Payments and coverage', about: 'The card reader, credit card coverage and insurers',
-    keys: ['card-reader', 'card-coverage', 'coverage-affiliate', 'insurers'] },
+    keys: ['card-reader', 'card-coverage', 'coverage-affiliate', 'incorporation-referral', 'insurers'] },
   { id: 'messages', title: 'Messages and reviews', about: 'Emails, texts, phone contacts, review requests and social posts',
     keys: ['email', 'notifications', 'text-alerts', 'calls', 'quick-replies', 'call-helper', 'quo-contacts', 'reviews', 'meta-publishing'] },
   { id: 'cars', title: 'Cars and partners', about: 'Service intervals and the partner companies we share cars with',

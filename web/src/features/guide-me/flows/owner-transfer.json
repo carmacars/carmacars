@@ -1,0 +1,16 @@
+{
+  "id": "owner-transfer",
+  "title": "Transfer my car to CarmaCars",
+  "summary": "Each step of your car's onboarding: sign, upload, the ServiceOntario transfer, the new permit.",
+  "who": ["owner"],
+  "start": "/owner",
+  "guide": { "portal": "owner", "slug": "apply-and-get-your-car-listed" },
+  "steps": [
+    { "id": "steps", "target": "owner-stages", "text": "Your car's steps: what is done, and the one thing to do now.", "on": "/owner", "href": "/owner", "page": "page-head", "when": { "exists": "owner-stages" } },
+    { "id": "now", "target": "os-now", "text": "This step is yours when it says Your turn. Read what to bring, where to go and how long it takes.", "page": "owner-stages", "when": { "exists": "os-now" } },
+    { "id": "cta", "target": "os-cta", "text": "Press the button: it opens the page for this step (sign, upload, or the incorporation link).", "page": "owner-stages", "when": { "exists": "os-cta" } },
+    { "id": "transfer", "target": "os-now", "text": "Ownership transfer: find a ServiceOntario centre, book a time, then press I booked it and enter the time and the centre.", "page": "owner-stages", "when": { "exists": "os-appointment" }, "done": { "exists": "os-visited" } },
+    { "id": "visited", "target": "os-now", "text": "After the counter: tick that the fees are paid and press Transfer done.", "page": "owner-stages", "when": { "exists": "os-visited" } },
+    { "id": "permit", "target": "owner-stage-uploads", "text": "Upload the new ownership permit (and any document still asked for) on the car's page.", "on": "/owner/vehicles/*", "page": "page-head", "when": { "exists": "owner-stage-uploads" } }
+  ]
+}

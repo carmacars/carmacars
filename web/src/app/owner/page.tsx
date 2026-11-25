@@ -20,6 +20,8 @@ import { onboardingData } from '@/server/onboarding';
 import { FleetLeaseCard } from '@/features/owner/FleetLeaseCard';
 import { OwnerPathCard } from '@/features/owner-path/OwnerPath';
 import { ownerPath, type SignStatus } from '@/features/owner-path/path';
+import { StageTracker } from '@/features/owner-stages/StageTracker';
+import type { Stages } from '@/features/owner-stages/model';
 import { ActionTiles, PortalHero, Sparkline, StatCard, Timeline, TimelineItem, type ActionTileItem } from '@/components/portal-ui';
 
 export const dynamic = 'force-dynamic';
@@ -33,7 +35,7 @@ export default async function OwnerHomePage({ searchParams }: { searchParams: Pr
   const [{ user, home }, sp] = await Promise.all([requireOwner('/owner'), searchParams]);
   // r48 speed: every read of the page at once (they were seven round trips one after another)
   const shownCars = home.vehicles.slice(0, 4).filter((v) => !['declined', 'exited', 'total_loss'].includes(v.status));
-  const [checklistRaw, appTaskRaw, changesRaw, [view, mtd], onboarding, serviceRows, forecast, sign] = await Promise.all([
+  const [checklistRaw, appTaskRaw, changesRaw, [view, mtd], onboarding, serviceRows, forecast, sign, stages] = await Promise.all([
     // what is left to sign on screen (0049): one package on /owner/sign
     rpc('server_my_signing_checklist', { p_by: user.id }, { role: 'service_role' }).catch(() => null),
     // what CarmaCars asked for on an application (0054), until the owner answers
@@ -49,7 +51,10 @@ export default async function OwnerHomePage({ searchParams }: { searchParams: Pr
     // r48 O (3081): the next 12 months of each car (the owner's own cars, ops_read owner_forecast)
     door<OwnerForecast>(user.id, 'ops_read', 'owner_forecast', { owner_id: home.owner.id }).catch(() => null),
     // r50 (3800): sign first, then cars: the owner's guided path
-    home.kind === 'partner' ? Promise.resolve(null) : door<SignStatus>(user.id, 'ops_read', 'owner_sign_status', { owner_id: home.owner.id }).catch(() => null)]);
+    home.kind === 'partner' ? Promise.resolve(null) : door<SignStatus>(user.id, 'ops_read', 'owner_sign_status', { owner_id: home.owner.id }).catch(() => null),
+    // r50 (4511): the owner pipeline: each car's steps and the one thing to do now
+    home.kind === 'partner' || !home.vehicles.length ? Promise.resolve(null) : door<Stages>(user.id, 'ops_read', 'owner_stages', { owner_id: home.owner.id }).catch(() => null)]);
+  const tracked = (stages?.cars.length ?? 0) > 0;
   const path = sign ? ownerPath(sign) : null;
   const guided = !!path?.current;
   const checklist = checklistRaw as unknown as { items: Array<{ status: string; how: string; label: string; preview?: boolean }>; done: number; total: number } | null;
@@ -120,9 +125,10 @@ export default async function OwnerHomePage({ searchParams }: { searchParams: Pr
   return (
     <>
       {banners}
-      <OwnerPathCard status={sign} />
+      {/* r50 (4511): with a car on its way, the stage tracker is the guided path (its Agreements step opens /owner/sign) */}
+      {tracked ? <StageTracker data={stages} base="/owner" refresh={['/owner']} title="Your next step" /> : <OwnerPathCard status={sign} />}
       {/* the guided path's button opens /owner/sign itself; an updated Vehicle Schedule or a government form to sign is its own next step */}
-      {next && !(guided && next.href === '/owner/sign') && (
+      {next && !((guided || tracked) && next.href === '/owner/sign') && !(tracked && next.href.startsWith('/owner/sign/forms/')) && (
         <section className="pt-card pt-card--next pu-next" aria-labelledby="ow-next" data-testid="owner-next-step" data-guide="owner-next-step">
           <p className="pt-kicker">Next step</p>
           <h2 className="d3" id="ow-next">{next.title}</h2>

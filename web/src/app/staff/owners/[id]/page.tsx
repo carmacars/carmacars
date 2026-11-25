@@ -14,6 +14,8 @@ import { VinList } from '@/features/onboarding/VinList';
 import { onboardingData } from '@/server/onboarding';
 import { SignGate } from '@/features/owner-path/SignGate';
 import type { SignStatus } from '@/features/owner-path/path';
+import { StageTracker } from '@/features/owner-stages/StageTracker';
+import type { Stages } from '@/features/owner-stages/model';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Owner', path: '/staff/owners', noindex: true, description: 'One owner: the onboarding checklist, the photos, the government forms and adding cars.' });
@@ -24,9 +26,11 @@ export const metadata = pageMeta({ title: 'Owner', path: '/staff/owners', noinde
 export default async function StaffOwner({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
-  const { user } = await vaPage(`/staff/owners/${id}`, ['cs', 'fleet']);
+  // r50 (4511): Sales too, for the owners they brought in (the database refuses the rest)
+  const { user } = await vaPage(`/staff/owners/${id}`, ['cs', 'fleet', 'sales']);
   // r50 (3800): what still keeps the cars from moving (the agreements before cars), with Send reminder
-  const [ob, sign] = await Promise.all([onboardingData(user.id, 'va_read', { owner_id: id }), door<SignStatus>(user.id, 'va_read', 'owner_sign_status', { owner_id: id }).catch(() => null)]);
+  const [ob, sign, stages] = await Promise.all([onboardingData(user.id, 'va_read', { owner_id: id }), door<SignStatus>(user.id, 'va_read', 'owner_sign_status', { owner_id: id }).catch(() => null),
+    door<Stages>(user.id, 'va_read', 'owner_stages', { owner_id: id }).catch(() => null)]);
   if (!ob.overview) notFound();
   const o = ob.overview.owner;
   const here = [`/staff/owners/${id}`];
@@ -36,7 +40,8 @@ export default async function StaffOwner({ params }: { params: Promise<{ id: str
   return (<>
     <PageHead kicker={<Link prefetch={false} className="link" href="/staff/owners">Owners</Link>} title={o.name}>
       <Link prefetch={false} className="btn btn--ghost btn--sm" href={`/staff/owners/add-car?owner=${id}`} data-testid="owner-add-car">Add another car</Link></PageHead>
-    <p className="gm-links"><GuideMeLink flow="approve-owner-car" /></p>
+    <p className="gm-links"><GuideMeLink flow="sales-move-owner" label="Guide me: move this owner forward" /> <GuideMeLink flow="approve-owner-car" /></p>
+    <StageTracker data={stages} base="/staff" refresh={here} />
     <SignGate status={sign} refresh={here} />
     <OnboardingChecklist data={ob.overview} />
     {preps.map(([c, x]) => x && <PrepPanel key={c.vehicle_id} p={x} vehicle={{ id: c.vehicle_id, name: c.name }} title={`Onboarding prep: ${c.name}`} />)}
