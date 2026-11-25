@@ -1,5 +1,6 @@
 import 'server-only';
 import { env } from '@/lib/env';
+import { hostingTarget } from '@/lib/platform/runtime';
 import type { Database, Json } from './types';
 
 // The one way the app reaches the database: by calling a function in the public schema, as one
@@ -48,6 +49,13 @@ async function getBackend(): Promise<Backend> {
 }
 
 export async function rpc<F extends FnName>(fn: F, args: ArgsOf<F>, opts: CallOptions = {}): Promise<ReturnsOf<F>> {
+  // r50 hotfix2: the Node image is built with no database (docker build on the deploy runner, deploy-vps 45661107743:
+  // api.carmacars.ca refused, every page with a read waited out the retries below and the 60 s limit three times). On
+  // that target a read while `next build` pre-renders makes the page render per request instead: connection() marks it
+  // dynamic at once, and throws where there is no page to defer (fails fast). Pages with no read stay static.
+  if (process.env.NEXT_PHASE === 'phase-production-build' && hostingTarget() === 'node') {
+    await (await import('next/server')).connection();
+  }
   const b = await getBackend();
   const role = opts.role ?? (opts.userId ? 'authenticated' : 'anon');
   let accessToken = opts.accessToken;
