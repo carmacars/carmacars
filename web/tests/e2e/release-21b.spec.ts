@@ -54,7 +54,7 @@ test('the academy: a lesson with captions, a quiz failed then passed, the next s
   const answers = await sql<Array<{ prompt: string; right: string; wrong: string }>>`select q.prompt, q.options ->> q.answer as right,
       q.options ->> ((q.answer + 1) % jsonb_array_length(q.options)) as wrong
     from academy_questions q join academy_sections s on s.id = q.section_id where s.slug = 'prices-and-deposits' order by q.sort`;
-  // 1154: the quiz opens after the section's reading time, in a random order, and a failed try waits 30 minutes; this
+  // 1154: the quiz opens after the section's reading time, in a random order, and a failed try waits (2 minutes since 5070); this
   // test covers the lesson, a failed try and a pass, so those two waits are off for its length (set back at the end)
   const [safe] = await sql<Array<{ wpm: number; cool: number }>>`select academy_read_wpm wpm, academy_fail_cooldown_minutes cool from program_settings limit 1`;
   await sql`update program_settings set academy_read_wpm = 0, academy_fail_cooldown_minutes = 0`;
@@ -92,6 +92,12 @@ test('the academy: a lesson with captions, a quiz failed then passed, the next s
       await page.getByTestId('quiz-submit').click();
     };
     await answer('wrong');
+    // R50 hotfix 2 (5070): the first check below the mark is not a try yet: the wrong ones are marked, to fix once
+    await expect(page.getByTestId('quiz-fix')).toContainText('Fix the ones marked wrong');
+    await expect(quiz.locator('fieldset[data-fix="wrong"]')).toHaveCount(answers.length);
+    await expect(page.getByTestId('quiz-submit')).toHaveText('Check my fixes');
+    await check(page, 'quiz fix');
+    await page.getByTestId('quiz-submit').click();
     await expect(page.getByTestId('quiz-result')).toContainText('Not passed yet');
     await page.getByTestId('quiz-retry').click();
     await answer('right');
