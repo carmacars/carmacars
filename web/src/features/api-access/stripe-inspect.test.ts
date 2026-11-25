@@ -1,7 +1,7 @@
 // r47 (2896): the connector's Stripe reads, with a faked Stripe.   npm run test:unit
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { findPayments, inspectAccount, inspectBooking, linkMetadata, LINKED_PURPOSE, recordable, stripeReader, tieOf, untiedWillDo, verdict, type Recorded, type StripeGet } from './stripe-inspect.ts';
+import { findPayments, inspectAccount, inspectBooking, linkMetadata, LINKED_PURPOSE, payerKeys, payerOf, recordable, stripeReader, tieOf, untiedWillDo, verdict, withMatches, type Recorded, type StripeGet } from './stripe-inspect.ts';
 
 const BID = '11111111-1111-4111-8111-111111111111';
 const rec = (o: Partial<Recorded> = {}): Recorded => ({ booking_id: BID, booking_number: 'CC-1', status: 'confirmed', payments: [], holds: [], pay_links: [], intents: [], ...o });
@@ -26,7 +26,8 @@ test('paid at Stripe, found by its metadata, not recorded: the verdict names the
   assert.equal(r.stripe.length, 1);
   assert.equal(r.stripe[0]!.card, 'visa 4242');
   assert.match(r.verdict, /^paid at Stripe but not recorded \(pi_paid123, \$500\.00\)/);
-  assert.ok(!JSON.stringify(r).includes('fingerprint') && !JSON.stringify(r).includes('client_secret'));
+  // r50 (3871): the card's fingerprint is given on purpose, as payer.card_fingerprint only
+  assert.ok(!JSON.stringify(r).replace(/"card_fingerprint":(null|"[^"]*")/g, '').includes('fingerprint') && !JSON.stringify(r).includes('client_secret'));
 });
 test('paid and recorded; a hold; not paid', async () => {
   const paid = await inspectBooking(fake({ pi_paid123: PI, 'ch:pi_paid123': CH }), rec({ intents: ['pi_paid123'], payments: [{ purpose: 'booking_total', kind: 'charge', status: 'succeeded', amount_cents: 50000, intent: 'pi_paid123' }] }));
@@ -108,5 +109,33 @@ test('3430: findPayments lists succeeded and holding intents in the window, flag
   assert.deepEqual([r.payments[1]!.recorded, r.payments[1]!.recorded_on, r.payments[1]!.booking_metadata, r.payments[1]!.flag], [true, 'CC-1', 'CC-1', null]);
   const only = await findPayments(async () => ({ data: [tap, site] }), { since: 1, until: 2, amount_cents: 500000 }, async () => ({}));
   assert.deepEqual(only.payments.map((p) => p.id), ['pi_tap123456']);
-  assert.ok(!JSON.stringify(r).includes('fingerprint'));
+  assert.ok(!JSON.stringify(r).replace(/"card_fingerprint":(null|"[^"]*")/g, '').includes('fingerprint'));
+});
+
+test('r50 (3871): the payer from the charge and the Customer, the fingerprint but never the number', () => {
+  const p = payerOf({ receipt_email: null, customer: { email: 'Cust@Example.test', name: 'Cust Name' } },
+    { receipt_email: 'r@example.test', billing_details: { name: 'Bill Name', email: 'b@example.test', phone: '+16475550123' },
+      payment_method_details: { type: 'card', card: { brand: 'visa', last4: '4242', fingerprint: 'fpAbc123', number: '4242424242424242' } } }, null);
+  assert.deepEqual(p, { receipt_email: 'r@example.test', billing_name: 'Bill Name', billing_email: 'b@example.test', billing_phone: '+16475550123',
+    customer_email: 'Cust@Example.test', customer_name: 'Cust Name', card_fingerprint: 'fpAbc123' });
+  assert.ok(!JSON.stringify(p).includes('4242424242424242'));
+  assert.deepEqual(payerKeys('pi_1', null, p).emails, ['r@example.test', 'b@example.test', 'cust@example.test']);
+  assert.equal(payerOf({ customer: { deleted: true, email: 'x@y.z' } }, null, null).customer_email, null);
+});
+
+test('r50 (3871): matched_renter comes from one database call, only for payers with something to match', async () => {
+  const none = payerOf(null, null, null);
+  const calls: unknown[] = [];
+  const rows = await withMatches([{ id: 'pi_a', created: null, payer: { ...none, billing_email: 'a@example.test' } }, { id: 'pi_b', created: null, payer: none }],
+    async (keys) => { calls.push(keys); return { pi_a: { matched: true, renters: [{ renter_id: 'r' }], bookings: [] } }; });
+  assert.equal(calls.length, 1);
+  assert.equal((calls[0] as unknown[]).length, 1);
+  assert.equal(rows[0]!.matched_renter?.matched, true);
+  assert.equal(rows[1]!.matched_renter, null);
+});
+
+test('r50 (3871): the PaymentIntents list expands only the charge and the Customer', async () => {
+  const seen: Array<Record<string, string>> = [];
+  await findPayments(async (_p, params = {}) => { seen.push(params); return { data: [], has_more: false }; }, { since: 1, until: 2 }, async () => ({}));
+  assert.deepEqual(Object.entries(seen[0]!).filter(([k]) => k.startsWith('expand')).map(([, v]) => v), ['data.latest_charge', 'data.customer']);
 });
