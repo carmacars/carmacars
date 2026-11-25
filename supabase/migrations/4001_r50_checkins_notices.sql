@@ -28,7 +28,7 @@ update notification_catalogue set emitted_by = 'app.checkin_book (4000): a time 
 update notification_catalogue set emitted_by = 'app.checkin_sweep (4000): a check-in visit is on today' where code = 'staff_checkin_today';
 update notification_catalogue set push_topic = 'bookings', hold_to_merge = false, priority = 3 where code in ('renter_checkin_reminder', 'renter_checkin_followup');
 update notification_catalogue set no_text = true, push_topic = 'bookings', hold_to_merge = false, priority = 2 where code in ('staff_checkin_booked', 'staff_checkin_today');
-insert into notification_link_paths (key, path) values ('va_fleet_checkins', '/staff/check-ins') on conflict (key) do update set path = excluded.path;
+insert into notification_link_paths (key, path) values ('va_fleet_checkins', '/staff/check-ins'), ('booking_checkin', '/account/bookings/{{booking_number}}/check-in') on conflict (key) do update set path = excluded.path;
 insert into sms_templates (code, label, body, urgent, sort_order) values
   ('renter_checkin_reminder', 'Check-in visit reminder', 'CarmaCars: your {{vehicle_name}} is due for its free monthly check-in visit around {{checkin_due_date}}. Pick a time: {{link}}', false, 110),
   ('renter_checkin_followup', 'Check-in visit follow-up', 'CarmaCars: still time for the free check-in visit of your {{vehicle_name}}, whenever suits you: {{link}}', false, 111)

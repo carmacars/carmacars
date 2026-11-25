@@ -15,7 +15,7 @@ const SR = { role: 'service_role' as const };
 export async function bookCheckin(number: string, p: { slot_at?: string; place?: 'office' | 'request'; note?: string; cancel?: boolean }): Promise<ActionResult<{ visit: Visit }>> {
   try {
     const user = await requireUser(bookingPath(number, 'check-in'));
-    const data = (await rpc('server_checkin_book' as never, { p_user: user.id, p: { booking: number, ...p } as unknown as Json } as never, SR)) as unknown as { visit: Visit };
+    const data = (await rpc('server_checkin_book', { p_user: user.id, p: { booking: number, ...p } as unknown as Json }, SR)) as unknown as { visit: Visit };
     revalidatePath(bookingPath(number, 'check-in')); revalidatePath(bookingPath(number)); revalidatePath('/account');
     return { ok: true, data };
   } catch (e) { return { ok: false, code: 'refused', message: refusalMessage(e) }; }

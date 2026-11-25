@@ -404,7 +404,7 @@ begin
   if v.status not in ('due', 'booked') then raise exception 'This check-in visit is already %', v.status using errcode = '23514'; end if;
   select * into b from bookings where id = v.booking_id;
   select * into vh from vehicles where id = v.vehicle_id;
-  select array_agg(a) into v_missing from unnest(array['front', 'rear', 'left', 'right', 'odometer']) a
+  select array_agg(a order by i) into v_missing from unnest(array['front', 'rear', 'left', 'right', 'odometer']) with ordinality u(a, i)
    where not exists (select 1 from jsonb_array_elements(v_photos) x where x ->> 'angle' = a and coalesce(x ->> 'path', '') ~ ('^bookings/' || v.booking_id || '/checkin/[0-9a-f-]{36}\.(jpg|png)$'));
   if v_missing is not null then raise exception 'Add the photos still missing: %', array_to_string(v_missing, ', ') using errcode = '22023'; end if;
   if v_km is null then raise exception 'Enter the odometer reading' using errcode = '22023'; end if;
