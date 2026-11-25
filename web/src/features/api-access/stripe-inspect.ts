@@ -1,6 +1,6 @@
 // Release 47 (2896): the connector's Stripe reads, side by side with what the site recorded. Read only: the reader given
-// here only GETs (stripeReader), so nothing is ever charged, captured, refunded or changed. Only a card's brand and last
-// four digits are ever returned, never a full number, a secret or a client secret. Pure apart from the reader: unit
+// here only GETs (stripeReader), so nothing is ever charged, captured, refunded or changed. Only a card's brand, last
+// four digits and Stripe's fingerprint of it are ever returned, never a full number, a secret or a client secret. Pure apart from the reader: unit
 // tested with a faked Stripe (stripe-inspect.test.ts).
 
 export type StripeGet = (path: string, params?: Record<string, string>) => Promise<Record<string, unknown>>;
@@ -23,7 +23,7 @@ export interface Recorded {
 export interface StripeIntentView {
   id: string; kind: 'payment_intent' | 'setup_intent'; status: string; purpose: string | null; booking_metadata: string | null;
   amount_cents: number; amount_received_cents: number; amount_capturable_cents: number; currency: string | null; capture_method: string | null;
-  created: string | null; capture_before: string | null; last_payment_error: string | null; card: string | null;
+  created: string | null; capture_before: string | null; last_payment_error: string | null; card: string | null; payer: Payer;
   charges: Array<{ id: string; status: string | null; captured: boolean; amount_captured_cents: number; amount_refunded_cents: number; disputed: boolean; refunds: Array<{ amount_cents: number; status: string | null }> }>;
   disputes: Array<{ id: string; amount_cents: number; status: string | null; reason: string | null }>;
   recorded: boolean;
@@ -36,16 +36,42 @@ function cardOf(pm: O | null, charge: O | null): string | null {
   return last4 && /^\d{4}$/.test(last4) ? `${s(c?.brand) ?? 'card'} ${last4}` : null;
 }
 
+/** r50 (3871): who paid, as Stripe has it: the receipt email, the billing name, email and phone, the Customer's email and
+ *  name, and the card's fingerprint (Stripe's token for the card, never its number). */
+export interface Payer {
+  receipt_email: string | null; billing_name: string | null; billing_email: string | null; billing_phone: string | null;
+  customer_email: string | null; customer_name: string | null; card_fingerprint: string | null;
+}
+export function payerOf(pi: O | null, charge: O | null, pm: O | null): Payer {
+  const bd = o(charge?.billing_details) ?? o(pm?.billing_details);
+  const cust = o(pi?.customer);
+  const pmd = o(charge?.payment_method_details);
+  const card = o(pmd?.card) ?? o(pmd?.card_present) ?? o(pmd?.interac_present) ?? o(pm?.card);
+  return { receipt_email: s(charge?.receipt_email) ?? s(pi?.receipt_email), billing_name: s(bd?.name), billing_email: s(bd?.email), billing_phone: s(bd?.phone),
+    customer_email: cust && cust.deleted !== true ? s(cust.email) : null, customer_name: cust && cust.deleted !== true ? s(cust.name) : null, card_fingerprint: s(card?.fingerprint) };
+}
+/** What the database matches a payer on (app.stripe_payer_match). */
+export const payerKeys = (id: string, at: string | null, p: Payer) => ({ id, at,
+  emails: [...new Set([p.receipt_email, p.billing_email, p.customer_email].filter((x): x is string => !!x).map((x) => x.toLowerCase()))],
+  phones: p.billing_phone ? [p.billing_phone] : [], fingerprint: p.card_fingerprint });
+export type PayerMatches = Record<string, { matched: boolean; renters: unknown[]; bookings: unknown[] }>;
+/** Each payment with matched_renter, from one database call for all of them. */
+export async function withMatches<T extends { id: string; created: string | null; payer: Payer }>(rows: T[], match: (keys: ReturnType<typeof payerKeys>[]) => Promise<PayerMatches>): Promise<Array<T & { matched_renter: PayerMatches[string] | null }>> {
+  const keys = rows.map((r) => payerKeys(r.id, r.created, r.payer)).filter((k) => k.emails.length || k.phones.length || k.fingerprint);
+  const m = keys.length ? await match(keys) : {};
+  return rows.map((r) => ({ ...r, matched_renter: m[r.id] ?? null }));
+}
+
 async function intentView(get: StripeGet, id: string, rec: Recorded): Promise<StripeIntentView | null> {
   const recorded = rec.payments.some((p) => p.intent === id && (p.status === 'succeeded' || p.status === 'authorized'));
   if (id.startsWith('seti_')) {
-    const si = await get(`/v1/setup_intents/${id}`, { 'expand[]': 'payment_method' }).catch(() => null);
+    const si = await get(`/v1/setup_intents/${id}`, { 'expand[0]': 'payment_method', 'expand[1]': 'customer' }).catch(() => null);
     if (!si) return null;
     return { id, kind: 'setup_intent', status: s(si.status) ?? 'unknown', purpose: s(o(si.metadata)?.purpose), booking_metadata: s(o(si.metadata)?.booking_id) ?? s(o(si.metadata)?.booking_number),
       amount_cents: 0, amount_received_cents: 0, amount_capturable_cents: 0, currency: null, capture_method: null, created: iso(si.created), capture_before: null,
-      last_payment_error: s(o(si.last_setup_error)?.message), card: cardOf(o(si.payment_method), null), charges: [], disputes: [], recorded };
+      last_payment_error: s(o(si.last_setup_error)?.message), card: cardOf(o(si.payment_method), null), payer: payerOf(si, null, o(si.payment_method)), charges: [], disputes: [], recorded };
   }
-  const pi = await get(`/v1/payment_intents/${id}`, { 'expand[]': 'payment_method' }).catch(() => null);
+  const pi = await get(`/v1/payment_intents/${id}`, { 'expand[0]': 'payment_method', 'expand[1]': 'customer' }).catch(() => null);
   if (!pi) return null;
   const ch = await get('/v1/charges', { payment_intent: id, limit: '10', 'expand[]': 'data.refunds' }).catch(() => null);
   const charges = arr(ch?.data);
@@ -57,6 +83,7 @@ async function intentView(get: StripeGet, id: string, rec: Recorded): Promise<St
     capture_method: s(pi.capture_method), created: iso(pi.created),
     capture_before: iso(o(o(latest?.payment_method_details)?.card)?.capture_before),
     last_payment_error: s(o(pi.last_payment_error)?.message), card: cardOf(o(pi.payment_method), latest),
+    payer: payerOf(pi, latest, o(pi.payment_method)),
     charges: charges.map((c) => ({ id: String(c.id), status: s(c.status), captured: c.captured === true, amount_captured_cents: n(c.amount_captured), amount_refunded_cents: n(c.amount_refunded),
       disputed: c.disputed === true, refunds: arr(o(c.refunds)?.data).map((r) => ({ amount_cents: n(r.amount), status: s(r.status) })) })),
     disputes: arr(dz?.data).map((d) => ({ id: String(d.id), amount_cents: n(d.amount), status: s(d.status), reason: s(d.reason) })),
@@ -160,7 +187,7 @@ export function untiedWillDo(pi: string, amountCents: number, bookingNumber: str
 /** stripe_find_payments: one PaymentIntent, and whether the platform recorded it. */
 export interface FoundPayment {
   id: string; amount_cents: number; amount_received_cents: number; currency: string | null; status: string; created: string | null;
-  card: string | null; method_type: string | null; wallet: string | null; description: string | null;
+  card: string | null; method_type: string | null; wallet: string | null; description: string | null; payer: Payer;
   booking_metadata: string | null; recorded: boolean; recorded_on: string | null; recorded_as: string | null; no_booking: boolean; flag: string | null;
 }
 export type Known = Record<string, { booking_number: string | null; where: string }>;
@@ -171,7 +198,7 @@ export async function findPayments(get: StripeGet, w: { since: number; until: nu
   let after: string | null = null;
   let truncated = false;
   for (let p = 0; p < pages; p++) {
-    const r = await get('/v1/payment_intents', { 'created[gte]': String(w.since), 'created[lte]': String(w.until), limit: '100', 'expand[]': 'data.latest_charge', ...(after ? { starting_after: after } : {}) });
+    const r = await get('/v1/payment_intents', { 'created[gte]': String(w.since), 'created[lte]': String(w.until), limit: '100', 'expand[0]': 'data.latest_charge', 'expand[1]': 'data.customer', ...(after ? { starting_after: after } : {}) });
     const data = arr(r.data);
     all.push(...data);
     if (r.has_more !== true || !data.length) break;
@@ -192,7 +219,7 @@ export async function findPayments(get: StripeGet, w: { since: number; until: nu
     return {
       id: String(x.id), amount_cents: n(x.amount), amount_received_cents: n(x.amount_received), currency: s(x.currency), status: String(x.status), created: iso(x.created),
       card: last4 && /^\d{4}$/.test(last4) ? `${s(c?.brand) ?? 'card'} ${last4}` : null, method_type: s(pmd?.type) ?? (Array.isArray(x.payment_method_types) ? s(x.payment_method_types[0]) : null),
-      wallet: s(o(c?.wallet)?.type), description: s(x.description), booking_metadata: bookingMd,
+      wallet: s(o(c?.wallet)?.type), description: s(x.description), payer: payerOf(x, ch, null), booking_metadata: bookingMd,
       recorded: !!kn, recorded_on: kn?.booking_number ?? null, recorded_as: kn?.where ?? null, no_booking: noBooking,
       flag: kn ? null : noBooking ? (x.status === 'succeeded' ? 'no booking in Stripe and not recorded: stripe_record_paid with the booking links it' : 'a hold with no booking, not recorded') : 'not recorded on the site'
     };

@@ -5,13 +5,14 @@ import { oneStepHire } from '@/server/hire';
 import { bookNowAgreement } from '@/server/book-now';
 import { storage } from '@/integrations/storage';
 import { MAX_PHOTO_BYTES } from '@/features/returns/claim';
-import { findPayments, inspectAccount, inspectBooking, linkMetadata, stripeReader, tieOf, untiedWillDo, type Known, type PlanAnswer, type Recorded, type StripeGet } from '@/features/api-access/stripe-inspect';
+import { findPayments, inspectAccount, inspectBooking, linkMetadata, stripeReader, tieOf, untiedWillDo, withMatches, type Known, type PayerMatches, type PlanAnswer, type Recorded, type StripeGet } from '@/features/api-access/stripe-inspect';
 import { helcimOnly, payments, terminal } from '@/integrations/payments';
 import { accountView, findHelcimPayments, mountainDay, type HelcimKnown } from '@/features/api-access/helcim-inspect';
 import { settleIntentEvent } from '@/server/intent-events';
 import { setupEmail } from '@/server/owner-setup-email';
 import { settleIntent } from '@/server/portal/payment';
 import { env } from '@/lib/env';
+import { signConnectorFiles } from '@/server/connector-files';
 
 // The CarmaCars MCP server (release 28, B3; migration 0562): Claude's connector for Abbas and Mahad. Streamable HTTP
 // without a stream: each POST is one JSON-RPC message answered with one JSON response. The bearer is an API key from
@@ -113,6 +114,8 @@ export async function POST(req: Request) {
       if (r.ok && (r.result as { run?: string } | undefined)?.run === 'pay_link_cancel') r = await payLinkCancel(r.result as Record<string, unknown>);
       // a bug report's pictures (2340): private files, given as links that expire in ten minutes
       if (r.ok && name === 'bug_report_get') r = { ...r, result: await signedShots(r.result) };
+      // r50 (3870): files (a recording, ID images, a signed agreement, photos) as links signed for ten minutes
+      if (r.ok) r = { ...r, result: await signConnectorFiles(r.result) };
       const out = r.ok ? withLinks(r.result) : { error: r.error };
       return json(reply(msg.id, { content: [{ type: 'text', text: JSON.stringify(out, null, 1) }], structuredContent: Array.isArray(out) ? { items: out } : out, isError: !r.ok }));
     }
@@ -214,6 +217,9 @@ function stripeGet(): StripeGet | null {
   const e = env();
   return e.PAYMENTS_PROVIDER === 'stripe' && e.STRIPE_SECRET_KEY ? stripeReader(e.STRIPE_SECRET_KEY) : null;
 }
+// r50 (3871): the renters a payer's email, phone or card fingerprint match, and their bookings around the payment with what is open
+const payerMatch = async (keys: unknown[]) => (await rpc('server_stripe_payer_match' as never, { p: keys } as never, SR)) as unknown as PayerMatches;
+
 async function stripeTool(res: Record<string, unknown>): Promise<{ ok: boolean; status?: number; result?: unknown; error?: string }> {
   const get = stripeGet();
   try {
@@ -231,7 +237,7 @@ async function stripeTool(res: Record<string, unknown>): Promise<{ ok: boolean; 
     if (res.run === 'stripe_find') {
       const known = async (ids: string[]) => (await rpc('server_stripe_known_many' as never, { p_intents: ids } as never, SR)) as unknown as Known;
       const found = await findPayments(get, { since: Number(res.since), until: Number(res.until), amount_cents: typeof res.amount_cents === 'number' ? res.amount_cents : null }, known);
-      return { ok: true, result: { from: res.from, to: res.to, amount_cents: res.amount_cents ?? null, ...found } };
+      return { ok: true, result: { from: res.from, to: res.to, amount_cents: res.amount_cents ?? null, ...found, payments: await withMatches(found.payments, payerMatch) } };
     }
     if (res.run === 'stripe_record_preview') {
       const i = await get(`/v1/payment_intents/${String(res.payment_intent)}`, { 'expand[]': 'latest_charge' }).catch(() => null);
@@ -250,7 +256,8 @@ async function stripeTool(res: Record<string, unknown>): Promise<{ ok: boolean; 
       return { ok: true, result: { ...base, untied: true, plan, can_confirm: plan.ok,
         ...(plan.ok ? { will_do: untiedWillDo(String(i.id), amount, String(res.booking_number), plan) } : { warning: `Untied payment (no booking in Stripe): ${plan.reason}` }) } };
     }
-    return { ok: true, result: await inspectBooking(get, res.recorded as Recorded) };
+    const seen = await inspectBooking(get, res.recorded as Recorded);
+    return { ok: true, result: { ...seen, stripe: await withMatches(seen.stripe, payerMatch) } };
   } catch (e) {
     return { ok: false, status: 502, error: `Stripe could not be read: ${e instanceof Error ? e.message.slice(0, 200) : 'unknown error'}` };
   }

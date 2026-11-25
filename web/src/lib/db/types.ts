@@ -36792,6 +36792,7 @@ export type Database = {
       server_stripe_dispute_event: { Args: { p: Json }; Returns: Json };
       server_stripe_known_many: { Args: { p_intents: string[] }; Returns: Json };
       server_stripe_link_untied: { Args: { p_by: string; p_booking: string; p_verified: Json }; Returns: Json };
+      server_stripe_payer_match: { Args: { p: Json }; Returns: Json };
       server_stripe_refund_event: { Args: { p: Json }; Returns: Json };
       server_stripe_refund_event_pre0155: { Args: { p: Json }; Returns: Json };
       server_stripe_requires_action: { Args: { p: Json }; Returns: Json };
