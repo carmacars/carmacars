@@ -100,6 +100,8 @@ create temp table s2soon_at as select case when extract(hour from now() at time 
   then date_trunc('minute', now()) + interval '3 hours' else test.s2_at(1, 5) end as s;
 select test.s2_ops('s2_fleet', 'field_slot_publish', jsonb_build_object('starts_at', (select s from s2soon_at), 'ends_at', (select s from s2soon_at) + interval '3 hours'));
 create temp table s2soon as select test.s2_job('detail', (select s from s2soon_at) + interval '1 hour') as id;
+-- 5173: a new job goes on a shift somebody works first; Fleet puts this one on the soon shift by hand (it stays there)
+select test.s2_ops('s2_fleet', 'field_job_shift', jsonb_build_object('id', (select id from s2soon), 'slot', (select id from field_shift_slots where starts_at = (select s from s2soon_at) and cancelled_at is null)));
 select test.eq('the soon shift holds the job', (select shift_slot_id from field_jobs where id = (select id from s2soon)) =
   (select id from field_shift_slots where starts_at = (select s from s2soon_at) and cancelled_at is null), true);
 select app.job_field_shift_jobs();

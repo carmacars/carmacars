@@ -118,14 +118,16 @@ declare
   v_none integer := 0;
 begin
   if (app.settings()).field_jobs_auto_assign <> 'least_busy' then return 'field routing off (field_jobs_auto_assign none)'; end if;
-  -- open jobs with nobody: on no shift, on an ended or cancelled shift, or on a live shift nobody works (review: never left there)
+  -- open jobs with nobody: on no shift, on an ended or cancelled shift, or on a live shift nobody works that Fleet did not choose
+  -- by hand (review: never left there)
   for j in select f.id, f.kind, f.scheduled_at, f.shift_slot_id from field_jobs f
             where f.status in ('scheduled', 'acknowledged')
               and f.scheduled_at > p_now - interval '7 days'
               and (f.booking_id is null or exists (select 1 from bookings b where b.id = f.booking_id and b.status in ('confirmed', 'on_rent', 'returned')))
               and ((f.shift_slot_id is null and f.assigned_to is null)
                    or (f.shift_slot_id is not null and not app.fx_slot_live(f.shift_slot_id, p_now))
-                   or (f.shift_slot_id is not null and f.assigned_to is null and not exists (select 1 from app.fx_slot_people(f.shift_slot_id))))
+                   or (f.shift_slot_id is not null and f.assigned_to is null and not coalesce(f.shift_pinned, false)
+                       and not exists (select 1 from app.fx_slot_people(f.shift_slot_id))))
             order by f.scheduled_at, f.id loop
     v_slot := app.fx_route_slot(j.kind, j.scheduled_at, p_now);
     if v_slot is null then
