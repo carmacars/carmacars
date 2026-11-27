@@ -55,6 +55,8 @@ on conflict (code) do update set
   in_catalogue = true, updated_at = now();
 select app.notification_catalogue_refresh();
 -- CATALOGUE 5190 END
+update notification_catalogue set emitted_by = 'app.record_insurer_payment (5190): Finance or an Admin records a payment on an insurer invoice'
+ where code = 'insurer_payment_received';
 
 -- the adjuster on the booking, else the insurer's billing contact (as app.send_insurer_invoice_email)
 create function app.insurer_invoice_contact(p_invoice uuid) returns jsonb
