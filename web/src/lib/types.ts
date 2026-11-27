@@ -8,6 +8,8 @@ export interface Photo { path: string; variants?: { width: number; path: string;
   placeholder?: boolean;
   /** r48 AN (3150): an AI render of the photo standard (renders come first in the gallery, the car's real photos after) */
   generated?: boolean;
+  /** 5080: a real car's cutout (transparent) over a sample photo: the room it stands in (the same for every car) */
+  plate?: string;
   /** r48 AN (3150): one of the car's own photos (after the renders) */
   real?: boolean;
   /** r48 AN (3150): the cover's side cutout (rembg, 3080): the card's car drives off its frame on hover */

@@ -43,6 +43,8 @@ import { GATE_FEEDBACK, KEY, type GateReason, type KeyName } from './studio-gate
 export const R48_SPEC = 'r48.4';
 /** r48.4 (5080): the cover, the first view of app.photo_render_order() (the sample photos' lead); its cutout drives off the cards. */
 export const COVER_SHOT = 'front_left';
+/** r48.4 (5080): the one dealership room every outside view stands in, stored once (the cards' plate behind a cutout). */
+export const R48_ROOM_PATH = 'site/r48/room.jpg';
 /** The preset recorded on a photo made to this standard. */
 export const R48_PRESET = 'gemini_r48';
 /** The car's real photos sent as references at most (each made at most R48_REF_SIDE on its long side). */
@@ -54,30 +56,32 @@ export const R48_MAX_BYTES = 12_000_000;
 // ================================================================ the angles: the target framing of each
 export type PlateFamily = 'front' | 'side' | 'rear';
 export interface AngleSpec { shot: string; label: string; exterior: boolean; family: PlateFamily | null; guide: string | null; framing: string }
-/** The nine standard angles in the order the site shows them (the front three-quarter always first). `guide` is the sample
- *  cars' drawing of the view (features/car/studio.ts SHOTS key), null when there is none. */
+/** The sample photos' angles in the sample photos' order (features/car/studio.ts SHOTS: lead, side, rear34, front, rear, dash,
+ *  seats, wheel), the front three-quarter always first (5080: the owner's spec, every car gets exactly this set). `guide` is
+ *  the sample cars' drawing of the view (its SHOTS key). */
 // r48.4 (5080): the camera of each view only; the car's size and place in the frame are the site's (studio-composite.ts), and
 // the words of the key (keyRule) ask for the whole car with a margin, so no line here asks for a floor or a share of the frame.
 export const R48_ANGLES: readonly AngleSpec[] = [
   { shot: 'front_left', label: 'Front three-quarter', exterior: true, family: 'front', guide: 'lead',
     framing: 'front three-quarter of the driver (left) side, exactly as the composition guide: the car\'s nose points to the LEFT edge of the frame, turned about 30 degrees from a pure side profile towards the camera, so the whole left side and the front corner show; camera height about 0.9 m (headlight level); a 50 mm full-frame lens look from about 7 m (no wide-angle stretch, no fisheye); the whole car in the frame; the front wheels straight' },
-  { shot: 'front', label: 'Front', exterior: true, family: 'front', guide: 'front',
-    framing: 'straight front view: the camera on the car\'s centre line, square to the front; camera height about 0.8 m (headlight level); a 70 mm full-frame lens look from about 8 m; the whole front in the frame, both mirrors and both front tyres visible' },
   { shot: 'left', label: 'Side profile', exterior: true, family: 'side', guide: 'side',
     framing: 'full side profile of the driver (left) side, the car\'s nose to the LEFT of the frame: the camera square to the side of the car (90 degrees), level with the door handles (about 0.9 m); a 50 mm full-frame lens look from about 8 m; the whole car from bumper to bumper, both wheels fully visible and round' },
   { shot: 'rear_left', label: 'Rear three-quarter', exterior: true, family: 'rear', guide: 'rear34',
     framing: 'rear three-quarter from the driver (left) side, the car\'s nose to the RIGHT of the frame: the camera turned 45 degrees from the car\'s centre line so the whole back and the whole left side show; camera height about 0.9 m (tail-light level); a 50 mm full-frame lens look from about 7 m; the whole car in the frame' },
+  { shot: 'front', label: 'Front', exterior: true, family: 'front', guide: 'front',
+    framing: 'straight front view: the camera on the car\'s centre line, square to the front; camera height about 0.8 m (headlight level); a 70 mm full-frame lens look from about 8 m; the whole front in the frame, both mirrors and both front tyres visible' },
   { shot: 'rear', label: 'Rear', exterior: true, family: 'rear', guide: 'rear',
     framing: 'straight rear view: the camera on the car\'s centre line, square to the back; camera height about 0.8 m (tail-light level); a 70 mm full-frame lens look from about 8 m; the whole back in the frame, both rear tyres visible' },
   { shot: 'dashboard', label: 'Dashboard', exterior: false, family: null, guide: 'dash',
     framing: 'the dashboard from the middle of the rear seat, between the front seats, at shoulder height: the steering wheel, the instrument cluster, the centre screen and the centre console, level and centred; a 24 mm full-frame lens look without distortion of straight lines' },
   { shot: 'front_seats', label: 'Front seats', exterior: false, family: null, guide: 'seats',
     framing: 'both front seats seen through the open driver door from outside, at seat height: the driver seat in front, the passenger seat behind it, the door sill at the bottom of the frame; a 28 mm full-frame lens look' },
-  { shot: 'rear_seats', label: 'Rear seats', exterior: false, family: null, guide: null,
-    framing: 'the whole rear seat bench seen through the open left rear door from outside, at seat height, the backs of the front seats at the edge of the frame; a 28 mm full-frame lens look' },
-  { shot: 'trunk', label: 'Trunk', exterior: false, family: null, guide: null,
-    framing: 'the open trunk (cargo area) seen from directly behind the car at chest height (about 1.3 m), the lid or tailgate fully open, the cargo floor empty and clean, the bumper at the bottom of the frame; a 35 mm full-frame lens look' }
+  { shot: 'wheel', label: 'Wheel detail', exterior: false, family: null, guide: 'wheel',
+    framing: 'a close-up of the front left wheel, exactly as the composition guide: the camera level with the hub, square to the wheel, about 1.2 m away; the whole rim and tyre, the brake behind the spokes and the edge of the fender and the arch around it fill the frame; no background, no floor and no room visible beyond the car itself; a 70 mm full-frame lens look'}
 ] as const;
+/** The outside views the site keys out and puts on the dealership (the wheel close-up and the inside views are kept as made). */
+export const KEYED_SHOTS = ['front_left', 'left', 'rear_left', 'front', 'rear'] as const;
+export const isKeyed = (shot: string) => (KEYED_SHOTS as readonly string[]).includes(shot);
 export const r48Angle = (shot: string) => R48_ANGLES.find((a) => a.shot === shot) ?? null;
 /** The background plate of a shot. r48.3 (release 50, 3701): ONE plate per scene for every outside view (the 'side' plate,
  *  the camera square to the back wall), so every view of every car stands in exactly the same room and floor; none inside. */
@@ -181,8 +185,9 @@ export function r48Prompt(o: R48PromptInput): string {
     `TARGET VIEW: ${view}. Landscape 3:2.${face ? ` The car's nose MUST point to the ${face.toUpperCase()} of the frame, whatever way it faces in the real photos.` : ''}`,
     o.stockOnly && ext ? `THE CAR is a ${carName(o.car)}: the make, model, generation and body of the stock photo, in exactly the colour named here, its body lines and proportions true, nothing warped, clean and damage-free.` : IDENTITY(carName(o.car), o.stock && ext),
     ext ? keyRule(o.key ?? 'green')
+      : o.shot === 'wheel' ? 'THE WHEEL: the car\'s own wheel exactly as in the real photos (the same rim design, spokes, finish, centre cap, tyre and brake colour), clean, the tyre black; only the car fills the frame: no floor, no room and no background visible.'
       : 'THE INTERIOR: no background is swapped; the windows show soft, bright daylight, nothing readable outside. Clean and bright, even soft light, no clutter (no bags, bottles, cables, papers or phones), the screens dark or a plain glow.',
-    ext ? REAL_PHOTO_RULE : 'REAL PHOTOGRAPHY: an unretouched interior photograph from a full-frame camera, real material textures (leather grain, stitching, plastics), real light falloff, no render look, no glow, no over-smoothing.',
+    ext || o.shot === 'wheel' ? REAL_PHOTO_RULE : 'REAL PHOTOGRAPHY: an unretouched interior photograph from a full-frame camera, real material textures (leather grain, stitching, plastics), real light falloff, no render look, no glow, no over-smoothing.',
     plateRule(o.shot, o.plateEnd),
     NO_TEXT_NO_LOGO,
     'The whole car (or interior) sharp, no depth-of-field blur, no motion blur.',
@@ -249,7 +254,7 @@ export function r48CheckPrompt(o: { car: CarFacts; shot: string; key?: KeyName |
     `"real_plate": whether the real photos show a licence plate on the end of the car this view shows: "yes", "no" (for example a front bumper without a plate, common in Ontario) or "unsure"${plateEndOf(o.shot) ? '' : ' ("no" for a side profile or an inside view)'};`,
     '"blurry": the photo or a large part of it is blurred;',
     '"clutter": an interior shows loose objects that are not part of the car;',
-    '"view": the view the generated photo shows, one of front_left, front_right, front, left, right, rear_left, rear_right, rear, dashboard, front_seats, rear_seats, trunk, other;',
+    '"view": the view the generated photo shows, one of front_left, front_right, front, left, right, rear_left, rear_right, rear, dashboard, front_seats, rear_seats, trunk, wheel, other;',
     '"nose": where the car\'s front (nose) points in the frame: "left", "right", "camera" (straight at the camera), "away" (straight away), or "none" (an interior);',
     `"plates": ${PLATES_KEY};`,
     'Example: {"wrong_colour": false, "wrong_model": false, "wrong_wheels": false, "parts_changed": false, "warped": false, "looks_cgi": false, "wrong_framing": false, "original_background": false, "text_elsewhere": false, "plate_readable": false, "plate_present": false, "plate_cover": false, "real_plate": "no", "blurry": false, "clutter": false, "view": "front_left", "nose": "left", "plates": []}'

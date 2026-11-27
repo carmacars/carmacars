@@ -31,8 +31,12 @@ export function CarImage({ p, eager = false, sizes = '(min-width: 64rem) 33vw, 1
 export function StudioTurn({ photos, sizes = '(min-width: 64rem) 33vw, 100vw' }: { photos: Photo[]; sizes?: string }) {
   const n = photos.length;
   if (!n) return null;
+  // 5080: the cars are cutouts on the one identical room: the room once, under the cars that turn
+  const plate = photos.find((p) => p.plate)?.plate;
   return (
     <span className="car-card__studio" aria-hidden="true" data-testid="card-studio" data-count={n}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      {plate && <img className="car-card__studio-plate" src={photoUrl(plate)} width={1800} height={1200} alt="" loading="lazy" decoding="async" data-testid="card-studio-plate" />}
       {n > 1 && <style>{`${cardKeyframes(n)}.car-card__studio[data-count="${n}"] img{animation:card-studio-${n} ${n * CARD_STEP}s linear infinite}`}</style>}
       {photos.map((p, i) => (
         // eslint-disable-next-line @next/next/no-img-element

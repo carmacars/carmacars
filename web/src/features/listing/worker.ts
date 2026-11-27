@@ -21,9 +21,9 @@ import { enhanceValues, statsOf, type Enhance } from './enhance.ts';
 import { cropAway, type MarkBox } from './photo-sort.ts';
 import { BACKGROUND_SAME, DEALERSHIP_PLACE, borderDiff, isDealership, type R48Scene } from './r48.ts';
 import { chromaKey, gateKey, keyFor, type FBox, type GateMeasures } from './studio-gate.ts';
-import { composeStudio } from './studio-composite.ts';
+import { composeStudio, cropBox } from './studio-composite.ts';
 import { STUDIO_MOVE_CHECK_SCHEMA, STUDIO_MOVE_CHECK_SYSTEM, judgeStudioMove, studioMoveCheckPrompt, studioMovePrompt } from './marketing-studio.ts';
-import { COVER_SHOT, R48_MAX_BYTES, R48_MAX_REFS, R48_PRESET, R48_REF_SIDE, R48_SPEC, R48_CHECK_SCHEMA, R48_CHECK_SYSTEM, judgeR48, r48CheckPrompt, r48ExtraPrompt, r48Prompt } from './r48.ts';
+import { COVER_SHOT, R48_ROOM_PATH, R48_MAX_BYTES, R48_MAX_REFS, R48_PRESET, R48_REF_SIDE, R48_SPEC, R48_CHECK_SCHEMA, R48_CHECK_SYSTEM, judgeR48, r48CheckPrompt, r48ExtraPrompt, r48Prompt } from './r48.ts';
 import { R45_PRESET, R45_SPEC, blurPlates, checkPrompt, CHECK_SCHEMA, CHECK_SYSTEM, isExterior, judgeCheck, promptFor, type CarFacts, type Verdict } from './r45.ts';
 import { imageSize } from '../drive-import/image-size.ts';
 
@@ -1088,7 +1088,6 @@ export async function makeR48(d: WorkerDeps, j: JobContext): Promise<R45Made> {
   const ext = extra || isExterior(shot);
   const car: CarFacts = inp.car ?? { model: p.model ?? null };
   const key = keyFor(car.colour);
-  const name = ext && (car.model ?? p.model) ? letteringName(String(car.model ?? p.model)) || null : null;
   const plateEnd = inp.plate_end === 'yes' || inp.plate_end === 'no' ? inp.plate_end : null;
   const no = (why: string, more: Record<string, unknown> = {}, wait: string | null = null): R45Made =>
     ({ pass: false, why, wait, output: { r45: { pass: false, spec: R48_SPEC, why, generated: true, ...(wait ? { wait } : {}), ...more } } });
@@ -1158,15 +1157,15 @@ export async function makeR48(d: WorkerDeps, j: JobContext): Promise<R45Made> {
     stock_only: stockOnly, key: ext ? key : null };
   if (!v.pass) { await drop(); return no(`the check refused it: ${v.reasons.join(', ')}`, base); }
   let img: Rgba = fitted;
-  let backdrop: Rgba | null = null;
+  let backdrop: Rgba | null = null, layer: Rgba | null = null, carBox: FBox | null = null;
   let measures: GateMeasures = gate.measures;
   let plates = v.plates;
   if (keyed) {
     // a plate left on the car (a late try) blurred on the car itself, then the car put on the dealership
     blurPlates(keyed.cut, v.plates);
-    const c = composeStudio(keyed.cut, shot, name);
+    const c = composeStudio(keyed.cut, shot);
     if (!c) { await drop(); return no('the car could not be framed from its key', { ...base, reasons: [...base.reasons, 'gate_key_no_car'] }); }
-    img = c.img; backdrop = c.backdrop;
+    img = c.img; backdrop = c.backdrop; layer = c.layer; carBox = c.car;
     const r4 = (b: FBox) => ({ x: +b.x.toFixed(4), y: +b.y.toFixed(4), w: +b.w.toFixed(4), h: +b.h.toFixed(4) });
     // the plates where the car now stands (from its box in the render to its box in the composite)
     const kb = keyed.box!;
@@ -1184,16 +1183,29 @@ export async function makeR48(d: WorkerDeps, j: JobContext): Promise<R45Made> {
     await d.files.putPublic(vp, encodeJpeg(scaleDown(img, w), 84), 'image/jpeg');
     variants.push({ width: w, format: 'jpg', path: vp });
   }
-  // the cover's empty room (with the car's name) is the cards' drive-off matte's plate (app.site_cutout_source)
+  // the owner's spec (5080): one identical room for every photo of every car, stored once (the cards' plate); the car alone
+  // on transparency for the places that show only the cutout: the cover's full frame (the cards and their drive-off) and
+  // the side profile cropped to the car (the home hero and sections, app.site_cutouts)
   let background: string | null = null;
-  if (backdrop && shot === COVER_SHOT) {
-    background = `site/r48/backdrops/${j.vehicle_id}-${tag}.jpg`;
-    await d.files.putPublic(background, encodeJpeg(backdrop, 88), 'image/jpeg');
+  let cutout: { path: string; width: number; height: number; kind: 'matte' | 'cutout'; box?: FBox } | null = null;
+  if (backdrop && layer && carBox) {
+    background = R48_ROOM_PATH;
+    if (!(await d.files.hasPublic?.(R48_ROOM_PATH))) await d.files.putPublic(R48_ROOM_PATH, encodeJpeg(backdrop, 88), 'image/jpeg');
+    if (shot === COVER_SHOT) {
+      const lp = `site/cutouts/${j.vehicle_id}/${shot}-${tag}.png`;
+      await d.files.putPublic(lp, await encodePng(layer), 'image/png');
+      cutout = { path: lp, width: layer.width, height: layer.height, kind: 'matte', box: carBox };
+    } else if (shot === 'left') {
+      const cut = cropBox(layer, carBox);
+      const lp = `site/cutouts/${j.vehicle_id}/${shot}-${tag}.png`;
+      await d.files.putPublic(lp, await encodePng(cut), 'image/png');
+      cutout = { path: lp, width: cut.width, height: cut.height, kind: 'cutout' };
+    }
   }
   await drop();
   const out = plates.map((b) => ({ x: +b.x.toFixed(4), y: +b.y.toFixed(4), w: +b.w.toFixed(4), h: +b.h.toFixed(4) }));
   return { pass: true, why: '', output: {
     processed_path: path, width: img.width, height: img.height, variants, preset_version: R48_PRESET, flags: [],
-    showroom: { provider: 'ai', ...(model ? { model } : {}), note: null, reason: null, mode: 'r48', spec: R48_SPEC, scene: 'showroom_dark', ...(background ? { background } : {}) },
+    showroom: { provider: 'ai', ...(model ? { model } : {}), note: null, reason: null, mode: 'r48', spec: R48_SPEC, scene: 'showroom_dark', ...(background ? { background } : {}), ...(cutout ? { cutout } : {}) },
     r45: { pass: true, spec: R48_SPEC, generated: true, plates: out, ...base, gate: { pass: true, reasons: [], measures, spec: R48_SPEC } } } };
 }

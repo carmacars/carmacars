@@ -121,12 +121,16 @@ end $$;
 create or replace function app.photo_r48_spec() returns text language sql immutable parallel safe as $$ select 'r48.4'::text $$;
 comment on function app.photo_r48_spec() is 'The r48 photo standard (2900; r48.4 since 5080: the car keyed and put on the site''s drawn dealership), equal to R48_SPEC in web/src/features/listing/r48.ts.';
 
--- the sample photos' order (web/src/features/car/studio.ts SHOTS: lead, side, rear34, front, rear, dash, seats), then the
--- two views the samples have no drawing of
+-- the owner's spec: every car gets exactly the sample photos' angles in the sample photos' order (web/src/features/car/studio.ts
+-- SHOTS: lead, side, rear34, front, rear, dash, seats, wheel; web r48.ts R48_ANGLES is the same list)
 create or replace function app.photo_render_order() returns text[] language sql immutable parallel safe as $$
-  select array['front_left', 'left', 'rear_left', 'front', 'rear', 'dashboard', 'front_seats', 'rear_seats', 'trunk']
+  select array['front_left', 'left', 'rear_left', 'front', 'rear', 'dashboard', 'front_seats', 'wheel']
 $$;
-comment on function app.photo_render_order() is 'R50 hotfix 2 (5080): the order of a car''s studio views on the site, the sample photos'' order (features/car/studio.ts SHOTS): front three-quarter (the cover), side profile, rear three-quarter, front, rear, dashboard, front seats, then rear seats and trunk. The car''s real outside photos, cut out on the same dealership, follow.';
+comment on function app.photo_render_order() is 'R50 hotfix 2 (5080): the order of a car''s studio views on the site, the sample photos'' order (features/car/studio.ts SHOTS): front three-quarter (the cover), side profile, rear three-quarter, front, rear, dashboard, front seats, wheel. The car''s real outside photos, cut out on the same dealership, follow.';
+
+-- the studio set is exactly that list: the queue, a car's set done and its progress (2900 and 3030 used the r45 nine)
+select pg_temp.patch_fn('app.photo_r48_queue(uuid, uuid, text, boolean)'::regprocedure, 'app.photo_r45_angles()', 'app.photo_render_order()');
+select pg_temp.patch_fn('app.photo_r48_car_done(uuid)'::regprocedure, 'app.photo_r45_angles()', 'app.photo_render_order()');
 
 -- the job makes the cover of every car first, then its second view, then the rest, in that order (3150 named the side
 -- profile and the front three-quarter)
@@ -191,9 +195,46 @@ begin
        where vehicle_photo_id = ph.id and kind = 'photo_r45' and status = 'queued';
     end if;
   end if;
+  -- a passed view's cutout (the car alone on transparency, made by the worker from the keyed render): the cover's full frame
+  -- for the cards and their drive-off (kind matte: the identical room is its plate), the side profile cropped to the car for
+  -- the home hero and sections (kind cutout); kept against the render it was made from (app.site_cutouts checks it is live)
+  if j.kind = 'photo_r45' and coalesce((p #>> '{output,r45,pass}')::boolean, false) and jsonb_typeof(p #> '{output,showroom,cutout}') = 'object'
+     and p #>> '{output,showroom,cutout,path}' ~ '^site/cutouts/[0-9a-f-]+/[a-z_]+-[0-9a-f]+\.png$' then
+    select * into ph from vehicle_photos where id = j.vehicle_photo_id;
+    if ph.r48 and ph.shot_type in ('front_left', 'left') and nullif(ph.processed_path, '') is not null then
+      insert into site_cutouts (vehicle_id, shot, source_kind, source_bucket, source_path, path, width, height, facing, made_at, kind, plate_path, box, tries, error, next_try_at)
+      values (ph.vehicle_id, ph.shot_type, 'studio', 'vehicle-public', ph.processed_path, p #>> '{output,showroom,cutout,path}',
+              (p #>> '{output,showroom,cutout,width}')::integer, (p #>> '{output,showroom,cutout,height}')::integer, app.site_cutout_facing(ph.shot_type), now(),
+              case when p #>> '{output,showroom,cutout,kind}' = 'matte' then 'matte' else 'cutout' end,
+              case when p #>> '{output,showroom,cutout,kind}' = 'matte' then p #>> '{output,showroom,background}' end,
+              case when p #>> '{output,showroom,cutout,kind}' = 'matte' then p #> '{output,showroom,cutout,box}' end, 0, null, null)
+      on conflict (vehicle_id, shot) do update set source_kind = excluded.source_kind, source_bucket = excluded.source_bucket, source_path = excluded.source_path,
+        path = excluded.path, width = excluded.width, height = excluded.height, facing = excluded.facing, made_at = now(), kind = excluded.kind,
+        plate_path = excluded.plate_path, box = excluded.box, tries = 0, error = null, next_try_at = null, updated_at = now();
+      begin perform app.listing_cache_refresh(array[ph.vehicle_id]); exception when others then null; end;
+    end if;
+  end if;
   return r;
 end $$;
 select pg_temp.copy_grants('app.worker_listing_result(uuid, jsonb)'::regprocedure, 'app.worker_listing_result_pre5080(uuid, jsonb)'::regprocedure);
+
+-- the owner's spec: where a sample car is replaced by a real car (a card whose photo is a sample photo), only the real car's
+-- cutout is shown, on the one identical room (its plate), never its full photo
+create or replace function app.site_studio_covers(p_limit integer default 24) returns jsonb
+language sql stable security definer set search_path = public, app, pg_temp as $$
+  select coalesce(jsonb_agg(x.j order by x.o), '[]'::jsonb) from (
+    select jsonb_build_object('vehicle_id', v.id, 'path', k.path, 'plate', k.plate_path, 'variants', '[]'::jsonb,
+             'width', coalesce(k.width, 1800), 'height', coalesce(k.height, 1200), 'alt', app.vehicle_name(v.id)) j,
+           row_number() over (order by l.pinned_rank nulls last, coalesce(t.score, 0) desc, v.id) o
+      from vehicles v
+      join vehicle_listings l on l.vehicle_id = v.id and l.status = 'published'
+      cross join lateral app.photo_r48_cover(v.id) c
+      join site_cutouts k on k.vehicle_id = v.id and k.shot = c.shot_type and k.source_path = c.processed_path and k.kind = 'matte'
+                         and nullif(k.path, '') is not null and nullif(k.plate_path, '') is not null
+      left join app.fleet_trend t on t.vehicle_id = v.id
+     where not coalesce(v.is_sample, false) and v.retired_at is null and c.id is not null and app.photo_render_live(c)
+     order by o limit least(greatest(coalesce(p_limit, 24), 1), 48)) x
+$$;
 
 -- ================================================================ 5. the car's real outside photos after its views
 insert into listing_shot_types (code, label, seq, required, is_public, rebackground, is_cover, max_count, photo_angle, is_active)
@@ -289,13 +330,13 @@ $$;
 -- a car's progress counts its standard views only (its extras are on top)
 create or replace function app.photo_r48_car(p_vehicle uuid) returns jsonb
 language sql stable security definer set search_path = public, app, pg_temp as $$
-  select jsonb_build_object('angles', cardinality(app.photo_r45_angles()),
+  select jsonb_build_object('angles', cardinality(app.photo_render_order()),
     'done', count(*) filter (where ph.r45 ->> 'state' = 'done'),
     'flagged', count(*) filter (where ph.r45 ->> 'state' = 'flagged'),
     'queued', count(*) filter (where ph.r45 ->> 'state' in ('queued', 'redo')),
     'handover_refs', exists (select 1 from jsonb_array_elements(app.photo_r48_refs(p_vehicle, 'front_left')) e where e ->> 'from' = 'handover'),
     'last_run', max((ph.r45 ->> 'at')::timestamptz))
-    from vehicle_photos ph where ph.vehicle_id = p_vehicle and ph.r48 and ph.replaced_at is null and ph.shot_type = any (app.photo_r45_angles())
+    from vehicle_photos ph where ph.vehicle_id = p_vehicle and ph.r48 and ph.replaced_at is null and ph.shot_type = any (app.photo_render_order())
 $$;
 
 -- the cards' drive-off rides on the cover: the cutout of the cover's own view (the front three-quarter since 5080; 5030 cut the

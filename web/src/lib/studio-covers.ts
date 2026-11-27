@@ -8,7 +8,9 @@ import type { CarRow, Photo } from './types.ts';
 //   * a real car's card that has no photo of its own yet: only real cars of the same make and model;
 //   (the home hero: r48 O, 3080, shows real cars cut out instead, lib/slot-cars.ts)
 // No match: the sample photo stays. Pure (unit tested); the page reads the covers once when it is built.
-export interface StudioCover { vehicle_id: string; path: string; variants?: Photo['variants']; width?: number; height?: number; alt?: string | null }
+// R50 hotfix 2 (5080), the owner's spec: where a sample car is replaced by a real car, only the cutout. A cover is now the real
+// car's cutout (the car alone on transparency, its cover view's full frame) with `plate`, the one identical dealership room.
+export interface StudioCover { vehicle_id: string; path: string; plate?: string | null; variants?: Photo['variants']; width?: number; height?: number; alt?: string | null }
 /** The most covers a card shows in turn. */
 export const STUDIO_MAX = 4;
 
@@ -31,7 +33,7 @@ export function studioPool(c: CarRow, covers: readonly StudioCover[], byId: Read
   // each card starts at another car, so the cards of a grid do not all show the same car
   const k = [...c.slug].reduce((a, ch) => (a * 31 + ch.charCodeAt(0)) >>> 0, 7) % pick.length;
   return [...pick.slice(k), ...pick.slice(0, k)].slice(0, max).map((x) => ({
-    path: x.path, variants: x.variants ?? null, width: x.width ?? 1800, height: x.height ?? 1200,
+    path: x.path, ...(x.plate ? { plate: x.plate } : {}), variants: x.variants ?? null, width: x.width ?? 1800, height: x.height ?? 1200,
     alt: `${[c.year, c.make, c.model].filter(Boolean).join(' ')}: a photo of a similar car of our fleet`
   }));
 }

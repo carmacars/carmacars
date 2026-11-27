@@ -3,7 +3,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { KEY_BORDER_MIN, STUDIO_FRAME, chromaKey, cropResize, gateKey, keyFor, keyness } from './studio-gate.ts';
-import { composeStudio, fitFor } from './studio-composite.ts';
+import { composeStudio, cropBox, fitFor } from './studio-composite.ts';
 import { showroomBackdrop } from './showroom.ts';
 import type { Rgba } from './subject-frame.ts';
 
@@ -60,7 +60,7 @@ test('the gate: a flat key and the whole car pass; a room, a car cut off by the 
 test('the composite: every car of a view at the same place on the same drawn room; the empty room is the same room', () => {
   const big = chromaKey(frame([0, 255, 0], 0.05, 0.95), 'green');
   const small = chromaKey(frame([0, 255, 0], 0.3, 0.7, 0.45, 0.6), 'green');
-  const a = composeStudio(big.cut, 'front_left', 'CLA')!, b = composeStudio(small.cut, 'front_left', 'CLA')!;
+  const a = composeStudio(big.cut, 'front_left')!, b = composeStudio(small.cut, 'front_left')!, c2 = composeStudio(small.cut, 'rear')!;
   assert.equal(a.img.width, 1800);
   assert.equal(a.img.height, 1200);
   const t = STUDIO_FRAME.front_left!;
@@ -69,14 +69,23 @@ test('the composite: every car of a view at the same place on the same drawn roo
     assert.ok(Math.abs(c.car.x + c.car.w / 2 - t.cx) < 0.02, JSON.stringify(c.car));
     assert.ok(Math.abs(c.car.y + c.car.h - t.bottom) < 0.03, JSON.stringify(c.car));
   }
-  // the room around the car is the drawn room, pixel for pixel (the top band, above the car and the name)
-  const room = showroomBackdrop({ model: 'CLA', cover: true, carTop: a.car.y * 1200 });
+  // the owner's spec: every background identical across all photos and all cars (no name on the wall)
+  const room = showroomBackdrop();
+  assert.deepEqual(a.backdrop.data, b.backdrop.data);
+  assert.deepEqual(a.backdrop.data, c2.backdrop.data);
+  assert.deepEqual(a.backdrop.data, room.data);
   let same = 0, n = 0;
   for (let y = 0; y < 100; y += 7) for (let x = 0; x < 1800; x += 13) { const i = (y * 1800 + x) * 4; n++; if (Math.abs(a.img.data[i]! - room.data[i]!) <= 1) same++; }
   assert.equal(same, n);
   assert.deepEqual(a.backdrop.data.subarray(0, 4000), room.data.subarray(0, 4000));
   assert.deepEqual(fitFor('front'), { carWidth: 0.6, carHeight: 0.56, floor: 1 - 0.84 });
-  assert.equal(composeStudio({ width: 10, height: 10, data: new Uint8ClampedArray(400) }, 'left', null), null, 'nothing to frame');
+  assert.equal(composeStudio({ width: 10, height: 10, data: new Uint8ClampedArray(400) }, 'left'), null, 'nothing to frame');
+  // the cutout: the car alone, transparent around it, at the same place as in the photo
+  const L = a.layer, at = (fx: number, fy: number) => L.data[(Math.floor(fy * L.height) * L.width + Math.floor(fx * L.width)) * 4 + 3]!;
+  assert.equal(at(0.02, 0.02), 0, 'the room is not in the cutout');
+  assert.equal(at(a.car.x + a.car.w / 2, a.car.y + a.car.h / 2), 255, 'the car is');
+  const crop = cropBox(L, a.car);
+  assert.ok(Math.abs(crop.width - a.car.w * 1800) <= 2 && Math.abs(crop.height - a.car.h * 1200) <= 2);
 });
 
 test('cropResize keeps the size and moves the content (the drive-off matte)', () => {

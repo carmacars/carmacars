@@ -7,7 +7,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { HARD_REASONS, PLATE_FAMILIES, R48_ANGLES, R48_SPEC, REAL_PHOTO_RULE, feedbackLine, guidePath, imageRoles, judgePlate, judgeR48, plateEndOf, plateFamily, platePath, platePrompt,
   plateRule, r48Angle, r48CheckPrompt, r48ExtraPrompt, r48Prompt, viewReasons } from './r48.ts';
-import { STANDARD_ANGLES } from './r45.ts';
+import { SHOTS } from '../car/studio.ts';
 import { encodeJpeg } from './showroom.ts';
 import { STUDIO_FRAME } from './studio-gate.ts';
 import { runJob, type JobContext, type JobResult, type WorkerDeps } from './worker.ts';
@@ -17,9 +17,11 @@ import type { Rgba } from './subject-frame.ts';
 
 const CAR = { year: 2022, make: 'Mercedes-Benz', model: 'CLA 250', trim: '4MATIC', colour: 'Polar White' };
 
-test('the nine angles: the r45 standard set in its order, the front three-quarter first, each with its framing', () => {
+test('the owner\'s spec: exactly the sample photos\' angles in their order (studio.ts SHOTS), each with its framing', () => {
   assert.equal(R48_SPEC, 'r48.4');
-  assert.deepEqual(R48_ANGLES.map((a) => a.shot), STANDARD_ANGLES.map((a) => a.shot));
+  const map: Record<string, string> = { lead: 'front_left', side: 'left', rear34: 'rear_left', front: 'front', rear: 'rear', dash: 'dashboard', seats: 'front_seats', wheel: 'wheel' };
+  assert.deepEqual(R48_ANGLES.map((a) => a.shot), SHOTS.map((s) => map[s.key]));
+  assert.deepEqual(R48_ANGLES.map((a) => a.guide), SHOTS.map((s) => s.key));
   assert.equal(R48_ANGLES[0]!.shot, 'front_left');
   for (const a of R48_ANGLES) {
     assert.match(a.framing, /mm full-frame lens look/, `${a.shot}: a focal length`);
@@ -62,6 +64,11 @@ test('r48.4 the words: the car alone on the key colour, every image numbered as 
   assert.doesNotMatch(i, /chroma-key|stock photo/);
   assert.match(i, /no background is swapped/);
   assert.equal(imageRoles({ refs: 1, guide: false, stock: false, shot: 'trunk' }).length, 1);
+  // the wheel close-up: the car's own rims from its other photos, nothing keyed, no background
+  const w = r48Prompt({ car: CAR, shot: 'wheel', refs: 3, guide: true, stock: true });
+  assert.match(w, /the same rim design/);
+  assert.match(w, /no floor, no room and no background visible/);
+  assert.doesNotMatch(w, /chroma-key|stock photo/);
   // the stock photo alone: it is image 1, the guide image 2 (the worker sends them in that order)
   const s = r48Prompt({ car: CAR, shot: 'front_left', refs: 0, guide: true, stock: true, stockOnly: true, key: 'green' });
   assert.match(s, /Image 1 is a stock photo of this exact model/);
@@ -140,7 +147,7 @@ function keyedCar(o: { bg?: [number, number, number]; x0?: number; x1?: number }
 const CAR_JPEG = encodeJpeg(keyedCar(), 95);
 type Out = { r45: { pass: boolean; spec: string; reasons: string[]; wait?: string; why?: string; generated?: boolean; refs?: number; handover_refs?: number; stock_only?: boolean; key?: string;
     gate?: { pass: boolean; measures: { win?: unknown; car?: { x: number; w: number } } } };
-  preset_version: string; processed_path: string; width: number; showroom: { mode: string; background?: string } };
+  preset_version: string; processed_path: string; width: number; showroom: { mode: string; background?: string; cutout?: { path: string; kind: string; width: number } } };
 const out = (r: JobResult) => r.output as unknown as Out;
 function deps(over: Partial<WorkerDeps> = {}, answers: unknown[] = [OK]) {
   const priv = new Map<string, Uint8Array>([['vehicles/v1/original/fl.jpg', JPEG], ['vehicles/v1/original/rear.jpg', JPEG]]);
@@ -191,16 +198,22 @@ test('r48.4 pass: the photos, the guide and the stock photo go to Gemini as numb
   assert.ok(!priv.has(PENDING), 'the kept render is dropped once judged');
 });
 
-test('r48.4 the cover keeps its empty room (the drive-off matte\'s plate), another view not; a green car is keyed on magenta', async () => {
+test('r48.4 one identical room for every view, stored once; the cover\'s cutout (full frame) and the side profile\'s (cropped); a green car on magenta', async () => {
   const cover = deps();
   const r = out(await runJob(cover.d, job(), budget));
   assert.equal(r.r45.pass, true, JSON.stringify(r.r45));
-  assert.match(String(r.showroom.background), /^site\/r48\/backdrops\/v1-[a-f0-9]+\.jpg$/);
-  assert.ok(cover.pub.has(r.showroom.background!));
+  assert.equal(r.showroom.background, 'site/r48/room.jpg');
+  assert.ok(cover.pub.has('site/r48/room.jpg'));
+  assert.match(String(r.showroom.cutout?.path), /^site\/cutouts\/v1\/front_left-[a-f0-9]+\.png$/);
+  assert.equal(r.showroom.cutout?.kind, 'matte');
+  assert.equal(r.showroom.cutout?.width, 1800);
   const side = deps({}, [{ ...OK, view: 'left' }]);
   const r2 = out(await runJob(side.d, job({ photo: { id: 'p1', shot_type: 'left', angle: 'left', original_path: 'x', processed_path: null, rebackground: true, is_public: false, file_base: 'cla-left' } }, { shot: 'left', guide: null }), budget));
   assert.equal(r2.r45.pass, true, JSON.stringify(r2.r45));
-  assert.equal(r2.showroom.background, undefined);
+  assert.equal(r2.showroom.background, 'site/r48/room.jpg', 'the same room');
+  assert.equal(r2.showroom.cutout?.kind, 'cutout');
+  assert.ok((r2.showroom.cutout?.width ?? 1800) < 1800, 'cropped to the car');
+  assert.deepEqual(side.pub.get('site/r48/room.jpg'), cover.pub.get('site/r48/room.jpg'), 'identical across cars');
   const green = deps({ angleAi: async () => ({ ok: true, bytes: encodeJpeg(keyedCar({ bg: [255, 0, 255] }), 95), contentType: 'image/jpeg', provider: 'ai', model: 'm' }) });
   const g = out(await runJob(green.d, job({}, { car: { ...CAR, colour: 'Olive Green' } }), budget));
   assert.equal(g.r45.pass, true, JSON.stringify(g.r45));
@@ -271,7 +284,7 @@ test('r48.4 check-in photos: sent to Gemini when the car has no listing photo (5
   assert.equal(r.r45.handover_refs, 2);
   assert.equal(asked[0]!.images, 4, 'both check-in photos, the guide, the stock photo: as the words number them');
   assert.match(asked[0]!.prompt, /Images 1 to 2 are real photos of THIS car/);
-  assert.ok([...pub.keys()].filter((k) => !keys.has(k)).every((k) => k.includes('-r48') || k.startsWith('site/r48/backdrops/')), 'only the made view, its sizes and the cover\'s empty room are stored');
+  assert.ok([...pub.keys()].filter((k) => !keys.has(k)).every((k) => k.includes('-r48') || k === 'site/r48/room.jpg' || k.startsWith('site/cutouts/v1/')), 'only the made view, its sizes, the room and the cutout are stored');
   const odd = deps();
   assert.equal(out(await runJob(odd.d, job({}, { refs: [{ bucket: 'identity', path: 'x.jpg' }], stock: null }), budget)).r45.pass, false, 'a bucket the worker does not know is never read');
 });
