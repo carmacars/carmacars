@@ -91,6 +91,12 @@ select test.eq('the townhall follows its settings: the configured weekday and ti
 select test.ok('the next one is the coming Wednesday (or today''s, until it is over)', app.townhall_next(now()) between now() - interval '2 hours' and now() + interval '7 days');
 -- the slots open more than 2 hours ahead: a Wednesday 3 days or more away when today is too close
 update program_settings set townhall_weekday = case when app.townhall_next(now()) < now() + interval '1 day' then extract(isodow from app.today() + 3)::int else 3 end;
+-- field-call days other files or 5072 made for that date (at another townhall time) are not this suite's: only the day
+-- this call makes is checked (a 99_ file never depends on another's data, REQ-117)
+delete from interview_slots s using interview_days d where s.day_id = d.id and d.note like 'Field calls in the hour before the weekly townhall%'
+   and d.day = app.local_date(app.townhall_next(now())) and not exists (select 1 from job_applications a where a.slot_id = s.id);
+delete from interview_days d where d.note like 'Field calls in the hour before the weekly townhall%' and d.day = app.local_date(app.townhall_next(now()))
+   and not exists (select 1 from interview_slots s where s.day_id = d.id);
 select app.townhall_field_slots(now());
 select test.eq('the townhall day''s field calls: the hour before the configured townhall time', (select to_char(min(s.starts_at) at time zone 'America/Toronto', 'HH24:MI') || '-' || to_char(max(s.ends_at) at time zone 'America/Toronto', 'HH24:MI')
   from interview_slots s join interview_days d on d.id = s.day_id where d.note like 'Field calls in the hour before the weekly townhall%' and d.day = app.local_date(app.townhall_next(now()))),
