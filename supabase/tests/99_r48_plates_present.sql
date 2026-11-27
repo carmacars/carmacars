@@ -90,9 +90,14 @@ select test.eq('a view that follows 3040 is not taken again', app.photo_r48_plat
 select test.eq('a car not published: its studio cover is not shown', (select count(*) from jsonb_array_elements(app.site_studio_covers(48)) e where (e ->> 'vehicle_id')::uuid = test.id('vehicle:rp40_a')), 0::bigint);
 insert into vehicle_listings (vehicle_id, slug, headline, status, published_at) values (test.id('vehicle:rp40_a'), 'rp40-a', 'Test car A', 'published', now()) on conflict do nothing;
 update vehicle_listings set status = 'published', published_at = coalesce(published_at, now()) where vehicle_id = test.id('vehicle:rp40_a');
-select test.ok('a published real car''s checked studio cover (its live render: the front three-quarter here) is shown, with its size',
+-- 5080 / REQ-002: where a sample photo was shown, only the real car's cutout on the one room, never its full render
+select test.ok('a published real car''s live studio cover without its cutout: not shown in place of a sample photo',
+  not exists (select 1 from jsonb_array_elements(public.site_studio_covers(48)) e where (e ->> 'vehicle_id')::uuid = test.id('vehicle:rp40_a')));
+insert into site_cutouts (vehicle_id, shot, source_kind, source_bucket, source_path, path, width, height, facing, made_at, kind, plate_path)
+values (test.id('vehicle:rp40_a'), 'front_left', 'studio', 'vehicle-public', 'vehicles/rp40/r48-fl-new.jpg', 'site/cutouts/rp40/front_left-a1.png', 1800, 1200, 'left', now(), 'matte', 'site/cutouts/room-r48.4.jpg');
+select test.ok('with its cutout: the cutout and the room are shown, with its size, never the render itself',
   exists (select 1 from jsonb_array_elements(public.site_studio_covers(48)) e where (e ->> 'vehicle_id')::uuid = test.id('vehicle:rp40_a')
-            and e ->> 'path' = 'vehicles/rp40/r48-fl-new.jpg' and (e ->> 'width')::int = 1800 and jsonb_typeof(e -> 'variants') = 'array'));
+            and e ->> 'path' = 'site/cutouts/rp40/front_left-a1.png' and e ->> 'plate' = 'site/cutouts/room-r48.4.jpg' and (e ->> 'width')::int = 1800 and jsonb_typeof(e -> 'variants') = 'array'));
 update vehicles set is_sample = true where id = test.id('vehicle:rp40_a');
 select test.eq('a sample car''s photo is never one of them', (select count(*) from jsonb_array_elements(app.site_studio_covers(48)) e where (e ->> 'vehicle_id')::uuid = test.id('vehicle:rp40_a')), 0::bigint);
 update vehicles set is_sample = false where id = test.id('vehicle:rp40_a');

@@ -150,6 +150,11 @@ comment on function app.photo_render_order() is 'R50 hotfix 2 (5080): the order 
 -- the studio set is exactly that list: the queue, a car's set done and its progress (2900 and 3030 used the r45 nine)
 select pg_temp.patch_fn('app.photo_r48_queue(uuid, uuid, text, boolean)'::regprocedure, 'app.photo_r45_angles()', 'app.photo_render_order()');
 select pg_temp.patch_fn('app.photo_r48_car_done(uuid)'::regprocedure, 'app.photo_r45_angles()', 'app.photo_render_order()');
+-- and every Admin action on a car's studio set (make one angle, the set, a new scene, Redo this car): the same eight
+select pg_temp.patch_fn('app.photo_r48_angle(uuid, jsonb)'::regprocedure, 'app.photo_r45_angles()', 'app.photo_render_order()');
+select pg_temp.patch_fn('app.photo_r48_set(uuid, jsonb)'::regprocedure, 'app.photo_r45_angles()', 'app.photo_render_order()');
+select pg_temp.patch_fn('app.photo_r48_set_scene(uuid, jsonb)'::regprocedure, 'app.photo_r45_angles()', 'app.photo_render_order()');
+select pg_temp.patch_fn('app.photo_r45_redo(uuid, jsonb)'::regprocedure, 'app.photo_r45_angles()', 'app.photo_render_order()');
 
 -- the job makes the cover of every car first, then its second view, then the rest, in that order (3150 named the side
 -- profile and the front three-quarter)

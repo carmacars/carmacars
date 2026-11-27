@@ -88,8 +88,8 @@ select test.ok('the channel API leaves the placeholder out, as the feeds and the
 select test.ok('the worker''s gate verdict is kept on the photo (3701 wraps worker_listing_result; 5080 wraps it again)',
   position('{output,r45,gate}' in pg_get_functiondef(to_regprocedure('app.worker_listing_result_pre5080(uuid, jsonb)'))) > 0);
 create temp table rq50s_grid as select app.photo_r48_grid(test.id('rq50s_admin'), '{"limit": 200}'::jsonb) as g;
-select test.ok('the studio grid: the nine views in the site''s order, each car''s count of live views',
-  (select jsonb_array_length(g -> 'order') = 9 and g ->> 'spec' = app.photo_r48_spec() from rq50s_grid));
+select test.ok('the studio grid: the eight views in the sample photos'' order (5080 / REQ-001), each car''s count of live views',
+  (select jsonb_array_length(g -> 'order') = 8 and g ->> 'spec' = app.photo_r48_spec() from rq50s_grid));
 select test.throws('only an Admin or fleet sees the studio grid', $$select app.photo_r48_grid(test.id('rq50s_cs'), '{}'::jsonb)$$, 'Admin or fleet');
 
 -- ---------------------------------------------------------------- 6. renders made before r48.4: made again (5080; 3701 checked them in place)

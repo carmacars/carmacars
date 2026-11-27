@@ -132,8 +132,8 @@ select test.ok('the real photos stay approved and public in their records',
 
 -- ---------------------------------------------------------------- 5. Admin: the set of a car, one angle, the scene
 create temp table rs30_set as select app.door(test.id('rs30_fleet'), 'aal2', 'ops_read', 'photo_r48_set', jsonb_build_object('vehicle', test.id('vehicle:rs30_a'))) as s;
-select test.ok('the set of a car: nine angles, the generated view beside the originals of each',
-  (select jsonb_array_length(s -> 'angles') = 9 and s -> 'angles' -> 0 ->> 'shot' = 'front_left' and s -> 'angles' -> 0 #>> '{generated,path}' = 'vehicles/rs30/a-fl-r48.jpg'
+select test.ok('the set of a car: the eight sample angles (5080 / REQ-001), the generated view beside the originals of each',
+  (select jsonb_array_length(s -> 'angles') = 8 and s -> 'angles' -> 0 ->> 'shot' = 'front_left' and s -> 'angles' -> 0 #>> '{generated,path}' = 'vehicles/rs30/a-fl-r48.jpg'
           and jsonb_array_length(s -> 'angles' -> 0 -> 'originals') = 1 and (s ->> 'studio_cover')::boolean from rs30_set));
 select app.door(test.id('rs30_fleet'), 'aal2', 'ops_do', 'photo_r48_angle', jsonb_build_object('vehicle', test.id('vehicle:rs30_a'), 'shot', 'rear', 'action', 'hide'));
 select test.ok('hide: the generated rear is off the site and out of the gallery',

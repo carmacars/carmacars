@@ -93,19 +93,19 @@ update program_settings set listing_photo_r45_batch = 200 where id = (select id 
 insert into app.fleet_trend (vehicle_id, score) select test.id('vehicle:' || c), 99999999 from unnest(array['rq48_a', 'rq48_h', 'rq48_c']) c
   on conflict (vehicle_id) do update set score = excluded.score;
 select app.job_photo_r48();
-select test.eq('then the other eight angles of the car, in the site''s order (the front three-quarter sorted first)',
+select test.eq('then the other seven angles of the car, in the sample photos'' order (5080 / REQ-001: the eight sample angles, the front three-quarter first)',
   (select string_agg(shot_type, ',' order by sort_order) from vehicle_photos where vehicle_id = test.id('vehicle:rq48_a') and r48 and replaced_at is null),
-  'front_left,front,left,rear_left,rear,dashboard,front_seats,rear_seats,trunk');
+  'front_left,left,rear_left,front,rear,dashboard,front_seats,wheel');
 select test.ok('each r48 view: ai_generated, off the site until it passes, one job photo_r45 in mode r48 with the car named',
-  (select count(*) = 9 and bool_and(ph.ai_generated and not ph.is_public and ph.status = 'processing' and j.input #>> '{r45,mode}' = 'r48' and j.input #>> '{r45,car,make}' is not null)
+  (select count(*) = 8 and bool_and(ph.ai_generated and not ph.is_public and ph.status = 'processing' and j.input #>> '{r45,mode}' = 'r48' and j.input #>> '{r45,car,make}' is not null)
      from vehicle_photos ph join listing_jobs j on j.vehicle_photo_id = ph.id and j.kind = 'photo_r45' and j.status = 'queued'
     where ph.vehicle_id = test.id('vehicle:rq48_a') and ph.r48));
 select app.job_photo_r48();
-select test.eq('again: nothing new (one view an angle)', (select count(*)::text from vehicle_photos where vehicle_id = test.id('vehicle:rq48_a') and r48), '9');
-update listing_jobs set status = 'cancelled', finished_at = now() where vehicle_photo_id = (test.rq48_row('rq48_c', 'trunk')).id and status = 'queued';
-select app.photo_r48_queue(null, test.id('vehicle:rq48_c'), 'trunk');
+select test.eq('again: nothing new (one view an angle)', (select count(*)::text from vehicle_photos where vehicle_id = test.id('vehicle:rq48_a') and r48), '8');  -- 5080 / REQ-001: eight
+update listing_jobs set status = 'cancelled', finished_at = now() where vehicle_photo_id = (test.rq48_row('rq48_c', 'wheel')).id and status = 'queued';
+select app.photo_r48_queue(null, test.id('vehicle:rq48_c'), 'wheel');
 select test.ok('a view whose step was lost (cancelled) is queued again, the same row',
-  (test.rq48_job((test.rq48_row('rq48_c', 'trunk')).id)).status = 'queued' and (select count(*) = 1 from vehicle_photos where vehicle_id = test.id('vehicle:rq48_c') and r48 and shot_type = 'trunk'));
+  (test.rq48_job((test.rq48_row('rq48_c', 'wheel')).id)).status = 'queued' and (select count(*) = 1 from vehicle_photos where vehicle_id = test.id('vehicle:rq48_c') and r48 and shot_type = 'wheel'));
 select test.ok('the r45 machinery leaves the r48 views alone', not exists (select 1 from vehicle_photos ph where ph.r48 and app.photo_r45_applies(ph)));
 
 -- a car photographed only at handovers: a listing to run on (not published), and its check-in photos never become listing photos
@@ -180,8 +180,8 @@ select test.ok('a flagged view is not made again by itself', not exists (select 
 
 -- ---------------------------------------------------------------- 7. Admin: the card and the redo
 create temp table rq48_view as select app.photo_r45_fleet_read(test.id('rq48_fleet')) as v;
-select test.ok('the card: per car its r48 set (done, flagged, of nine), a handover-only car listed too, the r48 run on',
-  (select (c #>> '{r48,done}')::int = 1 and (c #>> '{r48,flagged}')::int = 1 and (c #>> '{r48,angles}')::int = 9 from rq48_view, jsonb_array_elements(v -> 'cars') c where c ->> 'id' = test.id('vehicle:rq48_a')::text)
+select test.ok('the card: per car its r48 set (done, flagged, of eight: 5080 / REQ-001), a handover-only car listed too, the r48 run on',
+  (select (c #>> '{r48,done}')::int = 1 and (c #>> '{r48,flagged}')::int = 1 and (c #>> '{r48,angles}')::int = 8 from rq48_view, jsonb_array_elements(v -> 'cars') c where c ->> 'id' = test.id('vehicle:rq48_a')::text)
   and (select (c #>> '{r48,handover_refs}')::boolean from rq48_view, jsonb_array_elements(v -> 'cars') c where c ->> 'id' = test.id('vehicle:rq48_h')::text)
   and (select (v ->> 'r48_auto')::boolean and v ->> 'r48_spec' = app.photo_r48_spec() from rq48_view));
 create temp table rq48_redo as select app.photo_r45_redo(test.id('rq48_fleet'), jsonb_build_object('vehicle', test.id('vehicle:rq48_a'))) as r;

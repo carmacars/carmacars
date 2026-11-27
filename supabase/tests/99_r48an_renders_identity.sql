@@ -116,7 +116,7 @@ insert into vehicle_listings (vehicle_id, status) values (test.id('vehicle:an48_
 insert into vehicle_photos (vehicle_id, angle, shot_type, original_path, processed_path, status, is_public, r48, ai_generated, background_status, plate_status, sort_order, r45)
 select test.id('vehicle:an48_c'), a, a, 'vehicles/original/an48/c-' || a || '.jpg', 'vehicles/an48/c-' || a || '.jpg', 'approved', true, true, true, 'done', 'not_visible', -90,
        jsonb_build_object('state', 'done', 'spec', app.photo_r48_spec())
-  from unnest(app.photo_r45_angles()) a;
+  from unnest(app.photo_render_order()) a;  -- 5080 / REQ-001: the eight sample angles
 select test.eq('a car whose whole set is live is told once', app.photo_render_notices() >= 1 and app.photo_render_notices() = 0, true);
 select test.eq('one event each for the owner and for Fleet',
   (select array_agg(code order by code) from app_events where entity_id = test.id('vehicle:an48_c') and code like '%car_photos_ready'),
@@ -128,7 +128,7 @@ $$;
 select test.an48_process();
 select test.ok('the owner''s branded email is queued with every value filled, to the owner',
   exists (select 1 from notification_outbox o where o.code = 'owner_car_photos_ready' and o.vehicle_id = test.id('vehicle:an48_c')
-            and cardinality(o.missing_variables) = 0 and o.payload ->> 'render_count' = '9' and o.owner_id = test.id('owner:an48_olive')));
+            and cardinality(o.missing_variables) = 0 and o.payload ->> 'render_count' = '8' and o.owner_id = test.id('owner:an48_olive')));
 select test.ok('Fleet''s notice is in the staff bell and the next Fleet digest',
   exists (select 1 from app_events e where e.code = 'staff_car_photos_ready' and e.entity_id = test.id('vehicle:an48_c') and e.processed_at is not null and e.process_note ~ 'digest [1-9]' and e.process_note ~ 'in-app [1-9]'));
 select test.ok('the owner can mute it; it alerts their phone and has a text',
