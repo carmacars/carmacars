@@ -584,11 +584,13 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 
 ### REQ-067 Academy
 - Status: in progress
-- Proof: branch r50-hotfix2-academy (not on main)
-- Test: to be added with the work
-- Asked: Nov 27 01:12, 05:02
-- Rule: the first sections (more than 3) unlock work; the full academy is needed for payouts; shorter; lessons match questions; stuck or repeated errors force that section; Admin opens any lesson and quiz; wrong-answer wait 2 minutes with one fix.
-- Done when: each rule is testable in the academy.
+- Proof: branch r50-hotfix2-academy at 31356c07 (not on main): supabase/migrations/5170 to 5172
+- Test: supabase/tests/99_r50h2_basics_routing.sql (92 assertions: basics, pay and hours hold and release, stuck sections, Admin access, audit)
+- Asked: Nov 27 01:12, 05:02, 12:36, 15:05
+- Owner (Nov 27 12:36): "Pay for hours should also be held until academy is passed. Field staff must finish entire academy. Same with customer service and fleet and finance."
+- Owner (Nov 27 15:05): "Portal stays locked for field staff and customer service and finance and fleet until they finish the full academy"
+- Rule: the first sections (more than 3) unlock work for Admins and Sales; Field, customer service, Finance and Fleet need the full academy before the portal opens; the full academy is needed for payouts; shorter; lessons match questions; stuck or repeated errors force that section; Admin opens any lesson and quiz; wrong-answer wait 2 minutes with one fix. Payouts held until the entire academy is passed cover hours and shift pay too, plus commission, bonus, referral and contractor payouts, for Field, customer service, Fleet and Finance; held pay is never lost (paid in full on the first pay run after the pass); an Admin can waive per person with a reason; one Program setting turns the hours part off (on by default).
+- Done when: each rule is testable in the academy; an hourly or shift pay line for a Field, customer service, Fleet or Finance person who has not passed the full academy is held, and is paid on the first pay run after they pass; a Field, customer service, Finance or Fleet person who has not passed the full academy reaches only the academy and onboarding pages (agreement, documents, pay details); every other staff page sends them to the academy.
 
 ### REQ-068 Academy videos
 - Status: not started
