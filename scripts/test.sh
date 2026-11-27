@@ -90,8 +90,9 @@ DUMP="${CARMACARS_TEST_DUMP:-}"
 [ "$PHASE" != release ] || [ -f "$DUMP" ] || { echo "CARMACARS_TEST_PHASE=release needs CARMACARS_TEST_DUMP (a file)" >&2; exit 2; }
 # the release files of this slice: balanced by recorded timings when given, else by the checksum of the name
 SLICE_LIST=""
-if [ "$SLICE_N" != 1 ] && [ -n "${CARMACARS_TEST_TIMINGS:-}" ] && [ -f "${CARMACARS_TEST_TIMINGS}" ]; then
-  SLICE_LIST="$(cd "$TESTS" && ls 99_*.sql | node "$ROOT/scripts/test-slices.mjs" "$CARMACARS_TEST_TIMINGS" "$SLICE_I" "$SLICE_N")"
+TIMINGS="${CARMACARS_TEST_TIMINGS:-}"; [ -z "$TIMINGS" ] || [ "${TIMINGS#/}" != "$TIMINGS" ] || TIMINGS="$PWD/$TIMINGS"   # the list is made in the tests folder
+if [ "$SLICE_N" != 1 ] && [ -n "$TIMINGS" ] && [ -f "$TIMINGS" ]; then
+  SLICE_LIST="$(cd "$TESTS" && ls 99_*.sql | node "$ROOT/scripts/test-slices.mjs" "$TIMINGS" "$SLICE_I" "$SLICE_N")"
 fi
 in_slice() {
   if [ "$PHASE" = base ]; then is_base "$1"; return; fi
@@ -148,6 +149,10 @@ for f in "$TESTS"/[0-9]*.sql; do
   fi
   echo "   $b"
   t0="$(date +%s.%N)"
+  # a release file starts with no event another file left unprocessed: app.process_events takes the oldest first, one
+  # batch at a time, so leftovers would delay or add to its own notices (REQ-117; runs 46004944280 and the local slices
+  # of Nov 27: 99_r41_marketing, 99_booking_moments, 99_push_alerts failed only after certain other files)
+  is_base "$b" || run "$DB_URL" -c "update app_events set processed_at = now(), process_note = 'left by an earlier test file' where processed_at is null" >/dev/null
   run "$DB_URL" -f "$f" >/dev/null
   if [ -n "$RESULTS" ]; then awk -v b="$b" -v t0="$t0" -v t1="$(date +%s.%N)" 'BEGIN { printf "%s\t%.1f\n", b, t1 - t0 }' >> "$RESULTS/timings.tsv"; fi
   if [ -n "$RESULTS" ] && { [ "$SLICE_I" = 1 ] || ! is_base "$b"; }; then echo "$b" >> "$RESULTS/files.txt"; fi
