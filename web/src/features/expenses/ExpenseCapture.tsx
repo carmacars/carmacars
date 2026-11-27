@@ -52,10 +52,12 @@ export function ExpenseCapture() {
 
   async function add(files: FileList | null) {
     if (!files?.length || !ctx) return;
+    // copy first: the input clears its list (e.target.value = '') before the awaits below, and a live FileList empties with it
+    const picked = Array.from(files);
     setMsg(null);
     const { toStandardImage } = await import('@/features/uploads/standard-image');
     const { askVision, imageJpeg } = await import('@/features/tolls/pdf');
-    for (const file of Array.from(files).slice(0, 10 - shotsRef.current.length)) {
+    for (const file of picked.slice(0, 10 - shotsRef.current.length)) {
       let blob: Blob;
       try { blob = await toStandardImage(file); } catch { setMsg({ ok: false, text: `${file.name} could not be opened: take the photo again, or upload a JPEG, PNG, HEIC or PDF.` }); continue; }
       const shot: Shot = { key: crypto.randomUUID(), blob, url: URL.createObjectURL(blob), state: ctx.vision ? 'reading' : 'not_read', note: ctx.vision ? undefined : 'Reading is off: type the details' };

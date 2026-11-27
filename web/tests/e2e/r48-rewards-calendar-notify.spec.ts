@@ -198,6 +198,10 @@ test('the content calendar: written, nothing queued until approved, approve sche
   const u = await seller(sql, 'Mara Marketing', 'CA', 'in_person');
   await signIn(page, u.email, '/staff/marketing/calendar');
   await expect(page.getByTestId('content-calendar')).toBeVisible();
+  // the running month only has its days still ahead (the writer leaves past days out): near the month's end that is
+  // 3 posts or fewer, so the test writes next month, which is always whole
+  await page.getByTestId('cal-next').click();
+  await expect(page.getByTestId('content-calendar')).not.toHaveAttribute('data-month', new RegExp(`^${new Date().toISOString().slice(0, 7)}`));
   if (await page.getByTestId('cal-empty').count()) {
     await page.getByTestId('cal-write').first().click();
     await expect(page.getByTestId('cal-posts')).toBeVisible({ timeout: 90_000 });

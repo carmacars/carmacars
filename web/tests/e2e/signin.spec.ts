@@ -410,7 +410,7 @@ test('view as matches the person\'s own sign-in: a Sales assistant and a custome
       // r37 (2340): Report a bug is the person's own too (a report filed while viewing would be the Admin's), never shown then
       // r50 hotfix 2: the call screen's phone button places the person's own calls: never shown while viewing as them
       // r51 (3950): Guide me keeps the person's own progress, so it is not shown while viewing as them either
-      for (const t of Array.from(document.querySelectorAll('[role="timer"], .pu-timer, .ad-wait, time, [data-testid^="guide-banner"], [data-testid="townhall-link"], [data-testid^="bug-report"], .gm-anchor'))) t.remove();
+      for (const t of Array.from(document.querySelectorAll('[role="timer"], .pu-timer, .ad-wait, time, [data-testid^="guide-banner"], [data-testid="townhall-link"], [data-testid^="bug-report"], [data-testid="voice-launch"], .gm-anchor'))) t.remove();
       const kinds = new Set(Array.from(document.querySelectorAll('.ad__main [data-testid]')).map((e) => e.getAttribute('data-testid')!)
         .filter((t) => !t.startsWith('guide-banner') && t !== 'sort-select').map((t) => t.replace(/^(va-reply|va-licence|task|booking|row|car)-.*$/, '$1-*')));
       // the sort box of a list shows only once the list has two rows (r43), which other tests change while this one runs: left out

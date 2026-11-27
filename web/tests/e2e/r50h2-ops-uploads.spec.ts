@@ -58,6 +58,8 @@ test('5143: Fleet logs an expense from two receipt photos; it goes on the owner\
   const cap = page.getByTestId('expense-capture');
   await expect(cap).toBeVisible();
   await expect(page.getByTestId('expense-save')).toBeDisabled();
+  // the picker is off until the expense context has loaded: photos chosen before that are ignored
+  await expect(page.getByTestId('expense-upload')).toBeEnabled();
   await page.getByTestId('expense-upload').setInputFiles([photo(1), photo(2)]);
   await expect(page.getByTestId('expense-shots').locator('li')).toHaveCount(2);
   // read from the photo: the amount before tax, the tax, the shop, the category

@@ -57,7 +57,10 @@ test('A new hire is held on Welcome until the academy is passed; an Admin waives
     const page = await ctx(browser);
     await signIn(page, cs.email, '/staff');
     await page.goto('/staff/renters', { waitUntil: 'networkidle' });
-    await page.waitForURL(/\/staff\/welcome$/);
+    // REQ-067 (339a7e87, owner Nov 27 15:05): a work page sends a held person to the academy; Welcome stays open
+    await page.waitForURL(/\/staff\/academy$/, { timeout: 20_000 });
+    await expect(page.getByTestId('academy-locked')).toBeVisible();
+    await page.goto('/staff/welcome', { waitUntil: 'networkidle' });
     const w = page.getByTestId('staff-welcome');
     await expect(w.getByTestId('welcome-locked')).toBeVisible();
     for (const k of ['welcome', 'profile', 'academy', 'tasks']) await expect(w.getByTestId(`welcome-step-${k}`)).toBeVisible();

@@ -67,12 +67,22 @@ function clearDone(b: HTMLElement) {
 function hold(b: HTMLElement) {
   holds.get(b)?.();
   const scope = scopeOf(b);
-  const label = labelOf(b);
+  // a component answers while its button still reads "Saving" (aria-busy): the label to hold is the one it settles on
+  let label: string | null = b.hasAttribute('aria-busy') ? null : labelOf(b);
   const edit = (e: Event) => { if (e.target instanceof Element && !b.contains(e.target)) clearDone(b); };
-  const watch = new MutationObserver(() => { if (!b.isConnected || labelOf(b) !== label) clearDone(b); });
+  const watch = new MutationObserver(() => {
+    if (!b.isConnected) { clearDone(b); return; }
+    if (b.hasAttribute('aria-busy')) return;
+    const now = labelOf(b);
+    if (label === null) { label = now; return; }
+    if (now !== label) clearDone(b);
+  });
   watch.observe(b, { subtree: true, childList: true, characterData: true });
   scope.addEventListener('input', edit, true); scope.addEventListener('change', edit, true);
-  holds.set(b, () => { watch.disconnect(); scope.removeEventListener('input', edit, true); scope.removeEventListener('change', edit, true); });
+  // an error that shows in its scope after the "done" word was set takes the success back (a failure rings the button and leaves its label)
+  const errs = new MutationObserver(() => { if (b.isConnected && errorIn(b)) moResult(b, false); });
+  errs.observe(scope, { childList: true, subtree: true, attributes: true, attributeFilter: ['aria-invalid'] });
+  holds.set(b, () => { watch.disconnect(); errs.disconnect(); scope.removeEventListener('input', edit, true); scope.removeEventListener('change', edit, true); });
   if (!b.hasAttribute('aria-disabled')) { b.setAttribute('aria-disabled', 'true'); b.dataset.moHeld = '1'; }
 }
 /** A button's answer: ok shows the word ("Saved") and a tick, and keeps it (see above); not ok nudges it and rings it
