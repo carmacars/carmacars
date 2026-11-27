@@ -92,7 +92,8 @@ export function PermitBulk({ waiting, filed, cars, base }: { waiting: Waiting[];
             <div className="row">
               <button className="btn btn--primary btn--sm" type="button" disabled={pending || !pick[w.id]} onClick={() => act(w.id, 'permit_assign')} aria-describedby={`why-pb-${w.id}`} data-testid="permit-wait-file">File it on this car</button>
               <WhyDisabled id={`why-pb-${w.id}`} why={!pick[w.id] ? 'Choose the car first' : null} />
-              <button className="btn btn--ghost btn--sm" type="button" disabled={pending || !(why[w.id] ?? '').trim()} onClick={() => act(w.id, 'permit_discard')}>Set aside</button>
+              <button className="btn btn--ghost btn--sm" type="button" disabled={pending || !(why[w.id] ?? '').trim()} onClick={() => act(w.id, 'permit_discard')} aria-describedby={`why-pbx-${w.id}`}>Set aside</button>
+              <WhyDisabled id={`why-pbx-${w.id}`} why={!(why[w.id] ?? '').trim() ? 'Say why first' : null} />
             </div>
             {err[w.id] && <p className="small ad-err" role="alert">{err[w.id]}</p>}
           </li>))}</ul>}

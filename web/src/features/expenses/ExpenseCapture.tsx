@@ -7,6 +7,7 @@ import { logExpense } from '@/server/actions/ops-uploads';
 import { PHOTO_ACCEPT } from '@/features/uploads/formats';
 import { mergeReads, normalizeReceipt, type ReceiptRead } from './receipt-read';
 import { WhyDisabled } from '@/components/WhyDisabled';
+import { DateInput } from '@/components/DateInput';
 
 // Log an expense from its receipt (migration 5143), phone first: take the photo (or several, or upload them), the vision model
 // reads the amount, the tax, the date, the vendor, the category and the car; the person checks the fields and saves. The car's
@@ -119,7 +120,7 @@ export function ExpenseCapture() {
         <div className="field ad-field"><label className="label" htmlFor="ex-tax">HST ($)</label>
           <input className="input" id="ex-tax" inputMode="decimal" value={f.tax} onChange={(e) => set('tax', e.target.value)} data-testid="expense-tax" /></div>
         <div className="field ad-field"><label className="label" htmlFor="ex-date">Date on the receipt</label>
-          <input className="input" id="ex-date" type="date" max={today()} value={f.date} onChange={(e) => set('date', e.target.value)} data-testid="expense-date" /></div>
+          <DateInput className="input" id="ex-date" type="date" max={today()} value={f.date} onChange={(e) => set('date', e.target.value)} data-testid="expense-date" /></div>
         <div className="field ad-field"><label className="label" htmlFor="ex-vendor">Shop or vendor</label>
           <input className="input" id="ex-vendor" value={f.vendor} maxLength={160} onChange={(e) => set('vendor', e.target.value)} data-testid="expense-vendor" /></div>
         <div className="field ad-field"><label className="label" htmlFor="ex-cat">Category</label>
@@ -135,7 +136,7 @@ export function ExpenseCapture() {
             <span>{car?.owner_pays ? `${car.owner_name ?? 'The owner'}: next statement` : 'The car\'s owner'}</span></label>
           <label><input type="radio" name="ex-payer" checked={f.payer === 'company'} onChange={() => set('payer', 'company')} data-testid="expense-payer-company" /><span>CarmaCars</span></label>
         </div>
-        {f.payer === 'company' && <label className="check"><input type="checkbox" checked={f.paid === 'own'} onChange={(e) => set('paid', e.target.checked ? 'own' : 'company')} data-testid="expense-own" /> <span>I paid with my own money (paid back to me)</span></label>}
+        {f.payer === 'company' && <label className="check"><input type="checkbox" checked={f.paid === 'own'} onChange={(e) => set('paid', e.target.checked ? 'own' : 'company')} data-testid="expense-own" /> <span>I paid with my own money</span> <span className="small">(paid back to me)</span></label>}
       </fieldset>
       <div className="row">
         <button className="btn btn--primary btn--block" type="button" disabled={!!why || busy} onClick={() => void save()} aria-describedby="why-expense-save" data-testid="expense-save">
