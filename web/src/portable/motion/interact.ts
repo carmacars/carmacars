@@ -67,9 +67,15 @@ function clearDone(b: HTMLElement) {
 function hold(b: HTMLElement) {
   holds.get(b)?.();
   const scope = scopeOf(b);
-  const label = labelOf(b);
+  // the button may still wear its busy label ("Saving") when the answer arrives: its first idle label is the one to keep
+  const busy = () => b.getAttribute('aria-busy') === 'true' || (b as HTMLButtonElement).disabled;
+  let label: string | null = busy() ? null : labelOf(b);
   const edit = (e: Event) => { if (e.target instanceof Element && !b.contains(e.target)) clearDone(b); };
-  const watch = new MutationObserver(() => { if (!b.isConnected || labelOf(b) !== label) clearDone(b); });
+  const watch = new MutationObserver(() => {
+    if (!b.isConnected) { clearDone(b); return; }
+    if (label === null) { if (!busy()) label = labelOf(b); return; }
+    if (labelOf(b) !== label) clearDone(b);
+  });
   watch.observe(b, { subtree: true, childList: true, characterData: true });
   scope.addEventListener('input', edit, true); scope.addEventListener('change', edit, true);
   holds.set(b, () => { watch.disconnect(); scope.removeEventListener('input', edit, true); scope.removeEventListener('change', edit, true); });
@@ -109,7 +115,9 @@ function errorsNow(): Set<string> {
   return out;
 }
 /** An error shown in the button's own form or section: the same refusal again counts as a failure, never a success. */
-const errorIn = (b: Element) => [...scopeOf(b).querySelectorAll(ERR)].some((e) => shown(e) && !e.matches('.alert--warn, .alert--info'));
+// A form that refuses on the page (a long form whose error box sits in another section than its Submit button) counts too:
+// an error box of the whole main area shows the press did not work (CI run 46080560444: Add the rental said Added, then locked).
+const errorIn = (b: Element) => [...scopeOf(b).querySelectorAll(ERR), ...(b.closest('main')?.querySelectorAll('.alert--error') ?? [])].some((e) => shown(e) && !e.matches('.alert--warn, .alert--info'));
 
 /** Starts the feedback listeners; returns the function that stops them. */
 export function startFeedback(hooks: FeedbackHooks = {}): () => void {

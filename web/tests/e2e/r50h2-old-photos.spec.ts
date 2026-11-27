@@ -77,7 +77,7 @@ test('add old photos: one booking by plate, then a pile matched by time, on the 
         daily_rate_cents, weekend_rate_cents, weekly_rate_cents, monthly_rate_cents, rate_applied, rental_charge_cents, km_allowance_per_day, km_allowance_total,
         overage_cents_per_km, deposit_cents, blocks_calendar, total_due_at_booking_cents, handed_over_at, checked_in_at, created_by)
       values (${n}, 'standard', ${status}, ${car}, ${r!.id}, now() - make_interval(days => ${out + 3}), now() - make_interval(days => ${out}), now() - make_interval(days => ${back}),
-        now() - make_interval(days => ${back}), 3, 6900, 7900, 39000, 140000, 'daily', 20700, 200, 600, 25, 0, true, 20700, now() - make_interval(days => ${out}),
+        now() - make_interval(days => ${back}), calc_billable_days(now() - make_interval(days => ${out}), now() - make_interval(days => ${back})), 6900, 7900, 39000, 140000, 'daily', 20700, 200, 600, 25, 0, true, 20700, now() - make_interval(days => ${out}),
         ${status === 'closed' ? sql`now() - make_interval(days => ${back})` : null}, ${fleet})`;
   }
   const notices = async () => Number((await sql`select count(*)::int as n from notification_outbox`)[0]!.n);
