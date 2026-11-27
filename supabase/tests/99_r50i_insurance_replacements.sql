@@ -137,6 +137,17 @@ select test.eq('confirm: added once, logged', ((select count(*) from bookings wh
   (select string_agg(tool, ',' order by created_at) from api_calls where target = 'R50I-API' and ok))::text, '(1,"insurer_rental_create:preview,insurer_rental_create")');
 select test.eq('get_insurer_rental reads it', app.api_call(test.r50ih('cc_live_r50i_full'), 'get_insurer_rental', jsonb_build_object('booking', test.r50iv('cf') #>> '{result,result,booking_number}'), 'test') #>> '{result,claim,claim_number}', 'R50I-API');
 
+-- the two new emails are built (07_notifications leaves them to this file), with every variable, and the estimate to the
+-- insurer names no CarmaCars in what it prints (it goes as Blind Spot Car Rental)
+select app.process_events(100000);
+select test.eq('the new emails are built with every variable',
+  (select string_agg(distinct o.code || ':' || cardinality(o.missing_variables), ',' order by o.code || ':' || cardinality(o.missing_variables)) from notification_outbox o
+    where o.code in ('insurer_estimate', 'staff_insurer_rental_added')), 'insurer_estimate:0,staff_insurer_rental_added:0');
+select test.eq('the estimate to the insurer names no CarmaCars in any value its template prints (emails/templates/insurer_estimate.html)',
+  (select count(*) from notification_outbox o, unnest(array['amount', 'claim_number', 'company_address', 'first_name', 'insurer_name', 'invoice_amount', 'invoice_hst', 'invoice_number',
+      'invoice_total', 'label', 'period', 'renter_name', 'reply_time', 'support_phone', 'vehicle_name', 'version']) k
+    where o.code = 'insurer_estimate' and coalesce(o.payload ->> k, '') || coalesce(o.to_name, '') ~* 'carma ?cars'), 0::bigint);
+
 -- ================================================================ 7. drafts never vanish
 insert into rental_drafts (id, kind, created_by, data, title, updated_at) values (test.id('draft:r50i'), 'rental', test.id('r50i_cs'), '{"form": "insurer", "f": {"renter_name": "Old Example"}}', 'Old Example', now() - interval '60 days');
 select test.ok('a draft untouched for 60 days is still listed, with its form', exists (select 1 from jsonb_array_elements(app.drafts_list(test.id('r50i_cs'), '{"kind": "rental"}')) e
