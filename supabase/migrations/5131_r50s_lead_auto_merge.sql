@@ -8,7 +8,9 @@
 --      customer (renter, owner, partner) are one person when they share the email, or the phone (last ten digits), or
 --      their names are variants of each other (the same words in any order, or the same first and last word with a middle
 --      name or not) while their contact details do not disagree (no two different emails, no two different phones) and
---      they came within 30 days of each other. Two leads marked "not the same person" stay apart (3230).
+--      they came within 30 days of each other. Two leads marked "not the same person" stay apart (3230). As in 3230, a lead
+--      someone already handled is never the one kept: a new form from that person stays a new lead (so it is seen), and
+--      the lead page offers the merge.
 --   2. When: at the end of the transaction that made a lead or changed its name, email or phone (a constraint trigger),
 --      and every hour over every open lead (app.job_lead_merge, pg_cron), so the leads already there merge too; this
 --      migration runs it once. Program settings lead_auto_merge still switches it off.
@@ -80,7 +82,7 @@ language sql stable security definer set search_path = public, app, pg_temp as $
               and not (app.phone_key(x.phone) is not null and app.phone_key(l.phone) is not null and app.phone_key(x.phone) <> app.phone_key(l.phone))) c
     join leads o on o.id = c.id
    where l.id = p_lead and app.lead_open_for_merge(l)
-     and o.id <> l.id and app.lead_open_for_merge(o) and app.sl_type(o) = app.sl_type(l)
+     and o.id <> l.id and app.lead_open_for_merge(o) and o.handled_at is null and app.sl_type(o) = app.sl_type(l)
      and (o.created_at, o.id) < (l.created_at, l.id)
      and not (o.id = any (l.not_duplicate_of)) and not (l.id = any (o.not_duplicate_of))
    order by o.created_at, o.id

@@ -114,12 +114,13 @@ select test.mk_vehicle('MRE', 'mr_kar', p_enrolled => date '2034-01-01');
 select test.mk_renter('mr_r4', false);
 select test.mk_booking('MR-4', 'MRE', 'mr_r4', '2034-05-01 10:00', '2034-05-08 10:00', 'closed', 70000);
 update bookings set sales_staff_id = test.id('mr_s1'), sales_source = 'offer', sales_attributed_at = booked_at, sales_sourced = true, confirmed_at = booked_at where id = test.id('booking:MR-4');
+-- 5133 (R50 hotfix 2): an extension goes to whoever started it, so this one is started by the booking's salesperson
 insert into booking_extensions (id, booking_id, seq, status, previous_return_at, new_return_at, previous_days, new_days,
-    previous_rental_charge_cents, new_rental_charge_cents, rental_difference_cents, total_cents, approved_at, paid_at, confirmed_in_writing_at)
+    previous_rental_charge_cents, new_rental_charge_cents, rental_difference_cents, total_cents, approved_at, paid_at, confirmed_in_writing_at, requested_by)
 select test.id('ext:mr4'), b.id, 1, 'confirmed', b.return_at - interval '2 days', b.return_at, 5, 7, 50000, 70000, 20000, 22600, b.pickup_at + interval '3 days',
-       b.pickup_at + interval '3 days', b.pickup_at + interval '3 days'
+       b.pickup_at + interval '3 days', b.pickup_at + interval '3 days', test.id('mr_s1')
   from bookings b where b.id = test.id('booking:MR-4');
-select test.eq('an extension goes to the booking''s salesperson by default',
+select test.eq('an extension the booking''s salesperson started is theirs',
   (select handled_by || '/' || handled_queue from booking_extensions where id = test.id('ext:mr4')), test.id('mr_s1') || '/sales');
 select test.throws('customer service does not give an extension away',
   format($$select app.door(%L, 'aal2', 'ops_do', 'extension_assign', '{"extension": "%s", "to": "%s", "reason": "Not answering"}')$$, test.id('mr_cs'), test.id('ext:mr4'), test.id('mr_s2')), 'salesperson handling it');

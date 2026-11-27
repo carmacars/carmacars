@@ -16,7 +16,9 @@ The owner's nine Sales requests of Nov 27, in one branch (`r50-hotfix2-sales`). 
    word) when their contacts do not disagree, within 30 days for a name match. Any source, any age for email and phone.
    On insert, on a change of name, email or phone, and every hour (`app.job_lead_merge`, pg_cron); the migration merges
    the leads already there. The merge is 3230's (`app.lead_merge`): history under the kept lead and in the audit log.
-   Sample-car enquiries are not merged (each is a request).
+   Sample-car enquiries are not merged (each is a request). As in 3230, a lead someone already handled is never the one
+   kept: a new form from that person stays a new lead so it is seen, and its page offers the merge. Lookups go by index
+   (email, phone key, two name keys), so a bulk import stays fast.
 3. **Renter notes and Who referred you** (5132). `booking_request_notes`: the renter adds notes to their open request
    (`public.renter_request_note`, account page card "Notes to our team"); staff are told (`request_note`) and see them on
    the request row and the booking ("Notes added"). The request form's **Who referred you?** searches the team and the
@@ -32,6 +34,7 @@ The owner's nine Sales requests of Nov 27, in one branch (`r50-hotfix2-sales`). 
    session's user): a salesperson earns on it; the renter's own, the weekly job's or an Admin's goes to Admin (no
    commission). Extensions defaulted to the booking's salesperson who did not start them move to Admin unless that
    commission is approved or paid (the Tibirica case, CC-10131); each move is audited and the commission synced.
+   `99_r48_money_rules` now starts its extension as the salesperson (the old default it tested is the rule this replaces).
 6. **Lead generators** (5134). `staff_profiles.lead_generator` (Admin: Lead generators, beside Sales team). **Owners I found**:
    **Add an owner** makes an owner lead (`generated_by`, source lead_gen, no automatic follow-ups) for the closers, who
    call it through the site. Duplicates of an open lead or an owner are refused. Lead generators cannot claim leads.
