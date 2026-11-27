@@ -868,6 +868,15 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 - Rule: when Quo credits run out, held texts go by email (keep 5090's email fallback; this answers the REQ-045 question). Everywhere a message can go by email or text, email is the default; texts only where speed matters (codes, same-day pickup and return).
 - Done when: the notification map defaults every event with both channels to email, with a short list of text-only events.
 
+### REQ-125 3D model of every car (future idea)
+- Status: not started
+- Proof: none yet (a future idea: not for this release)
+- Test: GAP
+- Asked: Nov 27 15:05, 15:30
+- Owner: "We should be able to have a 3d model of every car eventually because of all the check in and check out photos right"; "No just keep 3d models as a future idea to implement later"
+- Rule: later, not now. Note: it needs a walk-around video at each check-in and check-out (8 to 12 photos are too few for photogrammetry or Gaussian splatting), and it runs on our own server.
+- Done when: to be set when the owner schedules it (a future idea, no build yet).
+
 ## 16. Earlier decisions (Oct to Nov 12, from the chat extraction)
 
 ### REQ-092 Corporation, shares and shareholder money

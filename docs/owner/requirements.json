@@ -1188,6 +1188,18 @@
     "test": "GAP"
   },
   {
+    "id": "REQ-125",
+    "title": "3D model of every car (future idea)",
+    "area": "15. Infrastructure and quality",
+    "status": "not started",
+    "asked": "Nov 27 15:05, 15:30",
+    "owner_quote": "\"We should be able to have a 3d model of every car eventually because of all the check in and check out photos right\"; \"No just keep 3d models as a future idea to implement later\"",
+    "rule": "later, not now. Note: it needs a walk-around video at each check-in and check-out (8 to 12 photos are too few for photogrammetry or Gaussian splatting), and it runs on our own server.",
+    "done_when": "to be set when the owner schedules it (a future idea, no build yet).",
+    "proof": "none yet (a future idea: not for this release)",
+    "test": "GAP"
+  },
+  {
     "id": "REQ-092",
     "title": "Corporation, shares and shareholder money",
     "area": "16. Earlier decisions (Oct to Nov 12, from the chat extraction)",
