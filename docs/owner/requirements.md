@@ -584,9 +584,10 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 - Status: in progress
 - Proof: branch r50-hotfix2-academy (not on main)
 - Test: to be added with the work
-- Asked: Nov 27 01:12, 05:02
-- Rule: the first sections (more than 3) unlock work; the full academy is needed for payouts; shorter; lessons match questions; stuck or repeated errors force that section; Admin opens any lesson and quiz; wrong-answer wait 2 minutes with one fix.
-- Done when: each rule is testable in the academy.
+- Asked: Nov 27 01:12, 05:02, 12:36
+- Owner (Nov 27 12:36): "Pay for hours should also be held until academy is passed. Field staff must finish entire academy. Same with customer service and fleet and finance."
+- Rule: the first sections (more than 3) unlock work; the full academy is needed for payouts; shorter; lessons match questions; stuck or repeated errors force that section; Admin opens any lesson and quiz; wrong-answer wait 2 minutes with one fix. Payouts held until the entire academy is passed cover hours and shift pay too, plus commission, bonus, referral and contractor payouts, for Field, customer service, Fleet and Finance; held pay is never lost (paid in full on the first pay run after the pass); an Admin can waive per person with a reason; one Program setting turns the hours part off (on by default).
+- Done when: each rule is testable in the academy; an hourly or shift pay line for a Field, customer service, Fleet or Finance person who has not passed the full academy is held, and is paid on the first pay run after they pass.
 
 ### REQ-068 Academy videos
 - Status: not started
