@@ -218,23 +218,23 @@ select test.ok('tables: row-level security with admin_all on each new table',
   (select count(*) from pg_policies where policyname = 'admin_all' and tablename in ('booking_request_notes', 'lead_gen_credits', 'shift_claims', 'call_flags', 'call_flag_words')) = 5);
 
 -- ================================================================ privacy: Find a renter masks for Sales (5139)
-update renters set mobile = '+14165550188', email = 'rss_rita.find@example.test' where id = test.id('renter:rss_rita');
+update renters set mobile = '+14165550169', email = 'rss_rita.find@example.test' where id = test.id('renter:rss_rita');
 select test.eq('renter search: Sales gets the mobile and the email masked, and the record id to link by',
   (select (x ->> 'mobile') || '/' || (x ->> 'email') || '/' || (x ->> 'id') from jsonb_array_elements(app.phone_renter_search(test.id('rss_sam'), '{"q": "rss_rita.find@example.test"}')) x),
-  '(416) ' || repeat(chr(8226), 3) || '-' || repeat(chr(8226), 2) || '88/r' || repeat('*', 12) || '@example.test/' || test.id('renter:rss_rita'));
+  '(416) ' || repeat(chr(8226), 3) || '-' || repeat(chr(8226), 2) || '69/r' || repeat('*', 12) || '@example.test/' || test.id('renter:rss_rita'));
 select test.eq('renter search: Sales still finds the renter by the full number (matched on the server)',
-  jsonb_array_length(app.phone_renter_search(test.id('rss_sam'), '{"q": "416 555 0188"}')), 1);
+  jsonb_array_length(app.phone_renter_search(test.id('rss_sam'), '{"q": "416 555 0169"}')), 1);
 select test.ok('renter search: the masked number is kept so the server''s Call and Text find it',
-  exists (select 1 from phone_masks where user_id = test.id('rss_sam') and number = '+14165550188'));
+  exists (select 1 from phone_masks where user_id = test.id('rss_sam') and number = '+14165550169'));
 select test.mk_renter('rss_rita2');
-update renters set mobile = '416-555-0188', legal_name = 'Rss Rita Second' where id = test.id('renter:rss_rita2');
+update renters set mobile = '416-555-0169', legal_name = 'Rss Rita Second' where id = test.id('renter:rss_rita2');
 select test.eq('renter search: two renters with one number: both found, one mask row (integration: ON CONFLICT met the number twice)',
-  jsonb_array_length(app.phone_renter_search(test.id('rss_sam'), '{"q": "416 555 0188"}'))::text || '/' || (select count(*) from phone_masks where user_id = test.id('rss_sam') and number = '+14165550188')::text, '2/1');
+  jsonb_array_length(app.phone_renter_search(test.id('rss_sam'), '{"q": "416 555 0169"}'))::text || '/' || (select count(*) from phone_masks where user_id = test.id('rss_sam') and number = '+14165550169')::text, '2/1');
 select test.eq('renter search: Admin gets the full mobile and email',
   (select (x ->> 'mobile') || '/' || (x ->> 'email') from jsonb_array_elements(app.door(test.id('rss_admin'), 'aal2', 'admin_read', 'phone_renter_search', '{"q": "rss_rita.find"}')) x),
-  '+14165550188/rss_rita.find@example.test');
+  '+14165550169/rss_rita.find@example.test');
 select test.eq('renter search: through the door, Sales gets no full value either',
-  (select (x ->> 'mobile') not like '%5550188%' and (x ->> 'email') <> 'rss_rita.find@example.test' from jsonb_array_elements(app.door(test.id('rss_sam'), 'aal2', 'va_read', 'phone_renter_search', '{"q": "Rss Rita"}')) x), true);
+  (select bool_and((x ->> 'mobile') not like '%5550169%' and coalesce((x ->> 'email'), '') <> 'rss_rita.find@example.test') from jsonb_array_elements(app.door(test.id('rss_sam'), 'aal2', 'va_read', 'phone_renter_search', '{"q": "Rss Rita"}')) x), true);
 
 -- ================================================================ review fixes (Nov 27): no live work lost, safer matching
 -- matching: the same email needs names that fit; a name alone needs the same city or car
@@ -323,10 +323,10 @@ select test.ok('referral: the named salesperson''s commission waits for an Admin
   not exists (select 1 from staff_commissions where booking_id = test.id('booking:RSS-1') and staff_id = test.id('rss_sam') and status in ('approved', 'paid')));
 
 -- masked search: last 4 digits or the full value only
-select test.eq('masked search: Sales finds by the last 4 digits', jsonb_array_length(app.phone_renter_search(test.id('rss_sam'), '{"q": "0188"}')) >= 1, true);
+select test.eq('masked search: Sales finds by the last 4 digits', jsonb_array_length(app.phone_renter_search(test.id('rss_sam'), '{"q": "0169"}')) >= 1, true);
 select test.eq('masked search: Sales cannot probe part of a number', jsonb_array_length(app.phone_renter_search(test.id('rss_sam'), '{"q": "5550"}')), 0);
 select test.eq('masked search: Sales cannot probe part of an email', jsonb_array_length(app.phone_renter_search(test.id('rss_sam'), '{"q": "rss_rita.fi"}')), 0);
-select test.ok('masked search: Admin still finds part of a number', jsonb_array_length(app.phone_renter_search(test.id('rss_admin'), '{"q": "5550188"}')) >= 1);
+select test.ok('masked search: Admin still finds part of a number', jsonb_array_length(app.phone_renter_search(test.id('rss_admin'), '{"q": "5550169"}')) >= 1);
 
 -- small fixes
 select test.eq('referrer search: % and _ are text, not wildcards', jsonb_array_length(public.server_referrer_search('%%%')) + jsonb_array_length(public.server_referrer_search('___')), 0);

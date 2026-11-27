@@ -43,7 +43,7 @@ select app.api_key_create(test.id('h2f_admin'), test.id('h2f_admin'), 'Read', ar
 insert into api_keys (user_id, kind, name, prefix, key_hash, scopes, created_by)
 select test.id('h2f_fin'), kind, 'Not allowed', 'cc_live_h2n', test.h2f_h('cc_live_h2f_fin'), scopes, test.id('h2f_admin') from api_keys where key_hash = test.h2f_h('cc_live_h2f_full');
 create function test.h2f_api(p_key text, a jsonb) returns jsonb language sql as $$ select app.api_call(test.h2f_h(p_key), 'set_setting', a, 'test') $$;
-create temp table h2f_oe as select offer_expiry_hours h from program_settings where id = (app.settings()).id;
+create temp table h2f_oe as select id, offer_expiry_hours h from program_settings where id = (app.settings()).id;
 update program_settings set offer_expiry_hours = 24 where id = (app.settings()).id;
 select test.eq('a read key cannot change a setting', test.h2f_api('cc_live_h2f_read', '{"key": "offer_expiry_hours", "value": 30}') ->> 'status', '403');
 select test.eq('a key whose person is not an Admin is refused', test.h2f_api('cc_live_h2f_fin', '{"key": "offer_expiry_hours", "value": 30}') ->> 'ok', 'false');
@@ -130,6 +130,7 @@ select test.eq('the new functions are the server''s only', (select count(*) from
     and (has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'))), 0::bigint);
 
 -- the dated Program settings row the connector's confirm made goes; the row before it is restored (no setting left for other files)
-delete from program_settings where id <> (select id from h2f_ps) and created_by = test.id('h2f_admin');
-update program_settings set offer_expiry_hours = (select h from h2f_oe) where id = (select id from h2f_ps);
+-- (an earlier file may have left more than one dated row: every row of the start is kept, the rows this file made go)
+delete from program_settings where id not in (select id from h2f_ps) and created_by = test.id('h2f_admin');
+update program_settings s set offer_expiry_hours = o.h from h2f_oe o where s.id = o.id;
 update program_settings s set api_access_enabled = p.e, api_calls_per_minute = p.n, instant_book_repeat_enabled = p.i, card_payments = p.c, e_transfer_email = p.t, cc_pay_institution_number = p.pi, cc_pay_transit_number = p.pt, cc_pay_account_number = p.pa from h2f_ps p where s.id = p.id;

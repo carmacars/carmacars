@@ -17,7 +17,7 @@ select test.throws('file: a key the server built', format('select app.permit_fil
 
 insert into test.pm5 select 'vin', app.permit_file(test.id('pm5_fleet'), test.pm5f(1, jsonb_build_object('vin', lower((select vin from vehicles where id = test.id('vehicle:PM5A'))), 'plate', 'ZZZZ 999')));
 insert into test.pm5 select 'plate', app.permit_file(test.id('pm5_fleet'), test.pm5f(2, jsonb_build_object('plate', (select lower(plate) from vehicles where id = test.id('vehicle:PM5B')))));
-insert into test.pm5 select 'none', app.permit_file(test.id('pm5_fleet'), test.pm5f(3, jsonb_build_object('vin', '1HGCM82633A004352', 'plate', 'QQQQ111')));
+insert into test.pm5 select 'none', app.permit_file(test.id('pm5_fleet'), test.pm5f(3, jsonb_build_object('vin', 'PM5NOCARVIN000001', 'plate', 'QQQQ111')));
 insert into test.pm5 select 'blank', app.permit_file(test.id('pm5_fleet'), test.pm5f(4, '{}'));
 select test.eq('match: filed by the VIN (any case); the plate alone only suggests its car and waits; none; nothing read',
   concat_ws(' ', (test.pm5v('vin') ->> 'status') || ':' || (test.pm5v('vin') ->> 'matched_by') || ':' || ((test.pm5v('vin') ->> 'vehicle_id')::uuid = test.id('vehicle:PM5A')),

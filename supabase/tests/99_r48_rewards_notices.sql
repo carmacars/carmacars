@@ -88,8 +88,9 @@ select test.eq('1,100 points: Gold, and one tier email naming it', (select tier_
 select test.rn48_earn('rn48_t', 10, 't2');
 select test.eq('more points in Gold: no second tier email', test.rn48_events('renter_rewards_tier_up', 'rn48_t'), 1);
 select test.rn48_process();
-select test.eq('the tier email lists Gold''s perks', (select (payload ->> 'tier_name') || ':' || (payload -> 'perks' -> 0 ->> 'label') from notification_outbox where code = 'renter_rewards_tier_up' and renter_id = test.id('renter:rn48_t')),
-  'Gold:Instant Book');
+-- 5113 turned the Instant Book perk off (it is the Complete profile rule now): Gold has no enabled perk, so the list is empty
+select test.eq('the tier email names Gold and lists its enabled perks (none: Instant Book is off)', (select (payload ->> 'tier_name') || ':' || jsonb_array_length(payload -> 'perks') from notification_outbox where code = 'renter_rewards_tier_up' and renter_id = test.id('renter:rn48_t')),
+  'Gold:0');
 -- a rental that ends 13,000 points short of Platinum (15,000): within 20%, a nudge two days later
 select test.rn48_earn('rn48_t', 11000, 't3');
 select test.mk_booking('CC-RN4805', 'RN48A', 'rn48_t', to_char(now() - interval '45 days', 'YYYY-MM-DD 10:00'), to_char(now() - interval '42 days', 'YYYY-MM-DD 10:00'), 'returned', 30000);

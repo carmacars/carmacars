@@ -16,8 +16,9 @@ select test.mk_renter('rt7_raj');
 select test.mk_booking('RT7-1', 'RT7A', 'rt7_rana', '2026-11-02 10:00', '2026-11-04 10:00', 'closed');
 select test.mk_booking('RT7-2', 'RT7A', 'rt7_raj', '2026-11-04 12:00', '2026-11-06 10:00', 'closed');
 -- the margin this test runs at (30 minutes), the setting before it kept and put back at the end (99_ tests stay independent)
-create table test.rt7_margin as select toll_boundary_margin_minutes as m from program_settings where id = (select id from app.settings());
-update program_settings set toll_boundary_margin_minutes = 30 where id = (select id from app.settings());
+-- every dated row (an earlier file may have saved a newer one: the date of the trip picks the row)
+create table test.rt7_margin as select id, toll_boundary_margin_minutes as m from program_settings;
+update program_settings set toll_boundary_margin_minutes = 30;
 
 insert into test.rt7 select 'doc', (app.toll_read_document(test.id('rt7_fin'), jsonb_build_object('storage_path', 'tolls/2026/rt7-statement.pdf', 'mime_type', 'application/pdf', 'title', '2026-11-18 Statement.pdf')) ->> 'id')::uuid;
 -- the lines as web/src/features/tolls/parse.ts reads the 407 PDF (parse.test.ts, "407 PDF"): amount = toll + camera + trip charge
@@ -35,10 +36,10 @@ select test.eq('read: every line has its car and no problem (read with confidenc
   '1::true 2::true 3::true 4::true 5::true');
 
 -- the margin moves the answer (a minute inside it is checked by a person)
-update program_settings set toll_boundary_margin_minutes = 60 where id = (select id from app.settings());
+update program_settings set toll_boundary_margin_minutes = 60;
 select test.eq('margin 60: 45 minutes after the pickup is near the edge (medium, a person checks)',
   (select x ->> 'confidence' from app.match_toll_candidates(test.id('vehicle:RT7A'), test.rt7_at('2026-11-04 12:45'), false) x), 'medium');
-update program_settings set toll_boundary_margin_minutes = 30 where id = (select id from app.settings());
+update program_settings set toll_boundary_margin_minutes = 30;
 
 select app.toll_read_confirm(test.id('rt7_fin'), jsonb_build_object('read', test.rt7('r'), 'charge', true));
 select test.eq('match: each trip to whoever had the car at that minute (inside RT7-1; 10 minutes before its return; between rentals; 45 minutes into RT7-2; inside RT7-2)',
@@ -92,4 +93,4 @@ select test.eq('release: a person who checked the items confirms with release_ho
   (select (t.amount_line_item_id is not null)::text from toll_tickets t join toll_notice_read_lines l on l.toll_ticket_id = t.id where l.read_id = test.rt7('h2')) || '/' ||
   (select count(*) from audit_log a where a.action = 'toll_read_hold_release' and a.entity_id = test.rt7('h2')::text), 'true/1');
 
-update program_settings set toll_boundary_margin_minutes = (select m from test.rt7_margin) where id = (select id from app.settings());
+update program_settings p set toll_boundary_margin_minutes = r.m from test.rt7_margin r where r.id = p.id;

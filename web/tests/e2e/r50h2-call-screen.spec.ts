@@ -87,7 +87,9 @@ test('call screen: dial any number, connect, mute, hold, keypad, end; End while 
     await expect(dock).toHaveAttribute('data-phase', 'dialing');
     await expect(page.getByTestId('voice-call')).toBeDisabled();
     for (const k of '647555012') await page.getByTestId('voice-keypad').getByRole('button', { name: k, exact: true }).click();
-    await page.getByTestId('voice-number').pressSequentially('3');
+    await page.getByTestId('voice-number').focus();
+    await page.keyboard.press('End');   // the caret goes to the end (a focus alone can leave it at the start)
+    await page.keyboard.type('3');
     await expect(page.getByTestId('voice-number')).toHaveValue('6475550123');
     await noOverflow(page);
     await page.getByTestId('voice-call').click();

@@ -6,7 +6,7 @@
 -- filled from the settings. A seed page, published, like 3232's; the writer may rewrite it from its searches (2640).
 insert into seo_pages (slug, kind, name, sort_order, facts, match, copy, source, status) values
   ('opcf-27', 'use', 'Car rental with your own insurance (OPCF 27)', 245, '{"topic": "renting with your own auto policy and the OPCF 27 endorsement", "nearby": ["insurance-included", "insurance-replacement", "monthly"]}', '{}',
-   jsonb_build_object('seo_title', 'OPCF 27 Rental Car Coverage in {{city}}: Rent With Your Own Policy | {{brand}}',
+   jsonb_build_object('seo_title', 'OPCF 27 Rental Coverage in {{city}}: Use Your Own Policy | {{brand}}',
      'meta_description', 'Rent a car in {{city}} on your own Ontario auto policy with the OPCF 27 endorsement. Upload the pink slip and the endorsement page, and we check them before you pay.',
      'h1', 'Rent a car with your own insurance: OPCF 27',
      'intro', 'If your Ontario auto policy has the OPCF 27 endorsement, you can use it to cover the rental car itself at {{brand}}. Liability is already in every rate. Choose OPCF 27 as your coverage when you book, upload your pink slip and the endorsement page, and a person checks them before you pay.',

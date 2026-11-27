@@ -208,9 +208,12 @@ test('llms.txt, the sitemap and the footer know the tracker and the services', a
   const full = await (await request.get('/llms-full.txt')).text();
   expect(full).toContain('### Questions about the tracker');
   const fam = await (await request.get('/sitemap-families.xml')).text();
-  for (const p of ['/trackers', '/trackers/kill-switch-for-car', '/trackers/install', '/trackers/install/mississauga']) expect(fam, p).toContain(`${p}</loc>`);
+  // r50 hotfix 2: the tracker's own pages are in the pages file (each address in one file), its install places in families
+  expect(fam, '/trackers/install/mississauga').toContain('/trackers/install/mississauga</loc>');
+  expect(fam).not.toContain('/trackers/kill-switch-for-car</loc>');
   expect(fam).not.toContain('/gps-tracker</loc>');
-  expect(await (await request.get('/sitemap-pages.xml')).text()).toContain('/services</loc>');
+  const pages = await (await request.get('/sitemap-pages.xml')).text();
+  for (const p of ['/trackers', '/trackers/kill-switch-for-car', '/trackers/install', '/services']) expect(pages, p).toContain(`${p}</loc>`);
   await page.goto('/');
   await expect(page.getByTestId('footer-trackers')).toHaveAttribute('href', '/trackers');
   await expect(page.getByTestId('footer-services')).toHaveAttribute('href', '/services');
@@ -228,7 +231,7 @@ test('the car page: the whole price under the daily rate, a direct request and t
   await noOverflow(page);
 });
 
-test('a lead says where it came from; a second form joins it by itself; a later duplicate merges with one click', async ({ browser, page }) => {
+test('a lead says where it came from; a second form joins it by itself; a later enquiry to a handled lead merges into it and reopens it', async ({ browser, page }) => {
   const sql = db();
   const email = `dup.${Date.now()}.${tag()}@example.test`;
   try {
@@ -243,10 +246,11 @@ test('a lead says where it came from; a second form joins it by itself; a later 
     const first = await mk('Do you deliver to Mississauga?', { first: { ref: 'www.google.com/', landing: '/car-rental/mississauga', at: new Date().toISOString() } });
     const second = await mk('Also, is a child seat possible?', null);
     expect((await sql`select merged_into from leads where id = ${second}`)[0]!.merged_into).toBe(first);
-    // handled, then the person writes again: a new lead, offered for a merge
+    // handled, then the person writes again: r50 sales (5139): merged into the handled lead, which is New again
     await sql`update leads set handled_at = now(), handled_by = ${admin.id} where id = ${first}`;
     const third = await mk('One more question about the deposit.', { first: { ref: 'chatgpt.com/', landing: '/requirements', utm: { source: 'chatgpt.com' } } });
-    expect((await sql`select merged_into from leads where id = ${third}`)[0]!.merged_into).toBeNull();
+    expect((await sql`select merged_into from leads where id = ${third}`)[0]!.merged_into).toBe(first);
+    expect((await sql`select handled_at from leads where id = ${first}`)[0]!.handled_at).toBeNull();
 
     const p = await (await browser.newContext({ viewport: page.viewportSize()!, baseURL: test.info().project.use.baseURL })).newPage();
     await signIn(p, admin.email, '/admin');
@@ -256,17 +260,7 @@ test('a lead says where it came from; a second form joins it by itself; a later 
     await expect(src).toContainText('/car-rental/mississauga');
     await expect(p.getByTestId('lead-merged')).toContainText('Also, is a child seat possible?');
     await expect(p.getByTestId('lead-merged')).toContainText('merged automatically');
-    await expect(p.getByTestId('lead-duplicates')).toContainText('same email');
-    await noOverflow(p);
-    // the newer lead's page: ChatGPT, and one click merges it into the older lead
-    await p.goto(`/admin/sales-leads/${third}`);
-    await expect(p.getByTestId('lead-traffic-card')).toContainText('ChatGPT');
-    await expect(p.getByTestId('lead-traffic-card')).toContainText('/requirements');
-    await p.getByTestId('lead-merge').click();
-    await p.waitForURL((u) => u.pathname.endsWith(first), { timeout: 20_000 });
     await expect(p.getByTestId('lead-merged')).toContainText('One more question about the deposit.');
-    await expect(p.getByTestId('lead-duplicates')).toHaveCount(0);
-    expect((await sql`select merged_into from leads where id = ${third}`)[0]!.merged_into).toBe(first);
     // the merged lead's own address (an alert's link) opens the lead that was kept
     await p.goto(`/admin/sales-leads/${third}`);
     await p.waitForURL((u) => u.pathname.endsWith(first), { timeout: 60_000 });

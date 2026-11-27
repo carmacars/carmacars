@@ -612,8 +612,8 @@ test('List your car: the earnings calculator is conservative and seasonal, with 
   await calc.getByTestId('ecalc-make').fill('Toyota');
   await calc.getByTestId('ecalc-model').fill('Corolla');
   await expect(page.getByTestId('ecalc-monthly')).toBeVisible();
-  // 12 days in an average month from the start; the year is less than twelve of the busiest month
-  await expect(page.getByTestId('ecalc-days-out')).toHaveText('12 days');
+  // 5141: the days start at the occupancy of Program settings (80%: 24 days); the year is less than twelve of the busiest month
+  await expect(page.getByTestId('ecalc-days-out')).toHaveText('24 days');
   const bars = page.getByTestId('ecalc-season').locator('li');
   await expect(bars).toHaveCount(12);
   const days = (await bars.locator('.ecalc__bar-n').allInnerTexts()).map(Number);
@@ -622,7 +622,7 @@ test('List your car: the earnings calculator is conservative and seasonal, with 
   expect(Math.min(days[11]!, days[0]!, days[1]!), 'winter is slow, above the slowest').toBeGreaterThanOrEqual(Math.min(...days));
   const val = async (id: string) => Number(await page.getByTestId(id).getAttribute('data-value'));
   const rate = Number((await page.getByTestId('ecalc-result').locator('.ecalc__kicker').innerText()).match(/\$([\d,]+) a day listed/)![1]!.replace(/,/g, ''));
-  expect(await val('ecalc-monthly'), 'far under 18 days at the full rate').toBeLessThan(rate * 18 * 0.7 * 0.75);
+  expect(await val('ecalc-monthly'), 'under 24 days at the full rate and the typical share').toBeLessThan(rate * 24 * 0.7);
   expect(await val('ecalc-yearly')).toBeLessThan(rate * Math.max(...days) * 0.7 * 12);
   const note = page.getByTestId('ecalc-disclaimer');
   await expect(note).toContainText('A rough estimate, not a promise.');

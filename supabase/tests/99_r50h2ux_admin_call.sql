@@ -40,6 +40,7 @@ select test.r5ac('r5ac_admin', 'admin_do', 'admin_call_schedule', '{"weekday":"7
 delete from user_roles where user_id = test.id('r5ac_boss') and role = 'admin';
 select app.admin_call_invites_sweep(now());
 select test.eq('a former Admin gets the cancellation', (select method from calendar_invites where kind = 'admin_call' and user_id = test.id('r5ac_boss') order by seq desc limit 1), 'CANCEL');
+select app.process_events();
 select test.ok('and the cancellation email (07 leaves it to this file)', exists (select 1 from notification_outbox o where o.code = 'admin_call_cancelled' and o.recipient_user_id = test.id('r5ac_boss')));
 insert into user_roles (user_id, role) values (test.id('r5ac_boss'), 'admin');
 
