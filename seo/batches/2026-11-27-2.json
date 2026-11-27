@@ -1,0 +1,141 @@
+{
+ "batch": "2026-11-27-2",
+ "items": [
+  {
+   "kind": "car",
+   "id": "43ac2392-e578-4e9a-84e7-7cf6a712adb1",
+   "copy": {
+    "intro": "Silver 2020 GLA250 4MATIC with a turbocharged 2.0 L engine, a dual-clutch automatic and a backup camera for tight city parking spots.",
+    "highlights": [
+     "Backup camera",
+     "Turbocharged engine",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "City driving and parking",
+     "Airport runs",
+     "Weekly rentals"
+    ],
+    "faq": [
+     {
+      "question": "How many seats does the GLA250 have?",
+      "answer": "It has 5 seats."
+     },
+     {
+      "question": "Does the GLA250 have a backup camera?",
+      "answer": "Yes. A backup camera is listed in its equipment, along with Bluetooth and cruise control."
+     },
+     {
+      "question": "Can you deliver the GLA250 to me?",
+      "answer": "Yes. We deliver to any address. The delivery fee is $75 plus a charge for distance. You can also collect it from us at no charge."
+     },
+     {
+      "question": "What do I need to rent the GLA250?",
+      "answer": "You need an Ontario G or G2 licence and a credit card in your name. We check your licence and identity before pickup."
+     }
+    ],
+    "alt_texts": {
+     "exterior_more": "Silver Mercedes-Benz GLA-Class GLA250 4MATIC, more exterior view",
+     "front_left": "Silver Mercedes-Benz GLA-Class GLA250 4MATIC, front left view",
+     "rear": "Silver Mercedes-Benz GLA-Class GLA250 4MATIC, rear view",
+     "rear_left": "Silver Mercedes-Benz GLA-Class GLA250 4MATIC, rear left view",
+     "right": "Silver Mercedes-Benz GLA-Class GLA250 4MATIC, right side view"
+    }
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "4135f403-719c-4c12-b589-4c1bf0fce277",
+   "copy": {
+    "intro": "White S580 sedan from Mercedes-Benz with all-wheel drive, a backup camera and seats for five. Suits a wedding party, a client dinner or an airport transfer.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Wedding parties",
+     "Business dinners",
+     "Airport transfers"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the S580?",
+      "answer": "It has 5 seats."
+     },
+     {
+      "question": "Does the S580 have all-wheel drive?",
+      "answer": "Yes. It has all-wheel drive and an automatic transmission, and it runs on gas."
+     },
+     {
+      "question": "Can the S580 be delivered to my address?",
+      "answer": "Yes. We deliver to any address. The delivery fee is $75 plus a charge for distance. You can also collect it from us at no charge."
+     },
+     {
+      "question": "How do I book the S580?",
+      "answer": "Send a request with no payment. You pay after we confirm the booking."
+     }
+    ],
+    "alt_texts": {
+     "exterior_more": "White Mercedes-Benz S-Class S580 sedan, more exterior view",
+     "front_left": "White Mercedes-Benz S-Class S580 sedan, front left view"
+    }
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "41bbbd37-ff62-47cc-acb3-e7dd6f8b9373",
+   "copy": {
+    "intro": "Black G63 AMG with four-wheel drive and seats for five. A boxy SUV that gets noticed at the curb and suits a snowy week.",
+    "highlights": [
+     "Four-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Winter weekends",
+     "Nights out in the city",
+     "Photo days and events"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the G63 AMG?",
+      "answer": "It has 5 seats."
+     },
+     {
+      "question": "Does the G63 AMG have four-wheel drive?",
+      "answer": "Yes. Four-wheel drive helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "How many kilometres a day are included?",
+      "answer": "200 km a day are included. Extra kilometres cost $0.75 each."
+     },
+     {
+      "question": "What do I need to rent the G63 AMG?",
+      "answer": "You need an Ontario G or G2 licence and a credit card in your name. We check your licence and identity before pickup."
+     }
+    ],
+    "alt_texts": {
+     "exterior_more": "Black Mercedes-Benz G-Class G63 AMG, more exterior view",
+     "front": "Black Mercedes-Benz G-Class G63 AMG, front view",
+     "front_right": "Black Mercedes-Benz G-Class G63 AMG, front right view",
+     "other": "Black Mercedes-Benz G-Class G63 AMG, additional view",
+     "rear": "Black Mercedes-Benz G-Class G63 AMG, rear view",
+     "rear_left": "Black Mercedes-Benz G-Class G63 AMG, rear left view"
+    }
+   },
+   "prompt_version": "car-copy-v2"
+  }
+ ]
+}
