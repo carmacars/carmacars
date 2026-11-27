@@ -19,8 +19,8 @@ select test.mk_vehicle('rq48_a', 'rq48_olive');   -- listing photos: front three
 select test.mk_vehicle('rq48_h', 'rq48_olive');   -- no listing photo: check-in photos only
 select test.mk_vehicle('rq48_c', 'rq48_olive');   -- one inside listing photo and check-in photos
 
--- r48.3 since 3701 (99_r50ph_studio_only.sql)
-select test.eq('the standard is the web''s R48_SPEC', app.photo_r48_spec(), 'r48.3');
+-- r48.4 since 5080 (99_r50h2_studio_composite.sql)
+select test.eq('the standard is the web''s R48_SPEC (r48.4 since 5080)', app.photo_r48_spec(), 'r48.4');
 select test.ok('the r48 run is on by default; the r45 fleet remake off',
   (select column_default from information_schema.columns where table_name = 'program_settings' and column_name = 'listing_photo_r48_auto') = 'true'
   and (select column_default from information_schema.columns where table_name = 'program_settings' and column_name = 'listing_photo_r45_auto') = 'false');
@@ -74,18 +74,18 @@ select test.ok('a car with no listing photo: its check-in photos, the same angle
   (select e -> 0 ->> 'shot' = 'front_left' and jsonb_array_length(e) = 3 and bool_and(x ->> 'from' = 'handover' and x ->> 'bucket' = 'condition-photos')
           and bool_and(x ->> 'shot' in ('front_left', 'rear', 'left'))
      from (select app.photo_r48_refs(test.id('vehicle:rq48_h'), 'front_left') e) t, jsonb_array_elements(e) x group by e));
-select test.ok('too few listing photos (one, inside only): its listing photo first, then the check-in photos fill up',
-  (select e -> 0 ->> 'from' = 'listing' and (select count(*) from jsonb_array_elements(e) x where x ->> 'from' = 'handover') = 3
+select test.ok('5080: one listing photo, inside only: for an outside view its outside check-in photos first, then its listing photo (colour and trim)',
+  (select e -> 0 ->> 'from' = 'handover' and e -> 3 ->> 'from' = 'listing' and (select count(*) from jsonb_array_elements(e) x where x ->> 'from' = 'handover') = 3
      from (select app.photo_r48_refs(test.id('vehicle:rq48_c'), 'rear') e) t));
 
 -- ---------------------------------------------------------------- 2. the job: the front three-quarter of every car first
 update program_settings set listing_photo_r45_batch = least(200, greatest(1, (select count(*) from app.photo_r48_cars() c where jsonb_array_length(app.photo_r48_refs(c.vehicle_id, 'front_left')) > 0)::integer))
  where id = (select id from app.settings());
 create temp table rq48_run1 as select app.job_photo_r48() as msg, (select listing_photo_r45_batch from app.settings()) as room;
--- r48 AN (3150): the side profile is the cover now, so it comes first
-select test.ok('with room for one view a car, every car gets its side profile first',
-  (select count(*) > 0 and bool_and(ph.shot_type = 'left') from listing_jobs j join vehicle_photos ph on ph.id = j.vehicle_photo_id where j.kind = 'photo_r45' and j.status = 'queued')
-  and (test.rq48_row('rq48_a', 'left')).id is not null and (test.rq48_row('rq48_h', 'left')).id is not null and (test.rq48_row('rq48_c', 'left')).id is not null,
+-- 5080: the cover is the front three-quarter again (the sample photos' order), so it comes first
+select test.ok('with room for one view a car, every car gets its cover (the front three-quarter) first',
+  (select count(*) > 0 and bool_and(ph.shot_type = 'front_left') from listing_jobs j join vehicle_photos ph on ph.id = j.vehicle_photo_id where j.kind = 'photo_r45' and j.status = 'queued')
+  and (test.rq48_row('rq48_a', 'front_left')).id is not null and (test.rq48_row('rq48_h', 'front_left')).id is not null and (test.rq48_row('rq48_c', 'front_left')).id is not null,
   (select msg || ', room ' || room from rq48_run1) || '; queued: ' || coalesce((select string_agg(ph.shot_type || '/' || coalesce(v.fleet_number, left(v.id::text, 4)), ',') from listing_jobs j join vehicle_photos ph on ph.id = j.vehicle_photo_id
      join vehicles v on v.id = ph.vehicle_id where j.kind = 'photo_r45' and j.status = 'queued'), 'none'));
 update program_settings set listing_photo_r45_batch = 200 where id = (select id from app.settings());
@@ -144,7 +144,7 @@ select test.eq('Make a new one: the side plate taken off (Gemini makes it with t
 
 -- ---------------------------------------------------------------- 5. passed: on the site in place of the real photo of the angle; the real one stays
 select test.rq48_answer((test.rq48_row('rq48_a', 'front_left')).id, test.rq48_made('vehicles/rq48/a-fl-r48.jpg',
-  jsonb_build_object('gate', jsonb_build_object('pass', true, 'spec', 'r48.3', 'reasons', '[]'::jsonb))));  -- 3701: passed the studio gate
+  jsonb_build_object('gate', jsonb_build_object('pass', true, 'spec', app.photo_r48_spec(), 'reasons', '[]'::jsonb))));  -- 3701: passed the studio gate
 select test.ok('passed: approved, public, done, marked ai_generated',
   (select status = 'approved' and is_public and ai_generated and r45 ->> 'state' = 'done' and processed_path = 'vehicles/rq48/a-fl-r48.jpg' from test.rq48_row('rq48_a', 'front_left')));
 select test.eq('the gallery leads with the r48 front three-quarter', app.public_listing_photos(test.id('vehicle:rq48_a')) -> 0 ->> 'path', 'vehicles/rq48/a-fl-r48.jpg');
@@ -183,7 +183,7 @@ create temp table rq48_view as select app.photo_r45_fleet_read(test.id('rq48_fle
 select test.ok('the card: per car its r48 set (done, flagged, of nine), a handover-only car listed too, the r48 run on',
   (select (c #>> '{r48,done}')::int = 1 and (c #>> '{r48,flagged}')::int = 1 and (c #>> '{r48,angles}')::int = 9 from rq48_view, jsonb_array_elements(v -> 'cars') c where c ->> 'id' = test.id('vehicle:rq48_a')::text)
   and (select (c #>> '{r48,handover_refs}')::boolean from rq48_view, jsonb_array_elements(v -> 'cars') c where c ->> 'id' = test.id('vehicle:rq48_h')::text)
-  and (select (v ->> 'r48_auto')::boolean and v ->> 'r48_spec' = 'r48.3' from rq48_view));
+  and (select (v ->> 'r48_auto')::boolean and v ->> 'r48_spec' = app.photo_r48_spec() from rq48_view));
 create temp table rq48_redo as select app.photo_r45_redo(test.id('rq48_fleet'), jsonb_build_object('vehicle', test.id('vehicle:rq48_a'))) as r;
 select test.ok('Redo this car now: the flagged and the done views queued again, the done one stays on the site meanwhile',
   (select (r ->> 'r48')::int >= 2 from rq48_redo)

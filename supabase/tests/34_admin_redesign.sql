@@ -60,13 +60,13 @@ select test.eq('samples: staff see the car in "Using sample photos"', (select co
   where (u ->> 'vehicle_id')::uuid = test.id('vehicle:ARS')), 1::bigint);
 insert into vehicle_listings (vehicle_id, status, headline, description, features, faq) values (test.id('vehicle:ARS'), 'draft', 'x', 'x', '{}', '[]'::jsonb) on conflict (vehicle_id) do nothing;
 update vehicle_listings set status = 'published', slug = coalesce(slug, 'ar-sample-suv') where vehicle_id = test.id('vehicle:ARS');
-select test.eq('samples: the public page and the card show the Photos coming soon photo, marked as a sample (3701; no real photo, no plate check)',
+select test.eq('samples: with no studio render the public page and the card show the sample photos, marked as samples (5064; no plate check)',
   (app.public_listing_photos(test.id('vehicle:ARS')) -> 0 ->> 'label') || '/' || coalesce(app.public_listing_row(test.id('vehicle:ARS')) ->> 'sample_photos', 'null'),
-  'Photos coming soon/' || coalesce((app.public_listing_row(test.id('vehicle:ARS')) ->> 'sample_photos'), 'null'));
+  'Sample photo/true');
 insert into vehicle_photos (vehicle_id, shot_type, angle, status, processed_path, original_path, is_public, is_cover, sort_order, plate_status)
 select test.id('vehicle:ARS'), (select code from listing_shot_types where is_public order by seq limit 1), (select code from listing_shot_types where is_public order by seq limit 1), 'approved', 'vehicles/ars/front.jpg', 'vehicles/ars/front-original.jpg', true, true, 1, 'not_visible';
-select test.eq('samples: a real photo ends the samples but is never public (3701): the Photos coming soon photo stays until a render passes', app.vehicle_uses_sample_photos(test.id('vehicle:ARS')) || '/' || (app.public_listing_photos(test.id('vehicle:ARS')) -> 0 ->> 'path'),
-  'false//studio/coming-soon.jpg');
+select test.eq('samples: a real photo ends the samples and leads the photos until a studio render is live (5064)', app.vehicle_uses_sample_photos(test.id('vehicle:ARS')) || '/' || (app.public_listing_photos(test.id('vehicle:ARS')) -> 0 ->> 'path'),
+  'false/vehicles/ars/front.jpg');
 select test.eq('samples: with a real photo the usual photo rules apply again', cardinality(app.listing_photo_problems(test.id('vehicle:ARS'))) > 0, true);
 select test.eq('samples: deleting a library photo returns its file to remove', test.ar_do('ar_admin', 'sample_photo_delete', jsonb_build_object('id', test.arv('lib') ->> 'id')) ->> 'path', 'samples/mb-c300.jpg');
 

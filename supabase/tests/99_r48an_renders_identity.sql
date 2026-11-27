@@ -15,18 +15,18 @@ insert into vehicle_listings (vehicle_id, status) select test.id('vehicle:' || x
 -- car a: renders of the rear, the front three-quarter and the side (made in that order), a flagged render of the front, and
 -- two real photos; car b: real photos only (3701: the renders passed the studio gate; the real photos are never public)
 insert into vehicle_photos (vehicle_id, angle, shot_type, original_path, processed_path, status, is_public, r48, ai_generated, background_status, plate_status, sort_order, r45)
-values (test.id('vehicle:an48_a'), 'rear', 'rear', 'vehicles/original/an48/a-rear-r.jpg', 'vehicles/an48/a-rear-r.jpg', 'approved', true, true, true, 'done', 'not_visible', -95, '{"state": "done", "spec": "r48.3", "gate": {"pass": true, "spec": "r48.3"}}'),
-       (test.id('vehicle:an48_a'), 'front_left', 'front_left', 'vehicles/original/an48/a-fl-r.jpg', 'vehicles/an48/a-fl-r.jpg', 'approved', true, true, true, 'done', 'not_visible', -99, '{"state": "done", "spec": "r48.3", "gate": {"pass": true, "spec": "r48.3"}}'),
-       (test.id('vehicle:an48_a'), 'left', 'left', 'vehicles/original/an48/a-left-r.jpg', 'vehicles/an48/a-left-r.jpg', 'approved', true, true, true, 'done', 'not_visible', -98, '{"state": "done", "spec": "r48.3", "gate": {"pass": true, "spec": "r48.3"}}'),
+values (test.id('vehicle:an48_a'), 'rear', 'rear', 'vehicles/original/an48/a-rear-r.jpg', 'vehicles/an48/a-rear-r.jpg', 'approved', true, true, true, 'done', 'not_visible', -95, '{"state": "done", "spec": "r48.4", "gate": {"pass": true, "spec": "r48.4"}}'),
+       (test.id('vehicle:an48_a'), 'front_left', 'front_left', 'vehicles/original/an48/a-fl-r.jpg', 'vehicles/an48/a-fl-r.jpg', 'approved', true, true, true, 'done', 'not_visible', -99, '{"state": "done", "spec": "r48.4", "gate": {"pass": true, "spec": "r48.4"}}'),
+       (test.id('vehicle:an48_a'), 'left', 'left', 'vehicles/original/an48/a-left-r.jpg', 'vehicles/an48/a-left-r.jpg', 'approved', true, true, true, 'done', 'not_visible', -98, '{"state": "done", "spec": "r48.4", "gate": {"pass": true, "spec": "r48.4"}}'),
        (test.id('vehicle:an48_a'), 'front', 'front', 'vehicles/original/an48/a-front-r.jpg', 'vehicles/an48/a-front-r.jpg', 'approved', false, true, true, 'done', 'not_visible', -97, '{"state": "flagged"}'),
        (test.id('vehicle:an48_a'), 'front_left', 'front_left', 'vehicles/original/an48/a-fl.jpg', 'vehicles/an48/a-fl.jpg', 'approved', true, false, false, 'done', 'not_visible', 1, null),
        (test.id('vehicle:an48_a'), 'dashboard', 'dashboard', 'vehicles/original/an48/a-dash.jpg', 'vehicles/an48/a-dash.jpg', 'approved', true, false, false, 'done', 'not_visible', 2, null),
        (test.id('vehicle:an48_b'), 'front_left', 'front_left', 'vehicles/original/an48/b-fl.jpg', 'vehicles/an48/b-fl.jpg', 'approved', true, false, false, 'done', 'not_visible', 1, null);
 
 create temp table an48_g as select e, k from jsonb_array_elements(app.public_listing_photos(test.id('vehicle:an48_a'))) with ordinality t(e, k);
-select test.eq('the renders only, the side profile first and the front three-quarter second (3701: no real photo)',
+select test.eq('the renders only, in the sample photos'' order (5080: the front three-quarter first, then the side profile; 3701: no real photo)',
   (select array_agg(e ->> 'path' order by k) from an48_g),
-  array['vehicles/an48/a-left-r.jpg', 'vehicles/an48/a-fl-r.jpg', 'vehicles/an48/a-rear-r.jpg']);
+  array['vehicles/an48/a-fl-r.jpg', 'vehicles/an48/a-left-r.jpg', 'vehicles/an48/a-rear-r.jpg']);
 select test.ok('renders are marked generated, only the first is the cover',
   (select bool_and(coalesce((e ->> 'generated')::boolean, false)) from an48_g)
   and (select count(*) from an48_g where (e ->> 'is_cover')::boolean) = 1 and (select (e ->> 'is_cover')::boolean from an48_g where k = 1));
@@ -34,27 +34,27 @@ select test.ok('a flagged render is never shown; the real photo of its angle sta
 select test.ok('a car with no render shows the Photos coming soon photo, never its own (3701)', jsonb_array_length(app.public_listing_photos(test.id('vehicle:an48_b'))) >= 1
   and not exists (select 1 from jsonb_array_elements(app.public_listing_photos(test.id('vehicle:an48_b'))) e where (e ->> 'generated')::boolean));
 
--- the listing row: the side render the cover, with the side cutout once one is made
-select test.eq('the cover is the side render, counted as rendered',
+-- the listing row: the front three-quarter render the cover (5080); the side cutout rides only on a side cover
+select test.eq('the cover is the front three-quarter render, counted as rendered',
   array[app.public_listing_row(test.id('vehicle:an48_a')) #>> '{cover,path}', app.public_listing_row(test.id('vehicle:an48_a')) #>> '{cover,shot}', app.public_listing_row(test.id('vehicle:an48_a')) ->> 'rendered'],
-  array['vehicles/an48/a-left-r.jpg', 'left', '3']);
+  array['vehicles/an48/a-fl-r.jpg', 'front_left', '3']);
 select test.ok('no cutout yet: none on the row', app.public_listing_row(test.id('vehicle:an48_a')) #> '{cover,cutout}' is null
   or jsonb_typeof(app.public_listing_row(test.id('vehicle:an48_a')) #> '{cover,cutout}') = 'null');
 select app.site_cutout_save(test.id('vehicle:an48_a'), 'left', jsonb_build_object('source', app.site_cutout_source(test.id('vehicle:an48_a')),
   'path', 'site/cutouts/an48-a/left-aaaa.webp', 'width', 1600, 'height', 600));
-select test.eq('the side cutout rides on the cover (path, size, facing)',
-  app.public_listing_row(test.id('vehicle:an48_a')) #> '{cover,cutout}',
-  jsonb_build_object('kind', 'cutout', 'path', 'site/cutouts/an48-a/left-aaaa.webp', 'width', 1600, 'height', 600, 'facing', 'left'));
-select test.eq('the live row agrees', app.public_listing_row_live(test.id('vehicle:an48_a')) #>> '{cover,path}', 'vehicles/an48/a-left-r.jpg');
+select test.ok('5080: the side cutout is kept but not on a front three-quarter cover (the drive-off would show another view)',
+  exists (select 1 from site_cutouts k where k.vehicle_id = test.id('vehicle:an48_a') and k.shot = 'left' and k.path = 'site/cutouts/an48-a/left-aaaa.webp')
+  and coalesce(jsonb_typeof(app.public_listing_row(test.id('vehicle:an48_a')) #> '{cover,cutout}'), 'null') = 'null');
+select test.eq('the live row agrees', app.public_listing_row_live(test.id('vehicle:an48_a')) #>> '{cover,path}', 'vehicles/an48/a-fl-r.jpg');
 
 -- staff take a render off the site: the next render is the cover, nothing else changes
-select app.photo_r48_angle(test.id('an48_admin'), jsonb_build_object('vehicle', test.id('vehicle:an48_a'), 'shot', 'left', 'action', 'hide'));
-select test.eq('a render taken off: the front three-quarter render is the cover', app.public_listing_photos(test.id('vehicle:an48_a')) -> 0 ->> 'path', 'vehicles/an48/a-fl-r.jpg');
-select app.photo_r48_angle(test.id('an48_admin'), jsonb_build_object('vehicle', test.id('vehicle:an48_a'), 'shot', 'left', 'action', 'show'));
-select test.eq('put back: the side profile first again', app.public_listing_photos(test.id('vehicle:an48_a')) -> 0 ->> 'path', 'vehicles/an48/a-left-r.jpg');
+select app.photo_r48_angle(test.id('an48_admin'), jsonb_build_object('vehicle', test.id('vehicle:an48_a'), 'shot', 'front_left', 'action', 'hide'));
+select test.eq('a render taken off: the side profile render is the cover', app.public_listing_photos(test.id('vehicle:an48_a')) -> 0 ->> 'path', 'vehicles/an48/a-left-r.jpg');
+select app.photo_r48_angle(test.id('an48_admin'), jsonb_build_object('vehicle', test.id('vehicle:an48_a'), 'shot', 'front_left', 'action', 'show'));
+select test.eq('put back: the front three-quarter first again', app.public_listing_photos(test.id('vehicle:an48_a')) -> 0 ->> 'path', 'vehicles/an48/a-fl-r.jpg');
 
 -- ================================================================ 3150: the job's order and the backfill
-select test.eq('the render order: side, front three-quarter, then the rest', (app.photo_render_order())[1:3], array['left', 'front_left', 'front']);
+select test.eq('the render order (5080: the sample photos''): front three-quarter, side, rear three-quarter', (app.photo_render_order())[1:3], array['front_left', 'left', 'rear_left']);
 select test.ok('a real photo not yet on the branded background is due once the renders are made',
   exists (select 1 from app.photo_render_reals_due(test.id('vehicle:an48_a')) x(id) join vehicle_photos ph on ph.id = x.id where ph.processed_path = 'vehicles/an48/a-dash.jpg'));
 select test.throws('a renter cannot start the backfill', format($$select app.door(%L, 'aal1', 'ops_do', 'photo_render_backfill', '{}'::jsonb)$$, test.id('an48_rita')), '');

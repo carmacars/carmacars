@@ -41,8 +41,8 @@ select test.eq('show: the young driver fees of the seed (Porsche 911)',
 set role anon;
 select test.ok('show: on the fleet page, marked as a sample', exists (select 1 from public.fleet() f where f ->> 'slug' = 'toyota-corolla' and f ->> 'is_sample' = 'true'));
 select test.eq('show: the car page is not indexable', public.car_page('toyota-corolla') ->> 'indexable', 'false');
-select test.eq('show: an example car shows the one Photos coming soon photo (3701)',
-  public.car_page('toyota-corolla') #>> '{photos,0,path}', '/studio/coming-soon.jpg');
+select test.eq('show: an example car shows its sample photo (5064: an example car never has a studio render; never the empty plate)',
+  public.car_page('toyota-corolla') #>> '{photos,0,path}', '/sample-photos/cars/toyota-corolla-lead.svg');
 create temp table sx_map as select path from public.sitemap_rows();
 reset role;
 select test.ok('show: no sample car in the sitemap',
@@ -149,8 +149,8 @@ select test.ok('not public: an Admin reads it through the door', jsonb_typeof(ap
 
 -- ---------------------------------------------------------------- 6. a real car without photos shows sample photos (0054)
 set role anon;
-select test.eq('sample photo: the car page of a real car without renders shows the Photos coming soon photo, marked (3701)',
-  (public.car_page('mercedes-c300-scpub') #>> '{photos,0,sample}') || '/' || (public.car_page('mercedes-c300-scpub') #>> '{photos,0,label}'), 'true/Photos coming soon');  -- 3701: one placeholder, never a set
+select test.eq('sample photo: the car page of a real car without renders shows the sample stand-ins, marked (5064)',
+  (public.car_page('mercedes-c300-scpub') #>> '{photos,0,sample}') || '/' || (public.car_page('mercedes-c300-scpub') #>> '{photos,0,label}'), 'true/Front left');
 select test.eq('sample photo: the fleet card''s cover too', (select f #>> '{cover,sample}' from public.fleet() f where f ->> 'slug' = 'mercedes-c300-scpub'), 'true');
 reset role;
 

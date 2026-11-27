@@ -73,7 +73,8 @@ export async function geminiCheckImages(o: GeminiOptions, images: Array<{ bytes:
     const { res, json } = await geminiPost({ apiKey: o.apiKey, relay: o.relay, fetch: f, signal: ctl.signal }, `/v1beta/models/${model}:generateContent`, {
       systemInstruction: { parts: [{ text: system }] },
       contents: [{ role: 'user', parts: [{ text: prompt }, ...images.map((x) => ({ inline_data: { mime_type: x.contentType, data: b64(x.bytes) } }))] }],
-      generationConfig: { temperature: 0, maxOutputTokens: 1200, responseMimeType: 'application/json' }
+      // 5080: room for a thinking model's own tokens (they count toward the limit; at 1200 an answer could be cut off and read as none)
+      generationConfig: { temperature: 0, maxOutputTokens: 4096, responseMimeType: 'application/json' }
     });
     if (!res.ok) return null;
     const j = json as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> } | null;

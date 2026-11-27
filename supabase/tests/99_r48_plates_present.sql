@@ -80,7 +80,7 @@ select app.worker_listing_result((select id from rp40_j), jsonb_build_object('ok
   'width', 1800, 'height', 1200, 'variants', '[]'::jsonb, 'preset_version', 'gemini_r48', 'flags', '[]'::jsonb,
   'showroom', jsonb_build_object('provider', 'ai', 'mode', 'r48', 'spec', 'r48.2', 'scene', 'showroom_dark'),
   'r45', jsonb_build_object('pass', true, 'spec', 'r48.2', 'generated', true, 'plates', '[]'::jsonb, 'model', 'm', 'view', 'front_left', 'reasons', '[]'::jsonb,
-    'gate', jsonb_build_object('pass', true, 'spec', 'r48.3', 'reasons', '[]'::jsonb)))));  -- 3701: passed the studio gate
+    'gate', jsonb_build_object('pass', true, 'spec', app.photo_r48_spec(), 'reasons', '[]'::jsonb)))));  -- 3701: passed the studio gate
 select test.ok('the new view: done, no plate cover, marked as following 3040',
   (test.rp40_row('rp40_a', 'front_left')).r45 ->> 'state' = 'done' and (test.rp40_row('rp40_a', 'front_left')).r45 ->> 'plate_rule' = '3040'
   and (test.rp40_row('rp40_a', 'front_left')).plate_status = 'not_visible' and (test.rp40_row('rp40_a', 'front_left')).processed_path = 'vehicles/rp40/r48-fl-new.jpg');

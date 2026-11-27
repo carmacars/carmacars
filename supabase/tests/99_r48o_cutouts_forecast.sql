@@ -20,9 +20,9 @@ select test.mk_owner('fo48_third');
 select test.mk_vehicle('fo48_d', 'fo48_third', p_enrolled => date '2026-01-10');
 insert into vehicle_listings (vehicle_id, status) values (test.id('vehicle:fo48_d'), 'published');
 insert into vehicle_photos (vehicle_id, angle, shot_type, original_path, processed_path, status, is_public, r48, background_status, plate_status, r45)
-values (test.id('vehicle:fo48_a'), 'left', 'left', 'vehicles/original/fo48/a-left-r48.jpg', 'vehicles/fo48/a-left-r48.jpg', 'approved', true, true, 'done', 'not_visible', '{"state": "done", "spec": "r48.3", "gate": {"pass": true, "spec": "r48.3"}}'),
+values (test.id('vehicle:fo48_a'), 'left', 'left', 'vehicles/original/fo48/a-left-r48.jpg', 'vehicles/fo48/a-left-r48.jpg', 'approved', true, true, 'done', 'not_visible', '{"state": "done", "spec": "r48.4", "gate": {"pass": true, "spec": "r48.4"}}'),
        (test.id('vehicle:fo48_a'), 'left', 'left', 'vehicles/original/fo48/a-left.jpg', 'vehicles/fo48/a-left.jpg', 'approved', true, false, 'done', 'not_visible', null),
-       (test.id('vehicle:fo48_b'), 'left', 'left', 'vehicles/original/fo48/b-left-r48.jpg', 'vehicles/fo48/b-left-r48.jpg', 'approved', true, true, 'done', 'not_visible', '{"state": "done", "spec": "r48.3", "gate": {"pass": true, "spec": "r48.3"}}'),
+       (test.id('vehicle:fo48_b'), 'left', 'left', 'vehicles/original/fo48/b-left-r48.jpg', 'vehicles/fo48/b-left-r48.jpg', 'approved', true, true, 'done', 'not_visible', '{"state": "done", "spec": "r48.4", "gate": {"pass": true, "spec": "r48.4"}}'),
        (test.id('vehicle:fo48_d'), 'right', 'right', 'vehicles/original/fo48/d-right.jpg', 'vehicles/fo48/d-right.jpg', 'approved', true, false, 'done', 'not_visible', null);
 
 select test.eq('the R48 studio side view comes first',

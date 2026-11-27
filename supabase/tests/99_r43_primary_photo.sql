@@ -45,7 +45,7 @@ select test.rq43p_photo('rq43p_a', 'rear', 2);
 create temp table rq43p_afl as select test.rq43p_photo('rq43p_a', 'front_left', 3) as id;
 select test.eq('the site lists the standard angle first, the other outside shots, then the inside',
   test.rq43p_shots('rq43p_a'), 'front_left,rear,dashboard,front_seats');
-select test.eq('the public gallery: the Photos coming soon photo alone (3701)', app.public_listing_photos(test.id('vehicle:rq43p_a')) #>> '{0,shot}', 'placeholder');
+select test.ok('the public gallery: no live render, the photos as before release 50 (5064)', (app.public_listing_photos(test.id('vehicle:rq43p_a')) = coalesce(nullif(app.photo_fallback_gallery(test.id('vehicle:rq43p_a')), '[]'::jsonb), jsonb_build_array(app.photo_placeholder(test.id('vehicle:rq43p_a'))))));
 select test.eq('the cover mark moved to the standard angle (the only one)', test.rq43p_covers('rq43p_a'), 'front_left');
 select test.eq('the car''s cover photo is the standard angle', (select shot_type from app.cover_photo(test.id('vehicle:rq43p_a'))), 'front_left');
 select test.eq('the car''s cover photo file is the standard angle (the public row shows the placeholder until a studio render passes, 3701)', (app.cover_photo(test.id('vehicle:rq43p_a'))).processed_path, 'vehicles/rq43p/rq43p_a-front_left.jpg');

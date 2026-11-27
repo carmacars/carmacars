@@ -38,20 +38,20 @@ select test.eq('one flyer job queued with the words filled in', (select count(*)
 select pg_temp.dr('rxc_sales', 'ops_do', 'listing_cover_set', jsonb_build_object('vehicle', test.id('vehicle:rxc_car'), 'style', 'flyer'));
 select test.eq('choosing it again does not queue it twice', (select count(*)::int from listing_covers where vehicle_id = test.id('vehicle:rxc_car') and style = 'flyer'), 1);
 -- 3701: the public site shows only studio renders that passed the gate; the flyer and the plain cover stay on the car's record
-select test.eq('until it is made the site shows the Photos coming soon photo (3701: never the car''s own photo)', (app.public_listing_photos(test.id('vehicle:rxc_car')) -> 0 ->> 'path'), '/studio/coming-soon.jpg');
+select test.ok('until a render is live the site shows the photos as before release 50 (5064)', (app.public_listing_photos(test.id('vehicle:rxc_car')) = coalesce(nullif(app.photo_fallback_gallery(test.id('vehicle:rxc_car')), '[]'::jsonb), jsonb_build_array(app.photo_placeholder(test.id('vehicle:rxc_car'))))));
 
 -- ---------------------------------------------------------------- the worker's answer
 update listing_jobs set status = 'running', locked_at = now(), attempts = 1 where vehicle_id = test.id('vehicle:rxc_car') and kind = 'cover_flyer';
 select app.worker_listing_result((select id from listing_jobs where vehicle_id = test.id('vehicle:rxc_car') and kind = 'cover_flyer'), jsonb_build_object('ok', true, 'provider', 'carmacars',
   'output', jsonb_build_object('cover', jsonb_build_object('status', 'made', 'path', 'vehicles/' || test.id('vehicle:rxc_car') || '/cover/f1.jpg', 'width', 1800, 'height', 1200))));
 select test.eq('made', (select status from listing_covers where vehicle_id = test.id('vehicle:rxc_car') and style = 'flyer'), 'made');
-select test.eq('the flyer is made but not public (3701): the placeholder still', (app.public_listing_photos(test.id('vehicle:rxc_car')) -> 0 ->> 'path'), '/studio/coming-soon.jpg');
-select test.eq('and nothing after it: never a mixed set', jsonb_array_length(app.public_listing_photos(test.id('vehicle:rxc_car'))), 1);
-select test.eq('the cards'' cover too', (app.public_listing_row(test.id('vehicle:rxc_car')) #>> '{cover,path}'), '/studio/coming-soon.jpg');
+select test.ok('the flyer is made: the photos as before release 50 (5064)', (app.public_listing_photos(test.id('vehicle:rxc_car')) = coalesce(nullif(app.photo_fallback_gallery(test.id('vehicle:rxc_car')), '[]'::jsonb), jsonb_build_array(app.photo_placeholder(test.id('vehicle:rxc_car'))))));
+select test.ok('and no studio render mixed in (5064: none is live, none is public)', not exists (select 1 from jsonb_array_elements(app.public_listing_photos(test.id('vehicle:rxc_car'))) e where coalesce((e ->> 'generated')::boolean, false)));
+select test.ok('the cards'' cover is never the empty plate while the car has photos (5064)', (app.public_listing_row(test.id('vehicle:rxc_car')) #>> '{cover,path}') is distinct from '/studio/coming-soon.jpg');
 
 -- the words change (or the price): the flyer is out of date, the plain cover shows, and the job makes it again
 update program_settings set listing_cover_flyer = listing_cover_flyer || '{"cta": "Rent it today"}' where id = (select id from app.settings());
-select test.eq('changed words: still the placeholder on the site', (app.public_listing_photos(test.id('vehicle:rxc_car')) -> 0 ->> 'path'), '/studio/coming-soon.jpg');
+select test.ok('changed words: the photos as before release 50 still (5064)', (app.public_listing_photos(test.id('vehicle:rxc_car')) = coalesce(nullif(app.photo_fallback_gallery(test.id('vehicle:rxc_car')), '[]'::jsonb), jsonb_build_array(app.photo_placeholder(test.id('vehicle:rxc_car'))))));
 select test.eq('the job queues a new flyer', app.job_listing_covers(), 1);
 select test.eq('with the new words', (select input #>> '{cover,flyer,cta}' from listing_jobs where vehicle_id = test.id('vehicle:rxc_car') and kind = 'cover_flyer' and status = 'queued'), 'Rent it today');
 
@@ -69,7 +69,7 @@ select app.worker_listing_result((select id from listing_jobs where vehicle_id =
   'output', jsonb_build_object('cover', jsonb_build_object('status', 'made', 'path', 'site/elsewhere.jpg'))));
 select test.eq('a file outside the car''s cover folder is not kept', (select status from listing_covers where vehicle_id = test.id('vehicle:rxc_car') and style = 'model'), 'failed');
 select pg_temp.dr('rxc_admin', 'ops_do', 'listing_cover_set', jsonb_build_object('vehicle', test.id('vehicle:rxc_car'), 'style', 'plain'));
-select test.eq('plain again: the placeholder on the site', (app.public_listing_photos(test.id('vehicle:rxc_car')) -> 0 ->> 'path'), '/studio/coming-soon.jpg');
+select test.ok('plain again: the photos as before release 50 (5064)', (app.public_listing_photos(test.id('vehicle:rxc_car')) = coalesce(nullif(app.photo_fallback_gallery(test.id('vehicle:rxc_car')), '[]'::jsonb), jsonb_build_array(app.photo_placeholder(test.id('vehicle:rxc_car'))))));
 select test.eq('the read says what is chosen', (pg_temp.dr('rxc_sales', 'va_read', 'listing_cover', jsonb_build_object('vehicle', test.id('vehicle:rxc_car'))) ->> 'style'), 'plain');
 select test.ok('the functions are the server''s only', not has_function_privilege('authenticated', 'app.listing_cover_set(uuid, jsonb)', 'execute')
   and not has_function_privilege('anon', 'app.job_listing_covers()', 'execute'));

@@ -8,6 +8,7 @@ import { CUTOUT_MAX_WIDTH, cutoutKey, largestBlobBox, type CutoutDue } from '@/f
 import { decodeImage, encodeJpeg, fitFrame } from '@/features/listing/showroom';
 import { scaleDown } from '@/integrations/photos/local';
 import { cropResize } from '@/features/listing/studio-gate';
+import { COVER_SHOT } from '@/features/listing/r48';
 import { encodePng } from '@/features/listing/subject-frame';
 import { gateFrame, matteRgba, matteUsable, studioMatte } from '@/features/listing/studio-matte';
 
@@ -74,7 +75,7 @@ export async function runSiteCutoutsNow({ max = 2, deadlineMs = 20_000 }: { max?
   if (!url) return { made: 0, failed: 0, skipped: 'REMBG_URL is not set', errors: [] };
   const sharp = await loadSharp();
   if (!sharp) return { made: 0, failed: 0, skipped: 'sharp is not installed', errors: [] };
-  const due = ((await rpc('site_cutouts_due', { p_limit: max, p_shot: 'left' }, SR)) ?? []) as unknown as CutoutDue[];
+  const due = ((await rpc('site_cutouts_due', { p_limit: max, p_shot: COVER_SHOT }, SR)) ?? []) as unknown as CutoutDue[];
   const out: CutoutRun = { made: 0, failed: 0, errors: [] };
   const end = Date.now() + deadlineMs;
   const s = await storage();
@@ -113,7 +114,7 @@ export async function runSiteCutoutsNow({ max = 2, deadlineMs = 20_000 }: { max?
 }
 
 async function runMattes(max: number, deadlineMs: number): Promise<CutoutRun> {
-  const due = (((await rpc('site_cutouts_due', { p_limit: max, p_shot: 'left' }, SR)) ?? []) as unknown as CutoutDue[])
+  const due = (((await rpc('site_cutouts_due', { p_limit: max, p_shot: COVER_SHOT }, SR)) ?? []) as unknown as CutoutDue[])
     .filter((d) => d.source.kind === 'studio' && !!d.source.plate);
   const out: CutoutRun = { made: 0, failed: 0, errors: [] };
   if (!due.length) return out;
