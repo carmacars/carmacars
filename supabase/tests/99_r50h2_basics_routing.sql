@@ -54,7 +54,9 @@ select test.ok('a section carries core: the first five of customer service', (se
 -- Ontario's Employment Standards Act: earned wages on the regular pay day (coordinator, Nov 27; the owner may change this).
 select test.mk_user('bas_sales', 'va', 'sales');      -- a salesperson mid-academy with an approved commission
 update staff_profiles set onboarding_exempt = false where user_id = test.id('bas_sales');
-select test.mk_vehicle('BASPAY', 'bas_po');
+select test.mk_owner('bas_po');
+select test.mk_vehicle('BASPAY', 'bas_po', 'managed', 45000, 2500, 3500, date '2026-08-01');
+select test.mk_renter('bas_pr');
 select test.mk_booking('BAS-P1', 'BASPAY', 'bas_pr', (app.today() - 20)::text || ' 10:00', (app.today() - 18)::text || ' 10:00', 'closed', 20000);
 insert into staff_commissions (booking_id, staff_id, kind, scheme, month, rental_days, base_cents, rate_bps, amount_cents, status, approved_at)
 values (test.id('booking:BAS-P1'), test.id('bas_sales'), 'commission', 'flat', app.month_start(app.today()), 2, 20000, 1000, 2000, 'approved', now() - interval '1 day');
