@@ -3,6 +3,8 @@ select test.suite('99 r40 book now choice');
 select test.mk_owner('r40b_o');
 select test.mk_renter('r40b_gold');
 select test.mk_renter('r40b_new');
+-- r50 hotfix2 (5113): Book now needs a complete profile, whatever the tier (r40b_new has no home address)
+update renters set address_line1 = '1 Example Street', city = 'Toronto', postal_code = 'M5V 1A1' where id = test.id('renter:r40b_gold');
 select test.mk_vehicle('R40B', 'r40b_o');
 select test.mk_booking('R40B-1', 'R40B', 'r40b_gold', '2026-01-05 10:00', '2026-01-08 10:00');
 insert into reward_ledger (renter_id, points, kind, action, source_key, reason) values (test.id('renter:r40b_gold'), 1000, 'earn', 'adjust', 'r40b_gold', 'Test: Gold');
