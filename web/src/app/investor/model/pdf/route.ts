@@ -1,3 +1,4 @@
+import { localRedirect } from '@/lib/http/local-redirect';
 import { currentUser } from '@/server/portal/data';
 import { rolesOf } from '@/server/door';
 import { loadInvestorModel, multiplierOf } from '@/server/investor-model';
@@ -9,7 +10,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
   const user = await currentUser();
-  if (!user) return Response.redirect(new URL('/sign-in?next=/investor/model', req.url), 302);
+  if (!user) return localRedirect('/sign-in?next=/investor/model', 302);
   if (!(await rolesOf(user.id)).investor) return new Response('Not found', { status: 404 });
   const r = new URL(req.url).searchParams.get('reinvest');
   const m = await loadInvestorModel(user.id, r === '1' ? true : r === '0' ? false : undefined);

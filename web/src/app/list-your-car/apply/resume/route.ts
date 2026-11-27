@@ -1,3 +1,4 @@
+import { localRedirect } from '@/lib/http/local-redirect';
 import { NextResponse } from 'next/server';
 import { env } from '@/lib/env';
 import { rpc } from '@/lib/db/repo';
@@ -13,11 +14,11 @@ export async function GET(req: Request) {
   const user = await currentUser();
   try {
     const r = (await rpc('server_resume_form_draft', { p_link_token: t, p_user: user?.id, p_device_label: (req.headers.get('user-agent') ?? '').slice(0, 60) }, { role: 'service_role' })) as unknown as { token: string | null };
-    const res = NextResponse.redirect(new URL('/list-your-car/apply', req.url), 303);
+    const res = localRedirect('/list-your-car/apply', 303);
     if (r.token) res.cookies.set(DRAFT_COOKIE, r.token, { httpOnly: true, sameSite: 'lax', path: '/', secure: env().APP_ENV !== 'local', maxAge: 30 * 86400 });
     res.headers.set('cache-control', 'no-store');
     return res;
   } catch {
-    return NextResponse.redirect(new URL('/list-your-car/apply?expired=1', req.url), 303);
+    return localRedirect('/list-your-car/apply?expired=1', 303);
   }
 }

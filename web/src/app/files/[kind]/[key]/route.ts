@@ -13,7 +13,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ kind: st
   try { key = decodeURIComponent(raw); } catch { return new Response('Not found', { status: 404 }); }
   if (!isDocKind(kind) || !validKey(key)) return new Response('Not found', { status: 404 });
   const user = await currentUser();
-  if (!user) redirect(`/sign-in?next=${encodeURIComponent(new URL(req.url).pathname)}`);
+  const here = new URL(req.url).pathname;
+  if (!user) redirect(`/sign-in?next=${encodeURIComponent(here)}`);
   if (!(await mayDownload(user.id, kind, key))) return new Response('Not found', { status: 404 });
   const f = await generatedFile(kind, key, user.id);
   if (!f) return new Response('Not found', { status: 404 });

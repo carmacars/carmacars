@@ -879,7 +879,16 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 - Rule: later, not now. Note: it needs a walk-around video at each check-in and check-out (8 to 12 photos are too few for photogrammetry or Gaussian splatting), and it runs on our own server.
 - Done when: to be set when the owner schedules it (a future idea, no build yet).
 
-### REQ-126 E-Transfer requests for renters who pay by e-Transfer
+### REQ-126 The installed app and every redirect stay on the public host
+- Status: in progress
+- Proof: see the commit that adds web/src/lib/http/public-origin.ts and the guard test in web/src/lib/http/local-redirect.test.ts
+- Test: web/src/lib/http/local-redirect.test.ts
+- Asked: Nov 27 15:55
+- Owner: "When doing the app bookmark thing, it says localhost and stops working. Wtf fix that"
+- Rule: behind Caddy and vps-server.mjs, req.url reads http://localhost:3000. Same-site redirects use localRedirect(path) (relative Location). An absolute address (OAuth redirect_uri, links) uses publicOrigin(req). No route builds a browser-facing address from req.url or u.origin.
+- Done when: the installed app (Add to Home Screen) and every redirect on carmacars.ca stay on the public host; no response sends a browser to localhost.
+
+### REQ-127 E-Transfer requests for renters who pay by e-Transfer
 - Status: not started
 - Proof: none yet (open, next release)
 - Test: GAP
@@ -888,7 +897,7 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 - Rule: open, next release.
 - Done when: a renter who chooses e-Transfer gets an email request with the exact amount, the e-Transfer address and the booking number as the message, the booking waits for that payment, and the received e-Transfer is matched to the booking automatically.
 
-### REQ-127 Never accept an offer for the renter
+### REQ-128 Never accept an offer for the renter
 - Status: not started
 - Proof: none yet (open; a rule for staff and Claude)
 - Test: GAP

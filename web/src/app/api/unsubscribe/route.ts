@@ -1,3 +1,4 @@
+import { localRedirect } from '@/lib/http/local-redirect';
 import { NextResponse } from 'next/server';
 import { rpc } from '@/lib/db/repo';
 
@@ -15,5 +16,5 @@ export async function POST(req: Request) {
 
 export function GET(req: Request) {
   const u = new URL(req.url);
-  return NextResponse.redirect(new URL(`/unsubscribe${u.search}`, u), 303);
+  return localRedirect(`/unsubscribe${u.search}`, 303);
 }

@@ -2,6 +2,7 @@ import { flyerPdf } from '@/features/referral/flyer';
 import { partnerLink } from '@/server/referral/portal';
 import { currentUser } from '@/server/portal/data';
 import { door, sessionAal } from '@/server/door';
+import { localRedirect } from '@/lib/http/local-redirect';
 
 // The one-page flyer with the partner's QR code, for their counter (migration 0164). An Admin only; made from the partner's record.
 export const dynamic = 'force-dynamic';
@@ -9,7 +10,7 @@ export const dynamic = 'force-dynamic';
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const id = (await params).id;
   const user = await currentUser();
-  if (!user) return Response.redirect(new URL(`/sign-in?next=${encodeURIComponent(`/admin/referral-partners/${id}`)}`, req.url), 302);
+  if (!user) return localRedirect(`/sign-in?next=${encodeURIComponent(`/admin/referral-partners/${id}`)}`, 302);
   let d: { partner: { business_name: string; kind: string; referral_code: string; status: string } } | null = null;
   try { d = await door(user.id, 'admin_read', 'referral_partner', { id }, await sessionAal()); } catch { return new Response('Not found', { status: 404 }); }
   if (!d?.partner) return new Response('Not found', { status: 404 });

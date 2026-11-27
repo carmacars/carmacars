@@ -1,3 +1,4 @@
+import { localRedirect } from '@/lib/http/local-redirect';
 import { assertAdmin } from '@/server/admin/data';
 import { loadFinanceModel } from '@/server/finance-model';
 import { internalWorkbook } from '@/features/finance-model/workbook';
@@ -10,7 +11,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
   let admin;
-  try { admin = await assertAdmin(); } catch { return Response.redirect(new URL('/admin/no-access', req.url), 302); }
+  try { admin = await assertAdmin(); } catch { return localRedirect('/admin/no-access', 302); }
   const { read, inputs, model } = await loadFinanceModel(admin.id);
   const n = Number(read.terms.multiplier);
   const wb = internalWorkbook({ actuals: read.actuals, inputs, investors: read.investors, model, multiplier: Number.isFinite(n) && n > 0 ? n : null,
