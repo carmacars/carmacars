@@ -839,6 +839,15 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 - Rule: an e-Transfer that cannot be matched for sure to a booking is listed on the Rental Desk page, not guessed.
 - Done when: every unmatched or uncertain e-Transfer is listed on the Rental Desk page under "E-Transfers to match".
 
+### REQ-122 Turo trip emails read by the site
+- Status: in progress
+- Proof: none yet
+- Test: GAP
+- Asked: Nov 27 13:14
+- Owner: "Turn on the Turo email thing but make sure it doesn't break anything"
+- Rule: Turo trip emails forwarded from rent@ go to trips@in.carmacars.ca and the site reads them; the root carmacars.ca mail (Google Workspace) stays as it is.
+- Done when: Turo trip emails forwarded from rent@ reach trips@in.carmacars.ca and are read by the site, root carmacars.ca mail (Google Workspace) unchanged.
+
 ## 16. Earlier decisions (Oct to Nov 12, from the chat extraction)
 
 ### REQ-092 Corporation, shares and shareholder money

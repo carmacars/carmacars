@@ -1152,6 +1152,18 @@
     "test": "GAP (a working document, not code)"
   },
   {
+    "id": "REQ-122",
+    "title": "Turo trip emails read by the site",
+    "area": "15. Infrastructure and quality",
+    "status": "in progress",
+    "asked": "Nov 27 13:14",
+    "owner_quote": "\"Turn on the Turo email thing but make sure it doesn't break anything\"",
+    "rule": "Turo trip emails forwarded from rent@ go to trips@in.carmacars.ca and the site reads them; the root carmacars.ca mail (Google Workspace) stays as it is.",
+    "done_when": "Turo trip emails forwarded from rent@ reach trips@in.carmacars.ca and are read by the site, root carmacars.ca mail (Google Workspace) unchanged.",
+    "proof": "none yet",
+    "test": "GAP"
+  },
+  {
     "id": "REQ-092",
     "title": "Corporation, shares and shareholder money",
     "area": "16. Earlier decisions (Oct to Nov 12, from the chat extraction)",
