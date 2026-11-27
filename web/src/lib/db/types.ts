@@ -6640,6 +6640,8 @@ export type Database = {
           quality_flags: Json | null;
           purge_after: string | null;
           angle: string | null;
+          added_later_at: string | null;
+          client_key: string | null;
         };
         Insert: {
           id?: string;
@@ -6659,6 +6661,8 @@ export type Database = {
           quality_flags?: Json | null;
           purge_after?: string | null;
           angle?: string | null;
+          added_later_at?: string | null;
+          client_key?: string | null;
         };
         Update: {
           id?: string;
@@ -6678,6 +6682,8 @@ export type Database = {
           quality_flags?: Json | null;
           purge_after?: string | null;
           angle?: string | null;
+          added_later_at?: string | null;
+          client_key?: string | null;
         };
         Relationships: [];
       };
@@ -22334,6 +22340,9 @@ export type Database = {
           owner_stage_uvip_url: string;
           calls_mode: string;
           staff_notice_days: number;
+          old_photos_days: number;
+          old_photos_match_hours: number;
+          old_photos_group_minutes: number;
         };
         Insert: {
           id?: string;
@@ -23326,6 +23335,9 @@ export type Database = {
           owner_stage_uvip_url?: string;
           calls_mode?: string;
           staff_notice_days?: number;
+          old_photos_days?: number;
+          old_photos_match_hours?: number;
+          old_photos_group_minutes?: number;
         };
         Update: {
           id?: string;
@@ -24318,6 +24330,9 @@ export type Database = {
           owner_stage_uvip_url?: string;
           calls_mode?: string;
           staff_notice_days?: number;
+          old_photos_days?: number;
+          old_photos_match_hours?: number;
+          old_photos_group_minutes?: number;
         };
         Relationships: [];
       };

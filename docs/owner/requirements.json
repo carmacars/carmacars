@@ -656,8 +656,8 @@
     "owner_quote": null,
     "rule": "upload check-in and out photos for previous bookings, in bulk; field staff can see those bookings.",
     "done_when": "a past booking accepts bulk photos.",
-    "proof": "branch r50-hotfix2-oldphotos (not on main)",
-    "test": "to be added with the work"
+    "proof": "branch r50-hotfix2-oldphotos (not on main): migrations 5185 to 5187, docs/changes/2026-11-27-r50h2-old-photos.md",
+    "test": "supabase/tests/99_r50h2_old_photos.sql; web/src/features/old-photos/old-photos.test.ts; web/tests/e2e/r50h2-old-photos.spec.ts"
   },
   {
     "id": "REQ-056",

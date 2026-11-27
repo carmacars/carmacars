@@ -5,6 +5,9 @@ import type { Field } from './Act';
 const nice = (k: string) => { const s = k.replace(/_(cents|bps)$/, '').replace(/_/g, ' '); return s.charAt(0).toUpperCase() + s.slice(1); };
 // settings whose meaning needs a sentence (0042: one turnaround between trips; the tolls, plates and vision settings)
 const LABELS: Record<string, string> = {
+  // R50 hotfix 2 (5185): Add old photos
+  old_photos_days: 'Add old photos: past bookings from the last this many days', old_photos_match_hours: 'Add old photos: a photo is suggested for a pickup or return within this many hours of it',
+  old_photos_group_minutes: 'Add old photos: photos taken within this many minutes of each other are one group',
   // hotfix 3650: card payments on or off, the processor
   card_payments: 'Card payments (off: every pay page shows e-Transfer)', card_provider: 'Card processor',
   // r49 (3480): the Finance dashboard's bank reconciliation

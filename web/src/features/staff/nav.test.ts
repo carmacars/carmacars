@@ -77,8 +77,8 @@ test('each role: at most five links in its group, its main jobs one tap away, th
     for (const j of jobs) assert.ok(hrefs([fn]).includes(j), `${fn}: ${j}`);
   }
   // pages that left the menu are still one tap from a link
-  for (const p of ['/staff/renters', '/staff/review-requests', '/staff/owner-forms', '/staff/listings', '/staff/chauffeur']) assert.ok(reach(['cs']).includes(p), `cs ${p}`);
-  for (const p of ['/staff/field-hours', '/staff/calendar-sync', '/staff/addons', '/staff/owners/add-car', '/staff/renters', '/staff/reviews']) assert.ok(reach(['fleet']).includes(p), `fleet ${p}`);
+  for (const p of ['/staff/renters', '/staff/review-requests', '/staff/owner-forms', '/staff/listings', '/staff/chauffeur', '/staff/old-photos']) assert.ok(reach(['cs']).includes(p), `cs ${p}`);
+  for (const p of ['/staff/field-hours', '/staff/calendar-sync', '/staff/addons', '/staff/owners/add-car', '/staff/renters', '/staff/reviews', '/staff/old-photos']) assert.ok(reach(['fleet']).includes(p), `fleet ${p}`);
   for (const p of ['/staff/maintenance', '/staff/renters', '/staff/owner-money']) assert.ok(reach(['finance']).includes(p), `finance ${p}`);
   for (const p of ['/staff/calendar', '/staff/cars', '/staff/card-coverage', '/staff/scorecard', '/staff/today']) assert.ok(reach(['sales']).includes(p), `sales ${p}`);
   // the actions that left the menu: buttons on their page
