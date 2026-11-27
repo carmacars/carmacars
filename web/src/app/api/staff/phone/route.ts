@@ -17,12 +17,12 @@ export const dynamic = 'force-dynamic';
 const H = { 'cache-control': 'no-store' };
 // r34 (0800): caller_live (the caller pop-up of Admins and customer service) and the renter notes; the database decides who
 // r42 (2670): call_helper (the Call helper inside the caller pop-up: the greetings, the situations and the quick answers)
-const READS = new Set(['phone_inbox', 'phone_thread', 'phone_timeline', 'phone_renter_search', 'phone_buttons', 'caller_live', 'renter_notes', 'call_helper', 'voice_token']);
+const READS = new Set(['phone_inbox', 'phone_thread', 'phone_timeline', 'phone_renter_search', 'phone_buttons', 'caller_live', 'renter_notes', 'call_helper', 'voice_token', 'voice_contacts']);
 const ACTS = new Set(['phone_read', 'phone_reply', 'phone_link', 'phone_create_lead', 'phone_opt_out', 'phone_draft', 'phone_compose', 'phone_call_log',
   'renter_note_add', 'renter_note_remove', 'caller_open', 'phone_call', 'phone_my_number', 'voice_presence']);
 // the buttons are for every staff member; the inbox stays Admins', customer service's and Sales's (the database decides)
 // r44 (2790): voice_token and voice_presence, the browser's phone (every staff member may call; the database says who rings)
-const BUTTONS = new Set(['phone_buttons', 'phone_compose', 'phone_call_log', 'phone_call', 'phone_my_number', 'voice_token', 'voice_presence']);
+const BUTTONS = new Set(['phone_buttons', 'phone_compose', 'phone_call_log', 'phone_call', 'phone_my_number', 'voice_token', 'voice_presence', 'voice_contacts']);
 // r35 (0970): Sales is shown masked numbers ("(647) •••-••00"); the buttons send the masked number and the server finds
 // the real one (app.server_phone_unmask: only numbers this person was shown), so it never reaches the browser
 const MASKED = /\u2022/;
@@ -77,6 +77,13 @@ export async function GET(req: Request) {
   if (what === 'voice_token') {
     if (await viewAs()) return NextResponse.json({ ok: false, message: 'Viewing as someone else: calls are not made or taken from this view.' }, { headers: H });
     return NextResponse.json(await voiceToken(w.user.id), { headers: H });
+  }
+  // r50 hotfix 2 (5092): the call screen's contacts (Sales: their own leads, masked; the call goes by the record)
+  if (what === 'voice_contacts') {
+    if (await viewAs()) return NextResponse.json([], { headers: H });
+    try {
+      return NextResponse.json(await rpc('server_voice_contacts', { p_user: w.user.id, p: { q: (u.searchParams.get('q') ?? '').slice(0, 60) } as unknown as Json }, { role: 'service_role' }), { headers: H });
+    } catch (e) { return fail(e, 403); }
   }
   const p: Record<string, unknown> = {};
   for (const k of ['id', 'view', 'q', 'booking_id', 'renter_id', 'owner_id', 'lead_id', 'staff_id']) { const v = u.searchParams.get(k); if (v) p[k] = v; }

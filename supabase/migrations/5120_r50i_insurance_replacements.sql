@@ -1245,7 +1245,7 @@ $$;
 -- a claim notice names the renter and their claim: never to Gemini's free tier (chain.ts PRIVATE_PURPOSES)
 create or replace function app.ai_private(p_purpose text) returns boolean
 language sql immutable as $$
-  select p_purpose in ('licence_read', 'permit_read', 'interview_transcribe', 'call_transcribe', 'phone_summary', 'interview_followup', 'interview_score', 'claim_read')
+  select p_purpose in ('licence_read', 'permit_read', 'interview_transcribe', 'call_transcribe', 'phone_summary', 'interview_followup', 'interview_score', 'faq_reply', 'claim_read')
 $$;
 
 alter function app.ai_tier(text) rename to ai_tier_pre5120;

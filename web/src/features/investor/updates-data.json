@@ -51,7 +51,9 @@
      "Texts from the business line never carry a phone number, and calls with risky words are flagged for an Admin with the line",
      "An extension or a weekly payment is credited to the person who started it",
      "**Guide me** in every staff portal: an optional coach that walks you through a real job step by step while you do it, on the live screens (send an offer, answer a request, record a payment, a pickup, a return and deposit review, approve an owner's car, a field expense)",
-     "**Check-in visits**: long rentals get a free monthly check-in visit; staff work one queue (booked, due, overdue, done) and a short checklist with photos, the odometer, damage, tires, fluids and warning lights. What needs looking after becomes a To do, damage goes to the Admins, and the reading feeds the car's maintenance"
+     "**Check-in visits**: long rentals get a free monthly check-in visit; staff work one queue (booked, due, overdue, done) and a short checklist with photos, the odometer, damage, tires, fluids and warning lights. What needs looking after becomes a To do, damage goes to the Admins, and the reading feeds the car's maintenance",
+     "Calls in the site work like a phone: a call screen with the name, number and timer, Mute, Keypad, Speaker and microphone choice, Hold and a red End call that is always there (also while the call starts); the round phone button dials any number or calls a contact, and switching apps on a phone keeps a call on",
+     "Emails go through Amazon SES again, so there are no more \"almost out of email\" warnings, and texts and AI auto-replies recover on their own"
     ]
    },
    {

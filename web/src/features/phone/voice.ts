@@ -4,7 +4,7 @@
 // and keeps it; a Sales person never receives a number masked for them (the call goes by its id).
 // One phone a page: this module keeps it and its state; VoiceDock shows it, the Call buttons start calls through it.
 
-import { voiceErrorText } from './twilio';
+import { voiceErrorText } from './twilio.ts';
 
 export const VOICE_SDK = '/vendor/twilio-voice-sdk-2.18.5/twilio.min.js';
 
@@ -13,16 +13,26 @@ interface TwilioCall {
   accept(): void; reject(): void; disconnect(): void; ignore?(): void;
   mute(m: boolean): void; isMuted(): boolean; sendDigits(d: string): void;
   customParameters?: Map<string, string>;
+  getRemoteStream?(): MediaStream | undefined;
+}
+// r50 hotfix 2: the device's audio (the microphone and, where the browser allows it, the speaker)
+interface TwilioAudio {
+  availableInputDevices?: Map<string, MediaDeviceInfo>; availableOutputDevices?: Map<string, MediaDeviceInfo>;
+  isOutputSelectionSupported?: boolean; inputDevice?: MediaDeviceInfo | null;
+  setInputDevice?(id: string): Promise<void>;
+  speakerDevices?: { set(ids: string | string[]): Promise<void>; get?(): Set<MediaDeviceInfo> };
 }
 interface TwilioDevice {
   register(): Promise<void>; unregister(): Promise<void>; destroy(): void; updateToken(t: string): void;
   connect(o: { params: Record<string, string> }): Promise<TwilioCall>;
   on(ev: string, fn: (...a: unknown[]) => void): void;
+  audio?: TwilioAudio;
 }
 type DeviceCtor = new (token: string, o: Record<string, unknown>) => TwilioDevice;
 
-export type VoicePhase = 'idle' | 'starting' | 'calling' | 'ringing_in' | 'in_call' | 'problem';
-export interface VoiceState { phase: VoicePhase; who?: string; since?: number; muted?: boolean; message?: string; ring?: boolean }
+export type VoicePhase = 'idle' | 'dialing' | 'starting' | 'calling' | 'ringing_in' | 'in_call' | 'problem';
+/** r50 hotfix 2: number (what the call screen shows under the name), held (on hold: their voice and ours paused) */
+export interface VoiceState { phase: VoicePhase; who?: string; number?: string; since?: number; muted?: boolean; held?: boolean; message?: string; ring?: boolean }
 
 let state: VoiceState = { phase: 'idle' };
 const subs = new Set<() => void>();
@@ -36,6 +46,9 @@ let current: TwilioCall | null = null;
 let incoming: TwilioCall | null = null;
 let beat: ReturnType<typeof setInterval> | null = null;
 let ringing = false;
+// r50 hotfix 2: each call placed gets the next number; End adds one, so a call still on its way (the server, the
+// microphone prompt or Twilio) that is not the newest stops at its next step and never connects
+let attempt = 0;
 
 function loadSdk(): Promise<DeviceCtor> {
   const w = window as unknown as { Twilio?: { Device?: DeviceCtor } };
@@ -66,12 +79,18 @@ async function post(action: string, p: Record<string, unknown>): Promise<Record<
 
 const whoOf = (c: TwilioCall) => c.customParameters?.get('who') || 'A caller';
 
-function watch(c: TwilioCall, who: string) {
-  c.on('accept', () => set({ phase: 'in_call', who, since: Date.now(), muted: false, ring: ringing }));
-  const end = () => { if (current === c) current = null; if (incoming === c) incoming = null; if (state.phase !== 'problem') set({ phase: 'idle', ring: ringing }); };
+function watch(c: TwilioCall, who: string, number?: string) {
+  c.on('accept', () => set({ phase: 'in_call', who, number, since: Date.now(), muted: false, held: false, ring: ringing }));
+  // only the call on the screen changes the screen (a call that already ended never closes the next one)
+  const end = (): boolean => {
+    const mine = current === c || incoming === c;
+    if (current === c) current = null; if (incoming === c) incoming = null;
+    if (mine && state.phase !== 'problem') set({ phase: 'idle', ring: ringing });
+    return mine;
+  };
   c.on('disconnect', end); c.on('cancel', end); c.on('reject', end);
-  c.on('error', (e: unknown) => { end(); set({ phase: 'problem', message: problemText(e), ring: ringing }); });
-  c.on('mute', (m: unknown) => set({ ...state, muted: !!m }));
+  c.on('error', (e: unknown) => { if (end()) set({ phase: 'problem', message: problemText(e), ring: ringing }); });
+  c.on('mute', (m: unknown) => { if (!state.held) set({ ...state, muted: !!m }); });
 }
 
 function problemText(e: unknown): string {
@@ -119,31 +138,97 @@ export function startVoice(): void {
 
 /** A call to a person, placed in the browser with the CarmaCars number as caller ID. */
 export async function placeCall(o: { number: string; booking?: string | null; name?: string | null; lead?: string | null; renter?: string | null }): Promise<void> {
-  if (current || incoming) return;
-  set({ phase: 'starting', who: o.name?.trim() || 'the customer', ring: ringing });
+  // one call at a time: a second tap while one starts, rings or is on does nothing
+  if (current || incoming || state.phase === 'starting' || state.phase === 'calling' || state.phase === 'in_call') return;
+  const my = ++attempt;
+  // the number shown under the name: never a number masked for Sales in full (it stays as given)
+  const shown = o.number;
+  set({ phase: 'starting', who: o.name?.trim() || shown || 'the customer', number: shown, ring: ringing });
   let r: Record<string, unknown>;
   try { r = await post('phone_call', { via: 'browser', number: o.number, ...(o.booking ? { booking_number: o.booking } : {}), ...(o.name ? { name: o.name } : {}),
     ...(o.lead ? { lead: o.lead } : {}), ...(o.renter ? { renter: o.renter } : {}) }); }
-  catch { set({ phase: 'problem', message: 'The server did not answer. Try again in a moment.', ring: ringing }); return; }
+  catch { if (my === attempt) set({ phase: 'problem', message: 'The server did not answer. Try again in a moment.', ring: ringing }); return; }
+  if (my !== attempt) return;
   if (r.ok !== true || typeof r.id !== 'string' || typeof r.t !== 'string') {
     set({ phase: 'problem', message: String(r.message ?? r.error ?? 'The call did not start. Try again in a moment.'), ring: ringing }); return;
   }
-  const who = typeof r.who === 'string' && r.who ? r.who : o.name?.trim() || 'the customer';
+  const who = typeof r.who === 'string' && r.who ? r.who : o.name?.trim() || shown || 'the customer';
   const d = await ensureDevice();
-  if (!d) return;
+  if (!d || my !== attempt) return;
   try {
     const c = await d.connect({ params: { call: r.id, t: r.t } });
-    current = c; watch(c, who);
-    set({ phase: 'calling', who, ring: ringing });
-  } catch (e) { set({ phase: 'problem', message: problemText(e), ring: ringing }); }
+    if (my !== attempt) { c.disconnect(); return; }
+    current = c; watch(c, who, shown);
+    set({ phase: 'calling', who, number: shown, ring: ringing });
+  } catch (e) { if (my === attempt) set({ phase: 'problem', message: problemText(e), ring: ringing }); }
 }
 
 export function answer(): void { if (incoming) { current = incoming; incoming = null; current.accept(); } }
 export function decline(): void { if (incoming) { incoming.reject(); incoming = null; set({ phase: 'idle', ring: ringing }); } }
-export function hangUp(): void { (current ?? incoming)?.disconnect(); }
-export function toggleMute(): void { if (current) current.mute(!current.isMuted()); }
+/** End: always ends what is on the screen, also a call still starting (it is dropped as soon as it connects). */
+export function hangUp(): void {
+  const c = current ?? incoming;
+  if (c) { try { c.disconnect(); } catch { /* already gone */ } }
+  if (state.phase === 'starting' || state.phase === 'calling' || state.phase === 'in_call') {
+    attempt++;
+    current = null; incoming = null;
+    set({ phase: 'idle', ring: ringing });
+  }
+}
+// Closing the page ends a call that is not connected yet. A connected call is left alone: on a phone, switching apps
+// can fire pagehide, and a page kept for going back (persisted) keeps its call; Twilio's leave warning asks first.
+export function onPageHide(e: { persisted?: boolean }): void {
+  if (e.persisted || state.phase === 'in_call') return;
+  if (state.phase === 'starting' || state.phase === 'calling') hangUp();
+}
+if (typeof window !== 'undefined') addEventListener('pagehide', (e) => onPageHide(e as PageTransitionEvent));
+export function toggleMute(): void { if (current && !state.held) current.mute(!current.isMuted()); }
 export function sendDigit(d: string): void { if (current && /^[0-9*#]$/.test(d)) current.sendDigits(d); }
-export function dismiss(): void { if (state.phase === 'problem') set({ phase: 'idle', ring: ringing }); }
+export function dismiss(): void { if (state.phase === 'problem' || state.phase === 'dialing') set({ phase: 'idle', ring: ringing }); }
+
+// ================================================================ r50 hotfix 2: the call screen (dialer, hold, audio)
+/** r50 hotfix 2 (5092): the call screen's contacts. No search: the people this person called last; a search: renters and
+ *  leads (Sales: their own leads, the number masked; the call goes by the lead or renter). */
+export interface VoiceContact { name: string; number: string; shown: string; lead: string | null; renter: string | null }
+export async function voiceContacts(q: string): Promise<VoiceContact[] | null> {
+  try {
+    const r = await fetch(`/api/staff/phone?what=voice_contacts&q=${encodeURIComponent(q.trim().slice(0, 60))}`, { cache: 'no-store', credentials: 'same-origin', signal: AbortSignal.timeout(15_000) });
+    const j = (await r.json().catch(() => null)) as unknown;
+    return r.ok && Array.isArray(j) ? (j as VoiceContact[]) : null;
+  } catch { return null; }
+}
+
+/** The keypad to call any number (the call screen's dialer). */
+export function openDialer(): void { if (state.phase === 'idle' || state.phase === 'problem') set({ phase: 'dialing', ring: ringing }); }
+
+/** Hold: our microphone and their voice are paused in this browser (they hear silence), the call stays connected.
+ *  Pressed again: both come back, and the microphone as it was before. */
+let mutedBeforeHold = false;
+export function toggleHold(): void {
+  if (!current || state.phase !== 'in_call') return;
+  const on = !state.held;
+  if (on) { mutedBeforeHold = current.isMuted(); current.mute(true); } else current.mute(mutedBeforeHold);
+  for (const t of current.getRemoteStream?.()?.getAudioTracks() ?? []) t.enabled = !on;
+  set({ ...state, held: on, muted: on ? true : mutedBeforeHold });
+}
+
+export interface AudioChoice { id: string; label: string }
+export interface AudioDevices { inputs: AudioChoice[]; outputs: AudioChoice[]; input: string | null; output: string | null; outputSupported: boolean }
+const listOf = (m?: Map<string, MediaDeviceInfo>): AudioChoice[] =>
+  [...(m?.values() ?? [])].map((d, i) => ({ id: d.deviceId, label: d.label || (d.kind === 'audioinput' ? `Microphone ${i + 1}` : `Speaker ${i + 1}`) }));
+/** The microphones and speakers this browser offers for the call (speakers only where the browser lets a page choose). */
+export function audioDevices(): AudioDevices {
+  const a = device?.audio;
+  const out = a?.speakerDevices?.get?.();
+  return { inputs: listOf(a?.availableInputDevices), outputs: a?.isOutputSelectionSupported ? listOf(a?.availableOutputDevices) : [],
+    input: a?.inputDevice?.deviceId ?? null, output: out ? ([...out][0]?.deviceId ?? null) : null, outputSupported: !!a?.isOutputSelectionSupported };
+}
+export async function chooseMicrophone(id: string): Promise<boolean> {
+  try { await device?.audio?.setInputDevice?.(id); return true; } catch { return false; }
+}
+export async function chooseSpeaker(id: string): Promise<boolean> {
+  try { await device?.audio?.speakerDevices?.set(id); return true; } catch { return false; }
+}
 
 // ================================================================ r48 CM: the Admin's test call (Settings > Calls)
 export type TestStep = { step: string; ok: boolean; detail: string };

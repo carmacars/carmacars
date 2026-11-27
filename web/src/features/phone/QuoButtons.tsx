@@ -17,18 +17,24 @@ import { WhyDisabled } from '@/components/WhyDisabled';
 // r35 (0970): twilio: the Call button rings the staff member's own cell, then the customer (twilio_why: why not, shown on the
 // Quo fallback); can_reveal: an Admin may reveal a number masked for Sales (audited)
 // r44 (2790): browser: the call is placed in this browser (VoiceDock shows it), with the CarmaCars number as caller ID
-type Cfg = { quo: boolean; from: string | null; any_number?: boolean; browser?: boolean; twilio?: boolean; twilio_why?: string | null; can_reveal?: boolean };
+// r50 hotfix 2: failed: the settings did not load (a busy server, a 403). Before, that answer was kept for the whole page:
+// Call fell back to a tel: link (nothing on a computer) or to the own-mobile way (off), so calls never started until a
+// reload. Now a failure is not kept (the next press asks again) and Call places the call in the browser, where the server
+// checks the person and the call screen says why when it cannot.
+type Cfg = { quo: boolean; from: string | null; any_number?: boolean; browser?: boolean; twilio?: boolean; twilio_why?: string | null; can_reveal?: boolean; failed?: boolean };
 /** A number masked for Sales ("(647) •••-••00", migration 0970): shown as it is, called and texted through the platform only. */
 export const isMasked = (s: string | null | undefined): boolean => !!s && s.includes('\u2022');
 let cfgP: Promise<Cfg> | null = null;
 let cfgV: Cfg | null = null;
 function loadCfg(): Promise<Cfg> {
   cfgP ??= fetch('/api/staff/phone?what=phone_buttons', { cache: 'no-store', credentials: 'same-origin' })
-    .then(async (r) => (r.ok ? ((await r.json()) as Cfg) : { quo: false, from: null }))
-    .catch(() => ({ quo: false, from: null }))
-    .then((c) => { cfgV = c; return c; });
+    .then(async (r) => (r.ok ? ((await r.json()) as Cfg) : { quo: false, from: null, failed: true }))
+    .catch((): Cfg => ({ quo: false, from: null, failed: true }))
+    .then((c) => { cfgV = c; if (c.failed) cfgP = null; return c; });
   return cfgP;
 }
+/** The call goes in the browser when the settings say so, and also when they did not load (never a dead Call button). */
+const inBrowser = (c: Cfg | null): boolean => !c || !!c.browser || !!c.failed;
 function useCfg(): Cfg | null {
   const [c, setC] = useState<Cfg | null>(cfgV);
   useEffect(() => { let live = true; void loadCfg().then((x) => { if (live) setC(x); }); return () => { live = false; }; }, []);
@@ -107,7 +113,7 @@ function MaskedButtons({ phone, name, booking, look = 'buttons', inbox, only, te
   const who = name?.trim() || m;
   // r40: always through the server, which knows whether calling is set up and whether the caller has a mobile on file
   const onCall = () => {
-    if (cfg?.browser) { void placeCall({ number: m, booking, name, lead, renter }); return; }  // r44: in the browser; the server finds the number
+    if (inBrowser(cfg)) { void placeCall({ number: m, booking, name, lead, renter }); return; }  // r44: in the browser; the server finds the number
     setSheet('call'); call.start();
   };
   const reveal = async () => {
@@ -184,7 +190,7 @@ function PlainButtons({ phone, name, booking, look = 'buttons', inbox, only, tes
 
   const onCall = (e: React.MouseEvent) => {
     // r44 (2790): in the browser when calls from the site are set up (the default)
-    if (cfg?.browser) {
+    if (inBrowser(cfg)) {
       e.preventDefault();
       void placeCall({ number: n, booking, name });
       return;

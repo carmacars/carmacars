@@ -374,40 +374,42 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 
 ### REQ-042 Email, Quo, Twilio, SES all working
 - Status: in progress
-- Proof: branch r50-hotfix2-comms (not on main)
-- Test: to be added with the work
+- Proof: branch r50-hotfix2-comms (not on main): docs/changes/2026-11-27-r50-hotfix2-comms.md; 5092 (SES reports read as JSON strings, so SES sends whichever send-outbox build runs), 5090 (Quo texts), 5091 and 5092 (browser calls)
+- Test: supabase/tests/99_r50h2_ses_contacts.sql; supabase/tests/99_r50h2_texts_recover.sql; web/src/features/phone/voice.test.ts; web/tests/e2e/r50h2-call-screen.spec.ts
 - Asked: Nov 25 17:23
 - Owner: "Amazon SES, Quo messages, Twilio calls ... all need to be working"
+- Rule: emails go through Amazon SES first, texts through Quo, calls through Twilio in the browser; each one works on its own after a deploy, without a manual step.
 - Done when: a test of each channel succeeds.
 
 ### REQ-043 No false email usage warnings
 - Status: in progress
-- Proof: branch r50-hotfix2-comms (not on main)
-- Test: to be added with the work
+- Proof: branch r50-hotfix2-comms (not on main): 5091 (the day's limit counts SES, Cloudflare and Resend; the month test counts Resend only; the portal warning stays quiet while SES sends)
+- Test: supabase/tests/99_r50h2_email_meter_auto_replies.sql
 - Asked: Nov 25 20:13
 - Owner: "still getting emails that we're almost out of email usage ... even though we switched to SES"
+- Rule: the email usage warning and the email cap track the capacity of every provider that sends (SES included), not Resend's free 100 a day.
 - Done when: warnings track SES, not the old cap.
 
 ### REQ-044 Auto replies on
 - Status: in progress
-- Proof: branch r50-hotfix2-errors (not on main)
-- Test: to be added with the work
+- Proof: branch r50-hotfix2-comms (not on main): 5091 (the auto-reply gate asks app.ai_allow('faq_reply'), so the server's own model answers once Workers AI's share of the day is used; faq_reply is private: never Gemini's free tier, the owner can change this). WhatsApp auto replies also need the WhatsApp Business phone number id (owner).
+- Test: supabase/tests/99_r50h2_email_meter_auto_replies.sql; web/src/integrations/ai/chain.test.ts
 - Asked: Nov 26 16:49
-- Rule: auto replies work for texts and socials; find why they stopped.
+- Rule: auto replies work for texts and socials; find why they stopped. A renter's message goes only to our own AI models by default (no owner quote on this default: it is the review's privacy choice, for the owner to confirm).
 - Done when: a test text and a social message get a reply.
 
 ### REQ-045 No stale text burst
 - Status: in progress
-- Proof: branch r50-hotfix2-comms (not on main)
-- Test: to be added with the work
+- Proof: branch r50-hotfix2-comms (not on main): 5090 (any text Quo takes after the newest failure clears "Sign-in codes by text"; a sign-in code refused for credits pauses texts and one that goes ends the pause; while paused, a due text waits up to text_retry_paused_minutes (30) for the probe, then goes by email). Owner decision open: this holds and retries a waiting text instead of dropping it; texts past their drop rules (app.text_drop_reason) are still dropped.
+- Test: supabase/tests/99_r50h2_texts_recover.sql
 - Asked: Nov 20
-- Rule: when Quo credits return, stale queued texts are dropped; email is the fallback while credits are out; phone alerts never turn themselves off.
+- Rule: when Quo credits return, texts recover by themselves (no manual reset) and stale queued texts are dropped; email is the fallback while credits are out; phone alerts never turn themselves off.
 - Done when: each is covered by a test.
 
 ### REQ-046 In-site calling
 - Status: in progress
-- Proof: branch r50-hotfix2-comms (not on main)
-- Test: to be added with the work
+- Proof: branch r50-hotfix2-comms (not on main): web/src/features/phone/voice.ts and VoiceDock.tsx (call screen: name, number, timer, Mute, Keypad, Speaker and microphone choice, Hold, End always on, End stops a call still starting, one call per tap, switching apps keeps a connected call); 5092 (contacts: only phone staff, Sales see their own leads masked, names included)
+- Test: web/src/features/phone/voice.test.ts; web/tests/e2e/r50h2-call-screen.spec.ts; supabase/tests/99_r50h2_ses_contacts.sql
 - Asked: Nov 25 23:06, Nov 26 17:56, Nov 27 07:14 (repeated)
 - Owner: "Website calling ugly ... mute, speaker, mic choice, native look"
 - Rule: salespeople calls work; hang up works; native-call look; keypad to type any number.

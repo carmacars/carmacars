@@ -62,7 +62,7 @@ select test.eq('...and the email-limit alert closes', (select count(*) from site
 delete from app.auth_sms_log where true;
 select test.eq('no failed texts: texts work', (app.sms_signin_failing() ->> 'failing') || '/' || (public.server_email_capped() ->> 'sms_ok'), 'false/true');
 insert into app.auth_sms_log (phone, status, reason, created_at)
-select '+16475550' || (100 + g), 'failed', 'Quo 402: not enough prepaid credits', now() - make_interval(mins => g) from generate_series(1, 3) g;
+select '+16475550' || (100 + g), 'failed', 'Quo 402: not enough prepaid credits', now() - make_interval(secs => g / 1000.0) from generate_series(1, 3) g;  -- 5090: newer than any text an earlier file sent
 select test.eq('3 failed in a row: failing, and the sign-in page is told texts do not work',
   (app.sms_signin_failing() ->> 'failing') || '/' || (public.server_email_capped() ->> 'sms_ok'), 'true/false');
 select app.uptime_internal(now());
