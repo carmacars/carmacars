@@ -2,7 +2,7 @@
 //   node --test --experimental-strip-types src/lib/edge/page-cache.test.ts   (npm run test:unit)
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { EDGE_GEN_KEY, STORE_MARGIN_MS, bumpGeneration, deploymentOf, edgeKeep, edgeKey as keyOf, edgeMatch, edgeTtl, isProbe, readGeneration, tagsTouchPublic } from './page-cache.ts';
+import { EDGE_GEN_KEY, STORE_MARGIN_MS, bumpGeneration, deploymentOf, edgeKeep, edgeKey as keyOf, edgeMatch, edgeTtl, isProbe, keptCopyFresh, readGeneration, tagsTouchPublic } from './page-cache.ts';
 import { jobsToRun } from './cron-gate.ts';
 
 const req = (url: string, h: Record<string, string> = {}, method = 'GET') => ({ method, url, headers: new Headers(h) });
@@ -241,4 +241,16 @@ test('place pages (0095): rendered on demand, kept in the edge copy only, a shor
   await new Promise((r) => setTimeout(r, 10));
   assert.equal(puts.length, 1);
   assert.equal(puts[0]![1].headers.get('cache-control'), 'public, max-age=86400');
+});
+
+test('r50 hotfix 2 (dbbusy): on the server a long-tail page answers from a copy this build kept, within the Worker edge time', () => {
+  const start = 1_000_000, hour = 3_600_000;
+  // a place page and a programmatic page, kept after this process started: fresh for a day
+  assert.equal(keptCopyFresh('/car-rental/suv/toronto-on', start + 1, start, start + hour), true);
+  assert.equal(keptCopyFresh('/t/car-dealership/toyota/corolla/2020/le/acton-on', start + 1, start, start + 23 * hour), true);
+  assert.equal(keptCopyFresh('/t/car-dealership/toyota/corolla/2020/le/acton-on', start + 1, start, start + 25 * hour), false);
+  // a copy from before this process (an earlier build's script files) never answers as fresh
+  assert.equal(keptCopyFresh('/car-rental/suv/toronto-on', start - 1, start, start + 60_000), false);
+  // the home page, the fleet and a car page keep Next.js's own cache: never from the copy while the app answers
+  for (const p of ['/', '/cars', '/sign-in', '/about']) assert.equal(keptCopyFresh(p, start + 1, start, start + 60_000), false, p);
 });

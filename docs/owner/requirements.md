@@ -803,6 +803,15 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 - Rule: CI runs only on the integration branch; helpers test locally; never push onto a red base. A helper branch runs the suites it touches locally (scripts/test.sh, or the db file alone on a copy of the base database; npm run test:unit; the node checks) and pushes with [skip ci]. When the integration branch is red, one CI doctor makes it green before anyone branches from it or merges into it. One push of the integration branch runs CI once for all merged helper work. A 99_ test never depends on the data or settings another 99_ test leaves.
 - Done when: no CI run starts on a helper branch, and the integration branch is green before helpers branch from it.
 
+### REQ-118 Database busy errors after the server switch
+- Status: in progress
+- Proof: branch r50-hotfix2-dbbusy (not on main): web/scripts/vps-server.mjs serves a long-tail page from the copy this build kept (src/lib/edge/page-cache.ts keptCopyFresh), as the Worker's edge copy did
+- Test: src/lib/edge/page-cache.test.ts "on the server a long-tail page answers from a copy this build kept"
+- Asked: Nov 27 12:36
+- Owner: "I'm getting a bunch of error notifications from the site, fix it"; "Setup amazon ses and the switch to the server ASAP"
+- Rule: the site on the company's server never floods the Admins with "the database is busy" errors; the long-tail pages crawlers read are not rendered again while a good copy is fresh.
+- Done when: site_errors shows no "gave up: the database is busy" spike for 24 hours after the deploy, and the 15-minute error spike incident does not reopen.
+
 ## 16. Earlier decisions (Oct to Nov 12, from the chat extraction)
 
 ### REQ-092 Corporation, shares and shareholder money
