@@ -20,7 +20,7 @@ test('Welcome: the step to do now, in order', () => {
   assert.equal(stepWords(steps[1]!), 'Add your home address.');
   assert.equal(stepWords(steps[2]!), 'The basics: 2 of 9 sections passed. Passing them opens your portal and work. If a quiz is below the pass mark, fix the wrong answers once; after a failed try, wait 2 minutes.');
   // 5170: the basics passed opens the portal; the rest is for the payouts
-  assert.match(stepWords({ key: 'academy', done: true, passed: 5, sections: 5, full_passed: 7, full_sections: 30 }), /^Basics passed\..*7 of 30 passed\) before commission and pay/);
+  assert.match(stepWords({ key: 'academy', done: true, passed: 5, sections: 5, full_passed: 7, full_sections: 30 }), /^Basics passed\..*7 of 30 passed\) before commission, bonuses and referral fees/);
   assert.equal(stepWords(steps[3]!), '1 left.');
   assert.equal(currentStep(steps.map((s) => ({ ...s, done: true }))), null);
   assert.equal(profileHref('field'), '/staff/field/profile');
@@ -47,7 +47,7 @@ test('the Admin\'s words for the gate', () => {
   assert.match(gateWords(g), /^Held: 3 of 10/);
   assert.match(gateWords({ ...g, locked: false, waiver: { reason: 'Experienced', at: '2026-11-08T12:00:00Z', by: 'Ada' } }), /^Waived by Ada: Experienced\./);
   assert.match(gateWords({ ...g, locked: false, done: true, passed: 10 }), /^Basics passed: 10 of 10/);
-  assert.match(gateWords({ ...g, locked: false, done: true, passed: 5, sections: 5, full_passed: 9, full_sections: 30, pay_hold: 'Academy not finished' }), /Whole academy: 9 of 30, so commission and pay are held\.$/);
+  assert.match(gateWords({ ...g, locked: false, done: true, passed: 5, sections: 5, full_passed: 9, full_sections: 30, pay_hold: 'Academy not finished' }), /Whole academy: 9 of 30, so commission, bonuses and referral fees are held \(hours are paid\)\.$/);
 });
 
 test('the content of releases 33 and 34: a quiz per section, every role, real guide chapters, no vendor names', async () => {

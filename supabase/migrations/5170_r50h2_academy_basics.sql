@@ -10,12 +10,17 @@
 --      portal and the database role checks), the leads gate (staff_academy_cleared, 5071) and the Welcome step read, is now
 --      "every basics section of the person's paths passed". The former rule (every section) is app.academy_full_done (renamed,
 --      so nothing else changes meaning). The leads gate keeps its Sales rule on the Sales path's basics.
---   3. Payouts: app.academy_pay_hold(uid) gives the reason a person's commission and pay are held ("Academy not finished: 31 of
---      52 sections passed ..."), or null for an Admin, a test account, an exempt or waived person, or one who passed every
---      section of their paths (the Sales path too when they work Sales). Recording a commission payout or a pay line as paid is
---      refused with that reason (triggers, so every path: commission_payout_record, field_pay_line_paid, payroll_pay_all and the
---      connector). Record all payments skips held lines and counts them; each held person is told (alert academy_pay_held).
---      The payroll line carries academy_hold for the Admin's table and the person's own stubs.
+--   3. Payouts: app.academy_pay_hold(uid) gives the reason a person's commission, bonuses and referral fees are held ("Academy
+--      not finished: 31 of 52 sections passed ..."), or null for an Admin, a test account, an exempt or waived person, or one
+--      who passed every section of their paths (the Sales path too when they work Sales). Hours worked are never held: Ontario's
+--      Employment Standards Act requires earned wages on the regular pay day, so wages, overtime, salary, vacation pay and the
+--      pay line's adjustment are always paid (coordinator, Nov 27; the owner may change this). What is held: a staff commission
+--      payout (commission, owner recruit and partner sourced referral fees, adjustments such as a bonus) is refused with the
+--      reason (trigger, so every path: commission_payout_record and the connector), and a held person's approved commissions
+--      stay out of a new pay line (fp_commissions: carried to the first run after the academy is passed or waived). There are no
+--      per-job contractor payouts in the database; they would take the same hold when added. Record all payments pays every
+--      line and tells each held person whose commission waits (alert academy_pay_held). The payroll line carries academy_hold
+--      (the reason) for the Admin's table and the person's own stubs, as a note: the line stays payable.
 --   4. Admins: their academy lists every path, every section open (lessons and quiz), without passing the one before.
 -- No applied migration is edited: academy_done is renamed and replaced; staff_academy_cleared, academy_gate_state,
 -- academy_path_progress, academy_home, staff_academy_count and payroll_line_json are replaced (same signatures, grants kept)
@@ -42,7 +47,7 @@ end $$;
 
 -- ================================================================ 1. the basics
 alter table academy_paths add column if not exists core_count int not null default 0 check (core_count between 0 and 40);
-comment on column academy_paths.core_count is 'The basics (5170): the first N sections of the path, in its order. Passing the basics of every path of a person opens their portal and work; the full path is needed before commission and pay are paid out.';
+comment on column academy_paths.core_count is 'The basics (5170): the first N sections of the path, in its order. Passing the basics of every path of a person opens their portal and work; the full path is needed before commission, bonuses and referral fees are paid out (hours worked are always paid).';
 
 update academy_paths p set core_count = v.n
   from (values ('cs', 5), ('sales_in_person', 6), ('sales_remote', 5), ('field', 5), ('finance', 5), ('fleet', 4), ('admin', 4), ('renter_side', 0)) v(code, n)
@@ -140,22 +145,19 @@ begin
   if sp.user_id is null or sp.onboarding_exempt or app.academy_waived(p_user) then return null; end if;
   c := app.academy_counts(p_user);
   if (c ->> 'passed')::int >= (c ->> 'total')::int then return null; end if;
-  return format('Academy not finished: %s of %s sections passed. Commission and pay are paid once the whole academy is passed (or an Admin waives it).',
+  return format('Academy not finished: %s of %s sections passed. Commission, bonuses and referral fees are paid once the whole academy is passed (or an Admin waives it). Hours worked are always paid.',
                 c ->> 'passed', c ->> 'total');
 end $$;
-comment on function app.academy_pay_hold(uuid) is 'Why a person''s commission and pay are held (5170): the whole academy not passed. Null when nothing holds them.';
+comment on function app.academy_pay_hold(uuid) is 'Why a person''s commission, bonuses and referral fees are held (5170): the whole academy not passed. Never holds pay for hours worked (Employment Standards Act; the owner may change this). Null when nothing is held.';
 select pg_temp.copy_grants('app.academy_pay_hold(uuid)', 'app.academy_done(uuid)');
 
 create function app.academy_pay_guard() returns trigger
 language plpgsql security definer set search_path = public, app, pg_temp as $$
 declare v text;
 begin
-  if tg_table_name = 'field_pay_lines' then
-    if new.status <> 'paid' or old.status = 'paid' then return new; end if;
-    v := app.academy_pay_hold(new.staff_id);
-  else
-    v := app.academy_pay_hold(new.staff_id);
-  end if;
+  -- a pay line's commission was taken in while nothing held it (fp_commissions): it is paid with the hours, never blocking them
+  if new.method = 'pay_statement' then return new; end if;
+  v := app.academy_pay_hold(new.staff_id);
   if v is not null then raise exception '%', v using errcode = '23514'; end if;
   return new;
 end $$;
@@ -163,31 +165,40 @@ revoke all on function app.academy_pay_guard() from public, anon, authenticated;
 grant execute on function app.academy_pay_guard() to service_role;
 
 create trigger a_academy_pay_guard before insert on staff_commission_payouts for each row execute function app.academy_pay_guard();
-create trigger a_academy_pay_guard before update of status on field_pay_lines for each row execute function app.academy_pay_guard();
 
--- Record all payments: held lines stay pending and their people are told
-select pg_temp.patch_fn('app.payroll_pay_all(uuid,jsonb)'::regprocedure,
-  'for l in select * from field_pay_lines where run_id = r.id and status = ''pending'' and gross_cents > 0 order by statement_number loop',
-  'for l in select * from field_pay_lines where run_id = r.id and status = ''pending'' and gross_cents > 0 and app.academy_pay_hold(staff_id) is null order by statement_number loop');
+-- a held person's approved commissions stay out of a new pay line (carried); the hours in it are paid as always
+alter function app.fp_commissions(uuid, date) rename to fp_commissions_pre5170;
+create function app.fp_commissions(p_staff uuid, p_end date) returns jsonb
+language sql stable security definer set search_path = public, app, pg_temp as $$
+  select case when app.academy_pay_hold(p_staff) is null then c
+              else jsonb_build_object('ids', '[]'::jsonb, 'cents', 0, 'carried_cents', (c ->> 'cents')::bigint + (c ->> 'carried_cents')::bigint) end
+    from (select app.fp_commissions_pre5170(p_staff, p_end) as c) x
+$$;
+select pg_temp.copy_grants('app.fp_commissions(uuid,date)', 'app.fp_commissions_pre5170(uuid,date)');
+
+-- Record all payments pays every line; each held person whose commission waits is told
 select pg_temp.patch_fn('app.payroll_pay_all(uuid,jsonb)'::regprocedure,
   'return jsonb_build_object(''run_id'', r.id, ''paid'', n);',
-  'for l in select * from field_pay_lines where run_id = r.id and status = ''pending'' and gross_cents > 0 and app.academy_pay_hold(staff_id) is not null loop
-    perform app.staff_alert(''academy_pay_held'', ''field_pay_line'', l.id, ''held'', ''Your pay is held until the academy is finished'',
+  'for l in select * from field_pay_lines x where x.run_id = r.id and app.academy_pay_hold(x.staff_id) is not null
+      and exists (select 1 from staff_commissions c where c.staff_id = x.staff_id and c.status = ''approved'') loop
+    perform app.staff_alert(''academy_pay_held'', ''field_pay_line'', l.id, ''held'', ''Your commission is held until the academy is finished'',
       app.academy_pay_hold(l.staff_id) || '' Open the academy and pass the sections left.'', jsonb_build_object(''assigned_to'', l.staff_id, ''path_staff'', ''/staff/academy''));
   end loop;
   return jsonb_build_object(''run_id'', r.id, ''paid'', n,
-    ''held'', (select count(*) from field_pay_lines x where x.run_id = r.id and x.status = ''pending'' and x.gross_cents > 0 and app.academy_pay_hold(x.staff_id) is not null));');
+    ''commission_held'', (select count(*) from field_pay_lines x where x.run_id = r.id and app.academy_pay_hold(x.staff_id) is not null
+      and exists (select 1 from staff_commissions c where c.staff_id = x.staff_id and c.status = ''approved'')));');
 
 alter function app.payroll_line_json(field_pay_lines) rename to payroll_line_json_pre5170;
 create function app.payroll_line_json(l field_pay_lines) returns jsonb
 language sql stable security definer set search_path = public, app, pg_temp as $$
-  select app.payroll_line_json_pre5170(l) || jsonb_build_object('academy_hold', case when l.status <> 'paid' then app.academy_pay_hold(l.staff_id) end)
+  select app.payroll_line_json_pre5170(l) || jsonb_build_object('academy_hold', case when l.status <> 'paid'
+    and exists (select 1 from staff_commissions c where c.staff_id = l.staff_id and c.status = 'approved') then app.academy_pay_hold(l.staff_id) end)
 $$;
 select pg_temp.copy_grants('app.payroll_line_json(field_pay_lines)', 'app.payroll_line_json_pre5170(field_pay_lines)');
 
 insert into staff_alert_rules (rule, label, grp, who, tier, topic, enabled, wired, fixed, hint, sort)
-values ('academy_pay_held', 'Pay held: academy not finished', 'Staff', '{assigned}', 'normal', 'alerts', true, true, false,
-        'To the person: their pay or commission was not paid with the others because the whole academy is not passed yet (5170).', 118)
+values ('academy_pay_held', 'Commission held: academy not finished', 'Staff', '{assigned}', 'normal', 'alerts', true, true, false,
+        'To the person: their commission, bonus or referral fee was not paid with their hours because the whole academy is not passed yet (5170). Hours worked are always paid.', 118)
 on conflict (rule) do nothing;
 
 -- ================================================================ 2 and 4. what the academy shows
