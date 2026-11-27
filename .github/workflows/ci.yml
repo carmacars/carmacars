@@ -1,18 +1,20 @@
 name: ci
 
 # The repository is public, so Actions minutes cost nothing; the budget below still keeps runs short (docs/ci-minutes.md).
-# No pull_request trigger: a pull request from a fork would run the fork's code here. The only triggers are a push to
-# this repository (write access) and Run workflow; secrets are passed only to the deploy job, which runs only on Run
-# workflow. Logs are public: no step prints a secret or personal data (secrets are masked; the checks use test data).
-#
-#   push                 the fast gates only: the database suite (every migration, every test; in parallel slices,
-#                        jobs db and db-suite) and, in the job fast, the text check, lint, types, unit tests and the
-#                        generated types. Skipped entirely when only documentation changed (docs/**, *.md). A newer
-#                        push to the same branch cancels the older run.
+# Triggers (REQ-117, Nov 27: CI runs only on the integration branch; helpers test locally; never push onto a red base):
+#   push                 only to main, the integration branch (r50-hotfix2) and release/**. A helper branch never runs CI:
+#                        it runs the failing suites locally (scripts/test.sh, npm run test:unit, the node checks) and is
+#                        merged into the integration branch, which runs CI once for all of them. Skipped when only
+#                        documentation changed (docs/**, *.md). A newer push to the same branch cancels the older run.
+#   pull_request         into those branches: the same fast gates. A pull_request run (not pull_request_target) gets a
+#                        read-only token and no secrets, so a fork's code cannot reach them; deploy runs only on Run workflow.
 #   Run workflow         deploy = true: the fast gates, then the full suite (Worker build, every end-to-end test at
 #                        375 and 1440 with axe, link check, copy lint, crawl as every role, SEO, emails with
 #                        database values), then the deploy. full = true without deploy: the same checks, no deploy.
 #                        checks = false skips both (re-deploy of a commit that already passed).
+#   the fast gates       fast (text check, lint, types, unit tests, generated types) beside the database suite: db-base
+#                        (every migration and the base tests, once) and then the db slices (each restores db-base's
+#                        database and runs its share of the release tests, balanced by recorded timings).
 #
 # Deploy needs the five repository secrets (SUPABASE_ACCESS_TOKEN, SUPABASE_PROJECT_REF, SUPABASE_DB_PASSWORD,
 # CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID) and, for the phone line, QUO_API_KEY: everything else is read at deploy time from the Supabase project (its
@@ -20,6 +22,14 @@ name: ci
 # its last output lines into the run's annotations.
 on:
   push:
+    branches: [main, r50-hotfix2, 'release/**']
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+      - 'emails/shots/**'
+      - 'emails/preview/**'
+  pull_request:
+    branches: [main, r50-hotfix2, 'release/**']
     paths-ignore:
       - 'docs/**'
       - '**/*.md'
@@ -74,7 +84,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.event_name == 'workflow_dispatch' && 'dispatch' || 'push' }}-${{ github.ref }}
+  group: ci-${{ github.event_name == 'workflow_dispatch' && 'dispatch' || 'push' }}-${{ github.head_ref || github.ref }}
   cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
 
 env:
@@ -142,36 +152,85 @@ jobs:
           bash scripts/local-db.sh up --no-seed
           npm run db:types && git diff --exit-code src/lib/db/types.ts
 
-  # ---------------------------------------------------------------- the database suite (every push), in slices
-  # One job ran every test file in turn against one database: 35 minutes (run 43215627781: migrations 39 s, tests 2,100 s),
-  # the longest wait before a deploy. Now each db job builds the same fresh database (every migration) and runs, in the
-  # same order (scripts/test.sh, CARMACARS_TEST_SLICE): the base files 00_ to 98_, which build on each other's data, all
-  # of them in every slice; then its share of the release files 99_* (a checksum of the file name, so a file keeps its
-  # slice when others are added). A 99_ file must therefore not need the data of another 99_ file: one that does fails
-  # here in its slice; give it its own data or a number below 99. db-suite waits for all slices, prints the one summary
-  # in the format of scripts/test.sh, and fails when a slice failed, an assertion failed, or a test file was not
-  # answered for exactly once (scripts/test-merge.sh). The slices, the 16 e2e jobs and fast together stay within 20 jobs
-  # at once. To change the number of slices, change the lines marked "slices" below.
-  db:
-    name: db ${{ matrix.slice }}/3
+  # ---------------------------------------------------------------- the database suite (every push)
+  # Before Nov 27 every slice replayed every migration and all the base tests (00_ to 98_, 12 to 16 minutes) before its
+  # share of the release tests, and the slices were cut by a checksum of the file name, not by time: run 45957182827
+  # took 21, 32 and 34 minutes, run 45966681110 26, 31 and 55. Now:
+  #   db-base   every migration and the base files once (they build on each other's data, so in order, in one job),
+  #             then pg_dump of that database as an artifact. Its assertions are the base files' results.
+  #   db        6 slices (with fast, at most 7 jobs at once on a push; a deploy run adds the 16 e2e jobs): each restores that database (pg_restore, under a minute) and runs its release files 99_*.
+  #             The split comes from the seconds each file took in the last run (supabase/tests/timings.json, refreshed
+  #             through the Actions cache by db-suite), longest first to the lightest slice (scripts/test-slices.mjs).
+  #             A 99_ file must not need the data or the settings of another 99_ file.
+  #   db-suite  one summary of all (scripts/test-merge.sh: every file answered exactly once), and the new timings.
+  # To change the number of slices, change the lines marked "slices" below.
+  db-base:
+    name: db base (migrations, base tests)
     if: github.event_name != 'workflow_dispatch' || inputs.checks
     runs-on: ubuntu-24.04
-    timeout-minutes: 55
-    strategy:
-      fail-fast: false
-      matrix:
-        slice: [1, 2, 3]   # slices
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - name: PostgreSQL 16 (preinstalled on the runner image; installed only if missing)
         run: |
           if [ ! -x /usr/lib/postgresql/16/bin/initdb ]; then sudo apt-get update -q && sudo apt-get install -y -q postgresql-16 postgresql-client-16; fi
           echo "/usr/lib/postgresql/16/bin" >> "$GITHUB_PATH"
-      - name: Database suite (every migration, the base tests, this slice of the release tests)
+      - name: The timings of the last run (else the committed ones)
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ runner.temp }}/timings.json
+          key: db-timings-${{ github.run_id }}
+          restore-keys: db-timings-
+      - name: Every migration, the base tests, the database for the slices
         env:
-          CARMACARS_TEST_SLICE: ${{ matrix.slice }}/3   # slices
+          CARMACARS_TEST_PHASE: base
+          CARMACARS_TEST_DUMP: ${{ runner.temp }}/db-base/base.dump
           CARMACARS_TEST_RESULTS: ${{ runner.temp }}/db-results
-        run: .github/ci-run.sh "Database ${{ matrix.slice }}/3" scripts/test.sh
+        run: |
+          mkdir -p "$RUNNER_TEMP/db-base"
+          [ -f "$RUNNER_TEMP/timings.json" ] && cp "$RUNNER_TEMP/timings.json" "$RUNNER_TEMP/db-base/timings.json" || cp supabase/tests/timings.json "$RUNNER_TEMP/db-base/timings.json"
+          .github/ci-run.sh "Database base" scripts/test.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: db-base
+          retention-days: 1
+          compression-level: 0
+          path: ${{ runner.temp }}/db-base
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: db-results-0
+          retention-days: 1
+          path: ${{ runner.temp }}/db-results
+
+  db:
+    name: db ${{ matrix.slice }}/6
+    needs: db-base
+    if: ${{ !cancelled() && needs.db-base.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        slice: [1, 2, 3, 4, 5, 6]   # slices
+    steps:
+      - uses: actions/checkout@v4
+      - name: PostgreSQL 16 (preinstalled on the runner image; installed only if missing)
+        run: |
+          if [ ! -x /usr/lib/postgresql/16/bin/initdb ]; then sudo apt-get update -q && sudo apt-get install -y -q postgresql-16 postgresql-client-16; fi
+          echo "/usr/lib/postgresql/16/bin" >> "$GITHUB_PATH"
+      - uses: actions/download-artifact@v4
+        with:
+          name: db-base
+          path: ${{ runner.temp }}/db-base
+      - name: This slice of the release tests, on the base database
+        env:
+          CARMACARS_TEST_PHASE: release
+          CARMACARS_TEST_DUMP: ${{ runner.temp }}/db-base/base.dump
+          CARMACARS_TEST_TIMINGS: ${{ runner.temp }}/db-base/timings.json
+          CARMACARS_TEST_SLICE: ${{ matrix.slice }}/6   # slices
+          CARMACARS_TEST_RESULTS: ${{ runner.temp }}/db-results
+        run: .github/ci-run.sh "Database ${{ matrix.slice }}/6" scripts/test.sh
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
@@ -179,11 +238,12 @@ jobs:
           retention-days: 1
           path: ${{ runner.temp }}/db-results
 
-  # The database suite passed: every slice succeeded and together they ran every test file once. deploy needs this job.
+  # The database suite passed: the base job and every slice succeeded and together they ran every test file once.
+  # deploy needs this job.
   db-suite:
     name: Database suite (every migration, every test)
-    needs: db
-    if: ${{ !cancelled() && needs.db.result != 'skipped' }}
+    needs: [db-base, db]
+    if: ${{ !cancelled() && needs.db-base.result != 'skipped' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -196,9 +256,19 @@ jobs:
         run: |
           set +e; .github/ci-run.sh "Database" scripts/test-merge.sh "$RUNNER_TEMP"/db-results/db-results-* | tee /tmp/db.log; s=${PIPESTATUS[0]}
           echo "::notice title=database::$(grep -E '^TOTAL' /tmp/db.log | sed -E 's/ +/ /g')"
-          echo "database slices: ${{ needs.db.result }}"
-          [ "${{ needs.db.result }}" = success ] || { echo "::error title=database suite failed::a db job failed (${{ needs.db.result }}); see its annotations"; exit 1; }
+          echo "database: base ${{ needs.db-base.result }}, slices ${{ needs.db.result }}"
+          [ "${{ needs.db-base.result }}" = success ] && [ "${{ needs.db.result }}" = success ] || { echo "::error title=database suite failed::base ${{ needs.db-base.result }}, slices ${{ needs.db.result }}; see their annotations"; exit 1; }
           exit $s
+      - name: The timings of this run, for the next one's split
+        if: ${{ !cancelled() }}
+        run: |
+          node scripts/test-slices.mjs --merge supabase/tests/timings.json "$RUNNER_TEMP"/db-results/db-results-*/timings.tsv > "$RUNNER_TEMP/timings.json"
+          node -e 'const t=require(process.argv[1]);const v=Object.entries(t).filter(([k])=>k.startsWith("99_")).sort((a,b)=>b[1]-a[1]);console.log("slowest release files:",v.slice(0,5).map(([k,s])=>k+" "+s+"s").join(", "))' "$RUNNER_TEMP/timings.json"
+      - uses: actions/cache/save@v4
+        if: ${{ !cancelled() }}
+        with:
+          path: ${{ runner.temp }}/timings.json
+          key: db-timings-${{ github.run_id }}
 
   # ---------------------------------------------------------------- the full suite (deploy, or full = true)
   # Sixteen jobs side by side (one job used to run everything in turn: 2.5 to 3.7 hours; eight jobs: 20 to 43 minutes,

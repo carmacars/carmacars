@@ -624,10 +624,10 @@ select test.eq('L a fleet assistant lists a third car of the model in another co
   (select (r ->> 'state') from test.ofl_list(test.id('vehicle:oflE'), test.id('ofl_fleet'), 'White') r), 'published');
 
 set role anon;
-select test.eq('L anon: the car page has the listing, rates, its photos as before release 50 while no studio render is live (5064: never the empty plate) and the vehicle id for 0019''s calendar and quote',
-  (select (p ->> 'headline' is not null)::text || '/' || (p ->> 'daily_rate_cents') || '/' || (jsonb_array_length(p -> 'photos') >= 1 and not coalesce((p #>> '{photos,0,placeholder}')::boolean, false))::text || '/'
+select test.eq('L anon: the car page has the listing, rates, its photos (5064 / REQ-004: no live render, the car shows its own photos or the sample set as before release 50) and the vehicle id for 0019''s calendar and quote',
+  (select (p ->> 'headline' is not null)::text || '/' || (p ->> 'daily_rate_cents') || '/' || jsonb_array_length(p -> 'photos') || '/'
           || ((p ->> 'vehicle_id')::uuid = test.id('vehicle:oflC'))::text || '/' || (p ->> 'indexable') || '/' || (p ->> 'staff_note')
-     from public.car_page(test.ofl_slug('oflC')) p), 'true/10000/true/true/true/The rear seats fold flat.');
+     from public.car_page(test.ofl_slug('oflC')) p), 'true/10000/13/true/true/The rear seats fold flat.');
 create temp table ofl_pubtext as select public.car_page(test.ofl_slug('oflC'))::text || public.car_page(test.ofl_slug('oflD'))::text
                               || (select coalesce(string_agg(f::text, ''), '') from public.fleet() f)
                               || (select coalesce(string_agg(h::text, ''), '') from public.model_hubs() h)

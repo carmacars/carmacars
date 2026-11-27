@@ -50,8 +50,10 @@ select test.eq('not on the site before approval', (select count(*)::int from jso
 select test.throws('Finance may not approve it', format($$select pg_temp.dr('rba_fin', 'ops_do', 'listing_angle_decide', jsonb_build_object('id', %L, 'action', 'approve'))$$, (select id from rbam)), 'An Admin, Fleet or Sales');
 select pg_temp.dr('rba_sales', 'ops_do', 'listing_angle_decide', jsonb_build_object('id', (select id from rbam), 'action', 'approve'));
 select test.eq('Sales approves it: recorded who', (select status || ' ' || (reviewed_by = test.id('rba_sales'))::text from listing_angle_makes where id = (select id from rbam)), 'approved true');
-select test.ok('approved, it is no studio render: with no live render the car shows its photos as before release 50 (5064), the real front first',
-  (app.public_listing_photos(pg_temp.v()) = coalesce(nullif(app.photo_fallback_gallery(pg_temp.v()), '[]'::jsonb), jsonb_build_array(app.photo_placeholder(pg_temp.v())))) and app.public_listing_photos(pg_temp.v()) -> 0 ->> 'path' = 'vehicles/' || pg_temp.v() || '/front.jpg');
+select test.eq('the site shows it after the real photo, labelled AI view, never the cover (5064 / REQ-004: no live render, the car shows its own photos or the sample set as before release 50)',
+  (select format('%s|%s|%s|%s', app.public_listing_photos(pg_temp.v()) -> 0 ->> 'path' = 'vehicles/' || pg_temp.v() || '/front.jpg',
+     app.public_listing_photos(pg_temp.v()) -> -1 ->> 'label', app.public_listing_photos(pg_temp.v()) -> -1 ->> 'is_cover', app.public_listing_photos(pg_temp.v()) -> -1 ->> 'generated')),
+  't|Rear (AI view)|false|true');
 select test.eq('the cover photo is still the real photo', (app.cover_photo(pg_temp.v())).processed_path, 'vehicles/' || pg_temp.v() || '/front.jpg');
 select test.eq('no vehicle photo (handover, condition and claim evidence) was made from it', (select count(*)::int from vehicle_photos where vehicle_id = pg_temp.v() and processed_path like '%/generated/%'), 0);
 

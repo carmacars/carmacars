@@ -178,10 +178,10 @@ create temp table pd_rv as select app.review_listing(test.id('pd_cs'), test.pd_k
 select test.eq('end to end: customer service approves; the car is published through app.publish_listing',
   (select r ->> 'status' from pd_rv) || '/' || (select status from vehicle_listings where vehicle_id = test.id('vehicle:pdW'))
   || '/' || (select state from listing_intakes where id = test.pd_k()), 'published/published/published');
-select test.eq('end to end: the public car page shows the drafted headline and, until a studio render is live, its photos as before release 50, never the empty plate (5064)',
-  (select (c ->> 'headline') || '/' || coalesce(c #>> '{photos,0,placeholder}', 'false')
+select test.eq('end to end: the public car page shows the drafted headline and the processed photos (5064 / REQ-004: no live render, the car shows its own photos or the sample set as before release 50)',
+  (select (c ->> 'headline') || '/' || (jsonb_array_length(c -> 'photos') >= 10)::text
      from public.car_page((select slug from vehicle_listings where vehicle_id = test.id('vehicle:pdW'))) c),
-  'A 2023 Mercedes-Benz EQE 4MATIC sedan with all-wheel drive/false');
+  'A 2023 Mercedes-Benz EQE 4MATIC sedan with all-wheel drive/true');
 select test.eq('end to end: the public page carries no plate, VIN or original path',
   (select c::text not like '%' || v.plate || '%' and c::text not like '%' || v.vin || '%' and c::text not like '%/original/%'
      from public.car_page((select slug from vehicle_listings where vehicle_id = test.id('vehicle:pdW'))) c, vehicles v where v.id = test.id('vehicle:pdW')), true);

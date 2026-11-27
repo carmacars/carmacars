@@ -36,11 +36,16 @@ export interface SectionView { id: string; slug: string; title: string; blurb: s
 /** 1154: may the quiz start now, and if not, why and until when. */
 export interface QuizWait { ok: boolean; reason?: 'reading' | 'daily' | 'cooldown'; until?: string; message?: string; read_seconds?: number; tries_left?: number }
 /** 1154: a started quiz: questions and options in a random order; keys[i] is the shown option i's index in the question. */
-export interface QuizStart { section: string; started_at: string; tries_left?: number; questions: Array<{ id: string; prompt: string; options: string[]; keys: number[]; joke?: number | null }> }
+export interface QuizStart { section: string; started_at: string; tries_left?: number; questions: Array<{ id: string; prompt: string; options: string[]; keys: number[]; joke?: number | null }>;
+  /** 5070: a first try below the pass mark waiting for its one fix: the wrong questions and the first answers */ fix?: QuizFix }
+/** 5070 (fix once): the questions the first check marked wrong (never the right answers) and the answers given then. */
+export interface QuizFix { wrong: string[]; given: Record<string, number> }
+/** 5070: the first check below the pass mark: no attempt recorded, the wrong questions to fix once. */
+export interface QuizFixResult { fix: true; passed: false; wrong: string[]; correct: number; total: number; score_bps: number; pass_bps: number; message: string }
 export interface SectionRow { id: string; slug: string; title: string; blurb: string; sort: number; open: boolean; passed: boolean; unlocked_early: boolean; best_bps: number | null; attempts: number; lessons: number; viewed: number; questions: number; /** 1154 */ flagged?: number; reset_at?: string | null }
 export interface PathRow { code: string; title: string; blurb: string; passed: boolean; sections: SectionRow[] }
 export interface QuizResult { correct: number; total: number; score_bps: number; passed: boolean; pass_bps: number; results: Array<{ id: string; given: number | null; answer: number | null; right: boolean; explain: string }>;
-  /** 1154 */ quiz?: QuizWait; flagged?: boolean }
+  /** 1154 */ quiz?: QuizWait; flagged?: boolean; /** 5070: graded after the one fix */ fixed?: boolean }
 
 /** 4200: the funny wrong answers every question carries (jokes.json): the option text and the playful line for picking it. */
 export interface Joke { text: string; quip: string }
