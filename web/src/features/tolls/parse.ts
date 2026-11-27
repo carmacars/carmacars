@@ -83,15 +83,15 @@ export function findDate(s: string, order: Rules['date_order'] = 'auto', year?: 
     else if (b > 12) push(y, a, b, m.index, m[0]);
     else push(y, a, b, m.index, m[0], a !== b);
   }
-  const mon = /\b(jan|feb|mar|apr|may|jun|jul|aug|sept?|oct|nov|dec)[a-z]*\.?\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(20\d{2})\b/gi;
-  while ((m = mon.exec(s))) push(+m[3]!, MONTHS[m[1]!.toLowerCase()]!, +m[2]!, m.index, m[0]);
-  const dmon = /\b(\d{1,2})(?:st|nd|rd|th)?[\s-]+(jan|feb|mar|apr|may|jun|jul|aug|sept?|oct|nov|dec)[a-z]*\.?[\s,-]+(20\d{2})\b/gi;
-  while ((m = dmon.exec(s))) push(+m[3]!, MONTHS[m[2]!.toLowerCase()]!, +m[1]!, m.index, m[0]);
+  const mon = /\b(jan|feb|mar|apr|may|jun|jul|aug|sept?|oct|nov|dec)[a-z]*\.?\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(20\d{2}|\d{2})\b(?![:.]\d)/gi;
+  while ((m = mon.exec(s))) push(+m[3]! % 100 + 2000, MONTHS[m[1]!.toLowerCase()]!, +m[2]!, m.index, m[0]);
+  const dmon = /\b(\d{1,2})(?:st|nd|rd|th)?[\s-]+(jan|feb|mar|apr|may|jun|jul|aug|sept?|oct|nov|dec)[a-z]*\.?[\s,-]+(20\d{2}|\d{2})\b(?![:.]\d)/gi;
+  while ((m = dmon.exec(s))) push(+m[3]! % 100 + 2000, MONTHS[m[2]!.toLowerCase()]!, +m[1]!, m.index, m[0]);
   // 5140: a statement table may print the day without the year ("Nov 03", "03-Nov", "11/03"): the statement's year
   if (!cands.length && year) {
-    const md = /\b(jan|feb|mar|apr|may|jun|jul|aug|sept?|oct|nov|dec)[a-z]*\.?[\s-]+(\d{1,2})(?:st|nd|rd|th)?\b(?![\s,-]*\d)/gi;
+    const md = /\b(jan|feb|mar|apr|may|jun|jul|aug|sept?|oct|nov|dec)[a-z]*\.?[\s-]+(\d{1,2})(?:st|nd|rd|th)?\b(?![\s,-]*(?:\d{3,}|\d{1,2}(?![:.\d])))/gi;
     while ((m = md.exec(s))) push(year, MONTHS[m[1]!.toLowerCase()]!, +m[2]!, m.index, m[0]);
-    const dm = /\b(\d{1,2})(?:st|nd|rd|th)?[\s-]+(jan|feb|mar|apr|may|jun|jul|aug|sept?|oct|nov|dec)[a-z]*\b(?![\s,-]*\d)/gi;
+    const dm = /\b(\d{1,2})(?:st|nd|rd|th)?[\s-]+(jan|feb|mar|apr|may|jun|jul|aug|sept?|oct|nov|dec)[a-z]*\b(?![\s,-]*(?:\d{3,}|\d{1,2}(?![:.\d])))/gi;
     while ((m = dm.exec(s))) push(year, MONTHS[m[2]!.toLowerCase()]!, +m[1]!, m.index, m[0]);
     const nm = /\b(\d{1,2})[/-](\d{1,2})\b(?![/.-]?\d)/g;
     while ((m = nm.exec(s))) { const a = +m[1]!, b = +m[2]!; if (order === 'dmy' || a > 12) push(year, b, a, m.index, m[0]); else push(year, a, b, m.index, m[0], b <= 12 && a !== b && order !== 'mdy'); }

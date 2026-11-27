@@ -211,3 +211,14 @@ test('407 CSV: the header found under the account details, every column mapped, 
   assert.ok(lines.every((l) => l.confidence >= 90), 'month first is known from 11/14/2026, so 11/03/2026 is not ambiguous');
   assert.match(problems.join(' '), /credit or reversal was left out/);
 });
+
+test('407 dates as other exports print them: a two-digit year with the month name, a day and time in one cell without the year', () => {
+  assert.equal(findDate('03-Nov-26')!.iso, '2026-11-03');
+  assert.equal(findDate('Nov 03, 26')!.iso, '2026-11-03');
+  assert.equal(findDate('Nov 03 08:15', 'auto', 2026)!.iso, '2026-11-03', 'the time is not read as a year');
+  assert.equal(findDate('03-Nov 8:15 PM', 'auto', 2026)!.iso, '2026-11-03');
+  const rows = parseCsv('"Trip Date/Time","Entry","Exit","Plate","Toll","Camera Charge","Total"\n"2026-11-03 08:15:22","Hwy 427","Brock Rd","CCAB123","$21.33","$4.25","$25.58"\n');
+  const h = headerRow(rows);
+  const { lines: out } = csvLines(rows, autoMap(rows[h]!), { kind: 'toll_invoice', authority: '407 ETR', plates: FLEET, header: h });
+  assert.deepEqual(out.map((l) => [l.occurred_at, l.plate, l.amount_cents, l.fees_cents, l.time_unknown]), [['2026-11-03T08:15:00', 'CCAB123', 2558, 425, false]]);
+});
