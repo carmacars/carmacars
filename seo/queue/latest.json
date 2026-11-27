@@ -1,0 +1,372 @@
+{
+ "version": "seo-queue-v1",
+ "generated_at": "2026-11-27T18:53:21.399694+00:00",
+ "count": 1,
+ "waiting": {
+  "cars": 1,
+  "pages": 0,
+  "articles": 0
+ },
+ "rules": {
+  "banned": [
+   "adventure awaits",
+   "best in class",
+   "boasts",
+   "breathtaking",
+   "cutting-edge",
+   "delve",
+   "dream car",
+   "effortless",
+   "elevate",
+   "embark",
+   "exhilarating",
+   "game changer",
+   "game-changer",
+   "head-turning",
+   "hidden gem",
+   "hit the road",
+   "in today's",
+   "look no",
+   "look no further",
+   "luxurious ride",
+   "must-have",
+   "nestled",
+   "open road awaits",
+   "seamless",
+   "second to none",
+   "state-of-the-art",
+   "testament",
+   "thrill",
+   "top-notch",
+   "turn heads",
+   "unforgettable",
+   "unleash",
+   "unlock",
+   "unparalleled",
+   "whether you are",
+   "whether you're",
+   "world-class"
+  ],
+  "similarity_max": 0.5,
+  "limits": {
+   "seo_title": [
+    25,
+    60
+   ],
+   "meta_description": [
+    90,
+    155
+   ],
+   "h1": [
+    20,
+    70
+   ],
+   "intro_words": [
+    8,
+    40
+   ],
+   "highlights": [
+    4,
+    6
+   ],
+   "highlight_chars": 70,
+   "good_for": [
+    2,
+    4
+   ],
+   "included": [
+    3,
+    5
+   ],
+   "item_chars": 90,
+   "pickup": [
+    60,
+    420
+   ],
+   "requirements": [
+    3,
+    5
+   ],
+   "faq": [
+    3,
+    6
+   ],
+   "question_chars": 110,
+   "answer_chars": 360,
+   "alt_chars": 125,
+   "page_intro_words": [
+    50,
+    160
+   ],
+   "page_sections": [
+    2,
+    4
+   ],
+   "section_words": [
+    40,
+    220
+   ],
+   "page_faq": [
+    3,
+    6
+   ],
+   "article_words": [
+    500,
+    2200
+   ],
+   "article_title": [
+    20,
+    100
+   ],
+   "article_description": [
+    90,
+    160
+   ]
+  },
+  "house": [
+   "No em dash or en dash anywhere.",
+   "Write CarmaCars exactly so; never name a numbered or legal company.",
+   "No exclamation marks, no hype words.",
+   "Never present insurance as something renters get from CarmaCars: say nothing, or name \"the Protection Plan\".",
+   "Only numbers that are in the facts; no prices on landing pages or articles (articles use the {{tokens}} only).",
+   "Claim no equipment, condition, rating or service the facts do not state; promise no guarantee, warranty, same-day service or free extra.",
+   "Every page reads differently from every other page (cars of the same model, other landing pages, other items of the batch)."
+  ]
+ },
+ "output": {
+  "file": "seo/batches/<date>-<name>.json",
+  "shape": "{\"batch\": \"name\", \"items\": [{\"kind\": \"car|page|article\", \"id\": \"<id from the queue>\", \"copy\": {...} | \"title\", \"description\", \"body_md\", \"faq\"}]}"
+ },
+ "items": [
+  {
+   "kind": "car",
+   "id": "15a63362-c08d-4aee-b507-e5472e142492",
+   "url": "/cars/2018-toyota-rav4-le",
+   "priority": 1,
+   "page_type": "car",
+   "name": "2018 Toyota RAV4 LE",
+   "locked": [],
+   "current": {
+    "h1": "2018 Toyota RAV4 LE for rent in Toronto",
+    "faq": [
+     {
+      "answer": "It has 5 seats.",
+      "question": "How many people fit in the RAV4?"
+     }
+    ],
+    "intro": "A high seat, a big boot and room for five, with all-wheel drive for whatever February brings. Good for weekends out of the city.",
+    "good_for": [
+     "Trips in and around Toronto",
+     "Weekly and monthly rentals"
+    ],
+    "included": [
+     "Third-party liability coverage",
+     "Roadside assistance, 24 hours a day",
+     "200 km a day",
+     "Handover in person with a walk-around of the car"
+    ],
+    "alt_texts": {},
+    "seo_title": "Rent a 2018 Toyota RAV4 in Toronto | CarmaCars",
+    "highlights": [
+     "Four-wheel drive",
+     "Adaptive cruise control",
+     "Lane keeping assist",
+     "Automatic emergency braking",
+     "Backup camera",
+     "Forward collision alert"
+    ],
+    "requirements": [
+     "Drivers 18 or older",
+     "Ontario G or G2 licence",
+     "A credit card in the renter's name",
+     "Licence and identity checked before pickup"
+    ],
+    "pickup_delivery": "Collect it at our location at no charge, or we deliver it to your address for $75. We hand it over in person and walk around the car with you.",
+    "meta_description": "Rent this grey 2018 Toyota RAV4 in Toronto from $89 a day. 5 seats, automatic. Request with no payment up front."
+   },
+   "current_source": "template",
+   "facts": {
+    "car": {
+     "fuel": "Gas",
+     "make": "Toyota",
+     "trim": "LE",
+     "year": 2018,
+     "doors": 5,
+     "model": "RAV4",
+     "seats": 5,
+     "colour": "Grey",
+     "engine": "2.5 L, 4 cylinders",
+     "classes": [
+      "SUV"
+     ],
+     "body_style": "SUV",
+     "drivetrain": "Four-wheel drive",
+     "transmission": "Automatic",
+     "equipment_known": [
+      "Four-wheel drive",
+      "Adaptive cruise control",
+      "Lane keeping assist",
+      "Automatic emergency braking",
+      "Backup camera",
+      "Forward collision alert",
+      "Automatic high beams",
+      "Bluetooth",
+      "Air conditioning",
+      "Cruise control",
+      "Automatic transmission"
+     ],
+     "equipment_maybe": [
+      "Apple CarPlay and Android Auto",
+      "Heated front seats",
+      "Heated steering wheel",
+      "Remote start",
+      "Sunroof",
+      "Leather seats",
+      "Wireless phone charging",
+      "Power tailgate",
+      "Roof rails"
+     ]
+    },
+    "brand": "CarmaCars",
+    "place": {
+     "city": "Toronto",
+     "pickup": "Collect it at our location at no charge, or have it delivered",
+     "region": "Ontario",
+     "airports": [
+      "Toronto Pearson International Airport",
+      "Billy Bishop Toronto City Airport"
+     ],
+     "delivery": "Delivered to any address for the car's delivery fee plus distance"
+    },
+    "rules": {
+     "card": "A credit card in the renter's name",
+     "licence": "Ontario G or G2 licence",
+     "min_age": 18,
+     "request": "Request to book with no payment; pay after we confirm",
+     "identity": "Licence and identity checked before pickup",
+     "max_rental_days": 365,
+     "drivers_18_to_20": true,
+     "young_driver_fee_ages": [
+      "18 to 20",
+      "21 to 25"
+     ]
+    },
+    "prices": {
+     "tax": "HST 13% added",
+     "daily": "$89",
+     "weekly": "$534",
+     "deposit": "$1,000",
+     "monthly": "$1,958",
+     "extra_km": "$0.35",
+     "km_per_day": 200,
+     "weekend_day": "$103",
+     "delivery_fee": "$75",
+     "monthly_days": 365,
+     "return_pickup_fee": "$75"
+    },
+    "included": [
+     "Third-party liability coverage",
+     "Roadside assistance, 24 hours a day",
+     "200 km a day",
+     "Handover in person with a walk-around of the car"
+    ]
+   },
+   "brief": null,
+   "avoid": [],
+   "write": [
+    "intro",
+    "highlights",
+    "good_for",
+    "faq",
+    "alt_texts"
+   ],
+   "word_target": "intro 10 to 30 words; 6 highlights copied from the equipment lists; 2 to 4 good_for; 3 to 4 questions",
+   "instructions": {
+    "system": "You write the car pages of CarmaCars, a car rental company in Toronto, Ontario. Every page has the same structure as the example cars of the site and is written only from the facts given.\nWrite in plain Canadian English, like a helpful person at a local rental counter: short sentences, everyday words, the second person (\"you\").\nNo superlatives, no hype, no exclamation marks, no emoji. Never use an em dash or an en dash: use commas, colons or full stops.\nWrite the company name exactly as CarmaCars. Never name any other company except the car maker.\nNever mention the VIN, the licence plate, the odometer, the owner, damage or the car's history.\nNever mention insurance or coverage that can be bought. The only coverage you may mention is the third-party liability coverage listed under included.\nAvoid these words and phrases: look no further, elevate, seamless, whether you are, whether you're, unparalleled, best in class, unleash, nestled, boasts, delve, testament, embark, game changer, game-changer, unforgettable, effortless, in today's, top-notch, second to none, hidden gem, must-have, dream car, thrill, exhilarating, world-class, cutting-edge, state-of-the-art, breathtaking, turn heads, head-turning, hit the road, open road awaits, adventure awaits, unlock, experience the, look and feel, the perfect, perfect for, ultimate.\nUse only the facts. Every number you write (years, prices, seats, kilometres, ages, hours) must appear in the facts exactly as given. Do not add, multiply or round numbers.\nDo not claim equipment, fuel economy, range, power, safety ratings or condition that the facts do not state.\nAnswer with one JSON object that follows the schema exactly, and nothing else.",
+    "prompt": "<facts>{\"car\":{\"fuel\":\"Gas\",\"make\":\"Toyota\",\"trim\":\"LE\",\"year\":2018,\"doors\":5,\"model\":\"RAV4\",\"seats\":5,\"colour\":\"Grey\",\"engine\":\"2.5 L, 4 cylinders\",\"classes\":[\"SUV\"],\"body_style\":\"SUV\",\"drivetrain\":\"Four-wheel drive\",\"transmission\":\"Automatic\",\"equipment_known\":[\"Four-wheel drive\",\"Adaptive cruise control\",\"Lane keeping assist\",\"Automatic emergency braking\",\"Backup camera\",\"Forward collision alert\",\"Automatic high beams\",\"Bluetooth\",\"Air conditioning\",\"Cruise control\",\"Automatic transmission\"],\"equipment_maybe\":[\"Apple CarPlay and Android Auto\",\"Heated front seats\",\"Heated steering wheel\",\"Remote start\",\"Sunroof\",\"Leather seats\",\"Wireless phone charging\",\"Power tailgate\",\"Roof rails\"]},\"brand\":\"CarmaCars\",\"place\":{\"city\":\"Toronto\",\"pickup\":\"Collect it at our location at no charge, or have it delivered\",\"region\":\"Ontario\",\"airports\":[\"Toronto Pearson International Airport\",\"Billy Bishop Toronto City Airport\"],\"delivery\":\"Delivered to any address for the car's delivery fee plus distance\"},\"rules\":{\"card\":\"A credit card in the renter's name\",\"licence\":\"Ontario G or G2 licence\",\"min_age\":18,\"request\":\"Request to book with no payment; pay after we confirm\",\"identity\":\"Licence and identity checked before pickup\",\"max_rental_days\":365,\"drivers_18_to_20\":true,\"young_driver_fee_ages\":[\"18 to 20\",\"21 to 25\"]},\"prices\":{\"tax\":\"HST 13% added\",\"daily\":\"$89\",\"weekly\":\"$534\",\"deposit\":\"$1,000\",\"monthly\":\"$1,958\",\"extra_km\":\"$0.35\",\"km_per_day\":200,\"weekend_day\":\"$103\",\"delivery_fee\":\"$75\",\"monthly_days\":365,\"return_pickup_fee\":\"$75\"},\"included\":[\"Third-party liability coverage\",\"Roadside assistance, 24 hours a day\",\"200 km a day\",\"Handover in person with a walk-around of the car\"]}</facts>\nWrite the page for this car, a 2018 Toyota RAV4 LE:\n- intro: 1 or 2 short sentences, 10 to 30 words, in exactly the voice of these examples from other cars of the site:\n  \"Room for four adults and their bags, and the quiet cabin Toyota is known for.\"\n  \"A roomy trunk and a soft ride. The commuter that does not mind a road trip.\"\n  \"Cheap to rent, cheap to fuel, and it starts every morning.\"\n  \"A big boot, a high seat and all-wheel drive for whatever February brings.\"\n  \"Seven seats and doors that open themselves. The airport run with everybody in one car.\"\n  \"The small Mercedes. Easy to park downtown, all-wheel drive for the 401 in November.\"\n  Say what this car is good for and what it is like to live with, from its body, seats, drivetrain, fuel and equipment. Do not start with \"This car\" or \"This vehicle\", do not name the year, the trim, the colour or where the car is kept, and do not list specifications.\n- highlights: exactly 6 selling features, each copied word for word from these lists. Known to be on this car: [\"Four-wheel drive\",\"Adaptive cruise control\",\"Lane keeping assist\",\"Automatic emergency braking\",\"Backup camera\",\"Forward collision alert\",\"Automatic high beams\",\"Bluetooth\",\"Air conditioning\",\"Cruise control\",\"Automatic transmission\"]. Possibly on it: [\"Apple CarPlay and Android Auto\",\"Heated front seats\",\"Heated steering wheel\",\"Remote start\",\"Sunroof\",\"Leather seats\",\"Wireless phone charging\",\"Power tailgate\",\"Roof rails\"]. Take an item from the second list only if you are sure it is standard on every 2018 Toyota RAV4 LE sold in Canada; if you are not sure, leave it out. The features renters care most about first.\n- good_for: 2 to 4 short phrases naming the trips or people this car suits (for example \"Airport runs with luggage\"), based on its body, seats and fuel.\n- faq: 3 to 4 questions a renter asks about this model (passengers, luggage, winter driving, charging or fuel), each answered in one or two sentences from the facts. Do not ask about delivery, kilometres, prices or payment: the page answers those. If the facts do not answer a question, do not ask it.\n- alt_texts: an empty object.\n- seo_title, meta_description, h1, pickup_delivery, included, requirements: filled in by the site. Return empty strings and empty lists for them."
+   },
+   "output_schema": {
+    "type": "object",
+    "properties": {
+     "seo_title": {
+      "type": "string"
+     },
+     "meta_description": {
+      "type": "string"
+     },
+     "h1": {
+      "type": "string"
+     },
+     "intro": {
+      "type": "string"
+     },
+     "highlights": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "good_for": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "included": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "pickup_delivery": {
+      "type": "string"
+     },
+     "requirements": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "faq": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "properties": {
+        "question": {
+         "type": "string"
+        },
+        "answer": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "question",
+        "answer"
+       ]
+      }
+     },
+     "alt_texts": {
+      "type": "object",
+      "additionalProperties": {
+       "type": "string"
+      }
+     }
+    },
+    "required": [
+     "seo_title",
+     "meta_description",
+     "h1",
+     "intro",
+     "highlights",
+     "good_for",
+     "included",
+     "pickup_delivery",
+     "requirements",
+     "faq",
+     "alt_texts"
+    ]
+   },
+   "prompt_version": "car-copy-v2"
+  }
+ ]
+}
