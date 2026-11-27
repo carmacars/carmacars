@@ -148,3 +148,18 @@ test('2402: province, territory and country pages follow their region (the /car-
   assert.equal(offMarketPlace('/car-rental/quebec', ontario | (1 << CA_CODES.indexOf('qc'))), false, 'switched on: the app answers');
   assert.equal(offMarketPlace('/car-rental/united-states', ontario | (1 << MARKET_US_BIT)), false);
 });
+
+test('r50 hotfix 2: a vehicle tree page of a place outside the market answers 404 before the app (the crawl of Nov 25)', () => {
+  const on = MARKET_DEFAULT;
+  assert.equal(offMarketPlace('/t/auto-detailing/nissan/rogue/2019/sv/hanover-junction-pa/white', on), true);
+  assert.equal(offMarketPlace('/t/car-dealership/kia/forte/2020/gt/el-salto-mic-79245', on), true);
+  assert.equal(offMarketPlace('/buy/ford/f-150/2021/lariat/garvey-melton-pa/brown', on), true);
+  assert.equal(offMarketPlace('/t/car-hire/kia/soul/2022/ex-plus/mario-segura-coa', on), true);
+  assert.equal(offMarketPlace('/car-rental/uber-rental-car/el-salto-mic-79245', on), true, 'a place slug with a number after its code');
+  // Ontario, the GTA and the trees without a place stay
+  assert.equal(offMarketPlace('/t/car-dealership/kia/sportage/2023/ex-tech/mississauga-on', on), false);
+  assert.equal(offMarketPlace('/t/turo-alternative/ram/1500/2022/big-horn/battersea-on/gold', on), false);
+  assert.equal(offMarketPlace('/t/paint-touch-up/kia/forte/2021/gt-line/gta', on), false);
+  assert.equal(offMarketPlace('/t/car-dealership/kia/forte/2021/gt/colour/gold', on), false);
+  assert.equal(offMarketPlace('/cars/kia/soul/2022/ex-plus', on), false);
+});

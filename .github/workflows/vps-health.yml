@@ -120,7 +120,10 @@ jobs:
           else
             echo "failed=false" >> "$GITHUB_OUTPUT"
           fi
-      - name: Alert email (on a change, then hourly while it lasts)
+      # r50 hotfix 2 (the owner: the "problem found" emails repeat and say nothing to do): an email when the problems start,
+      # when the list of problems changes (its fingerprint is kept in the open outage issue) and when it is over; never the
+      # same list again. Each problem line has its own link.
+      - name: Alert email (when it starts, when the problems change, when it is over)
         if: always() && (needs.gate.outputs.backend == 'vps' || inputs.alert)
         env:
           GH_TOKEN: ${{ github.token }}
@@ -132,9 +135,12 @@ jobs:
                  --jq '[.[] | select(.status == "completed" and (.conclusion == "success" or .conclusion == "failure"))]' 2>/dev/null || echo '[]')
           last=$(jq -r '.[0].conclusion // "success"' <<<"$prev")
           streak=$(jq '[foreach .[] as $r ({go: true, n: 0}; if .go and $r.conclusion == "failure" then .n += 1 else .go = false end; .n)] | max // 0' <<<"$prev")
+          fp=$(sort "$RUNNER_TEMP/problems.txt" 2>/dev/null | sed -E 's/[0-9]+(\.[0-9]+)?/N/g' | sha256sum | cut -c1-16)
+          prev_fp=$(gh issue list -R "$GITHUB_REPOSITORY" --label outage --state open --json body --jq '.[0].body // ""' 2>/dev/null | sed -nE 's/.*problems-fingerprint: ([0-9a-f]+).*/\1/p' | head -1)
+          echo "fp=$fp" >> "$GITHUB_ENV"
           send=""
           if [ "$FAILED" = true ]; then
-            if [ "$last" = success ]; then send=problem; elif [ $(( (streak + 1) % 12 )) = 0 ]; then send=still; fi
+            if [ "$last" = success ]; then send=problem; elif [ -n "$prev_fp" ] && [ "$fp" != "$prev_fp" ]; then send=still; fi
           elif [ "$last" = failure ]; then send=recovered; fi
           [ -n "$send" ] || { echo "no email (failed: $FAILED, previous: $last, streak: $streak)"; exit 0; }
           source scripts/deploy/vps.sh
@@ -149,10 +155,11 @@ jobs:
           run="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
           case "$send" in
             problem) subject="CarmaCars server: problem found"; intro="The check of the CarmaCars server (api.carmacars.ca) found:" ;;
-            still) subject="CarmaCars server: the problem continues"; intro="The problem with the CarmaCars server continues (about $(( (streak + 1) * 5 )) minutes):" ;;
+            still) subject="CarmaCars server: the problems changed"; intro="The problems with the CarmaCars server changed (about $(( (streak + 1) * 5 )) minutes since they started). Now:" ;;
             recovered) subject="CarmaCars server: back to normal"; intro="The CarmaCars server passes every check again." ;;
           esac
-          body=$( { echo "$intro"; echo; [ "$send" != recovered ] && sed 's/^/- /' "$RUNNER_TEMP/problems.txt"; echo; echo "Run: $run"; echo "What to do: infra/vps/CUTOVER.md, section Upkeep."; } )
+          link() { case "$1" in server:*) echo "https://carmacars.ca/admin/self-healing";; *) echo "https://carmacars.ca/admin#site-health";; esac; }
+          body=$( { echo "$intro"; echo; if [ "$send" != recovered ]; then while IFS= read -r p; do [ -n "$p" ] && printf -- '- %s\n  Open: %s\n' "$p" "$(link "$p")"; done < "$RUNNER_TEMP/problems.txt"; fi; echo; echo "The site tries its own fixes first (Admin > Self-healing). The details of this check: $run"; } )
           code=$(curl -sS -o "$RUNNER_TEMP/resend.json" -w '%{http_code}' https://api.resend.com/emails -H "Authorization: Bearer $key" -H 'content-type: application/json' \
             --data "$(jq -n --arg to "$to" --arg s "$subject" --arg t "$body" '{from: "CarmaCars <hello@carmacars.ca>", to: [$to], subject: $s, text: $t}')")
           if [ "${code:0:1}" = 2 ]; then echo "::notice title=vps-health::$send email sent to $to"; else echo "::error::Resend answered $code: $(head -c 300 "$RUNNER_TEMP/resend.json")"; exit 1; fi
@@ -165,10 +172,12 @@ jobs:
         run: |
           gh label create outage -R "$GITHUB_REPOSITORY" --color B60205 --description "carmacars.ca or api.carmacars.ca is down (opened by self-heal)" 2>/dev/null || true
           num=$(gh issue list -R "$GITHUB_REPOSITORY" --label outage --state open --json number --jq '.[0].number // empty')
-          [ -z "$num" ] || { echo "outage issue #$num already open"; exit 0; }
           body="$(sed 's/^/- /' "$RUNNER_TEMP/problems.txt")
           Checked $(date -u +%FT%TZ) by vps-health: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
-          What to do: docs/runbook-outage.md."
+          What to do: docs/runbook-outage.md.
+          <!-- problems-fingerprint: ${fp:-none} -->"
+          # the fingerprint follows the problems, so the next run emails only when they change
+          if [ -n "$num" ]; then gh issue edit "$num" -R "$GITHUB_REPOSITORY" --body "$body" >/dev/null; echo "outage issue #$num updated"; exit 0; fi
           gh issue create -R "$GITHUB_REPOSITORY" --label outage --title "Outage: the CarmaCars server is failing its checks" --body "$body"
       - name: Result
         if: always()

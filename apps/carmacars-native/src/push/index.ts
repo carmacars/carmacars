@@ -9,6 +9,8 @@ import type { Portal } from '../shared.ts';
 import { deviceLabel, getFlag, PLATFORM, setFlag } from '../native.ts';
 
 const FLAG = 'push.token';
+/** r50 hotfix 2: alerts were on when the app signed out: they come back on after the next sign-in, without asking again. */
+const WAS_ON = 'push.wasOn';
 /** Firebase is part of the build only when its files were there (docs/apps/native-publish.md); without it alerts stay off. */
 function messaging() { try { return getMessaging(); } catch { return null; } }
 
@@ -40,9 +42,16 @@ export async function disablePush(api: Client): Promise<void> {
   const token = await getFlag(FLAG);
   if (token) await api.call('me.pushOff', { body: { token } });
   await setFlag(FLAG, null);
+  await setFlag(WAS_ON, null);
 }
-/** Signing out: this phone stops being one of the account's devices (called before the session ends). */
-export const forgetPushOnSignOut = disablePush;
+/** Signing out: this phone stops being one of the account's devices (called before the session ends). r50 hotfix 2 (the
+ *  owner: "alerts keep turning themselves off"): a sign-out was recorded as the person turning alerts off, so the site then
+ *  refused to switch them back on by itself; now it is a sign-out, and the next sign-in turns alerts back on. */
+export async function forgetPushOnSignOut(api: Client): Promise<void> {
+  const token = await getFlag(FLAG);
+  if (token) { await api.call('me.pushOff', { body: { token, signout: true } }); await setFlag(WAS_ON, '1'); }
+  await setFlag(FLAG, null);
+}
 export const pushIsOn = async () => (await getFlag(FLAG)) !== null;
 
 /**
@@ -61,6 +70,12 @@ export function watchPush(api: Client, portal: () => Portal, open: (url: string)
   const taps = Notifications.addNotificationResponseReceivedListener((r) => go(r.notification.request.content.data?.url, r.notification.request.identifier));
   stops.push(() => taps.remove());
   const m = messaging();
+  // signed in again after a sign-out with alerts on: back on, once the phone still allows them (never a new question)
+  void (async () => {
+    if ((await getFlag(WAS_ON)) !== '1' || (await getFlag(FLAG)) !== null || (await pushPermission()) !== 'granted') return;
+    const r = await enablePush(api, portal());
+    if (r.ok) await setFlag(WAS_ON, null);
+  })().catch(() => undefined);
   if (m) {
     stops.push(onTokenRefresh(m, (token) => { void (async () => {
       const had = await getFlag(FLAG);

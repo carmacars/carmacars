@@ -101,7 +101,7 @@ async function send(keepalive = false) {
   if (!events.length && !shown()) return;
   hb.reset();
   try {
-    const r = await fetch('/api/t', { method: 'POST', keepalive, headers: { 'content-type': 'application/json' }, body: JSON.stringify(batch(events)), credentials: 'same-origin' });
+    const r = await fetch('/api/t', { method: 'POST', keepalive, headers: beaconHeaders(), body: JSON.stringify(batch(events)), credentials: 'same-origin' });
     // 204: the database is slow and the batch is being stored in the background
     if (!keepalive && r.status === 200) heard((await r.json()) as BeaconReply);
     else if (r.status >= 500) requeue(events);
@@ -120,7 +120,7 @@ async function beat() {
   if (!shown()) return;
   if (queue.some(allowed)) { void send(); return; }
   try {
-    const r = await fetch('/api/t', { method: 'POST', headers: { 'content-type': 'application/json' }, credentials: 'same-origin',
+    const r = await fetch('/api/t', { method: 'POST', headers: beaconHeaders(), credentials: 'same-origin',
       body: JSON.stringify({ beat: 1, sid: sessionId(), vid: visitorId(), path: location.pathname }) });
     if (r.status !== 200) return;
     const j = (await r.json()) as BeaconReply;
@@ -134,6 +134,14 @@ async function beat() {
   } catch { /* the next beat carries on */ }
 }
 
+/** r50 hotfix 2: a browser driven by a script (navigator.webdriver: scrapers that pose as Chrome, headless or not) says
+ *  so, and the server does not count it as a visitor in production (app/api/t). */
+function beaconHeaders(): Record<string, string> {
+  let wd = false;
+  try { wd = navigator.webdriver === true; } catch { /* a visitor */ }
+  return wd ? { 'content-type': 'application/json', 'x-cc-wd': '1' } : { 'content-type': 'application/json' };
+}
+
 /** The page is closing: its last events and the end of the session, with sendBeacon (it survives the page). */
 function final() {
   if (timer) { clearTimeout(timer); timer = undefined; }
@@ -142,8 +150,8 @@ function final() {
   queue = [];
   if (!events.length && !shown()) return;
   const body = JSON.stringify(events.length ? { ...batch(events), end: '1' } : { beat: 1, end: '1', sid: sessionId(), vid: visitorId() });
-  try { if (navigator.sendBeacon?.('/api/t', body)) return; } catch { /* below */ }
-  void fetch('/api/t', { method: 'POST', keepalive: true, headers: { 'content-type': 'application/json' }, body, credentials: 'same-origin' }).catch(() => undefined);
+  try { if (!beaconHeaders()['x-cc-wd'] && navigator.sendBeacon?.('/api/t', body)) return; } catch { /* below */ }
+  void fetch('/api/t', { method: 'POST', keepalive: true, headers: beaconHeaders(), body, credentials: 'same-origin' }).catch(() => undefined);
 }
 function push(e: Ev, soon = true) {
   queue.push(e);

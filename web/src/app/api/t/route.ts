@@ -23,7 +23,9 @@ export async function POST(req: Request) {
   if (foreignOrigin(origin, req.headers.get('host'), req.headers.get('sec-fetch-site'))) return NextResponse.json({ ok: false }, { status: 403, headers: H });
   const ua = req.headers.get('user-agent');
   const e = env();
-  if (isBot(ua, e.APP_ENV !== 'production' && process.env.TRACK_ALLOW_HEADLESS !== '0')) return NextResponse.json({ ok: true, bot: true }, { headers: H });
+  const allowHeadless = e.APP_ENV !== 'production' && process.env.TRACK_ALLOW_HEADLESS !== '0';
+  // r50 hotfix 2: a script-driven browser (the beacon's x-cc-wd) is a bot too, as a headless one
+  if (isBot(ua, allowHeadless) || (req.headers.get('x-cc-wd') === '1' && !allowHeadless)) return NextResponse.json({ ok: true, bot: true }, { headers: H });
   const text = await req.text();
   if (text.length > MAX_BEACON_BYTES) return NextResponse.json({ ok: false }, { status: 413, headers: H });
   let raw: unknown;

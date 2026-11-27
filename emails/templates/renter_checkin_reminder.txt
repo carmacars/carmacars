@@ -2,10 +2,10 @@ CarmaCars  |  Booking {{booking_number}}
 
 ========================================
 
-[Check-in visit]
-Time for a quick check-in
+[Mid-rental car check]
+A free check while you have the car
 
-Hi {{first_name}}. Your {{vehicle_name}} is due for its monthly check-in visit around {{checkin_due_date}}. It takes about 15 minutes.
+Hi {{first_name}}. The {{vehicle_name}} you are renting is due for its free monthly car check around {{checkin_due_date}}. It is not a pickup or a return: you keep the car. It takes about 15 minutes.
 
 - We look the car over and note its condition, so it stays in top shape for you
 - We catch maintenance early (oil, tires, brakes), before it becomes a problem on the road

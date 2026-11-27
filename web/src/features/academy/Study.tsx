@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import Link from '@/components/Link';
 import { useRouter } from 'next/navigation';
 import { opsAct } from '@/server/actions/ops';
@@ -37,6 +37,10 @@ export function Study({ s, base }: { s: SectionView; base: string }) {
   );
 }
 
+const noop = () => () => {};
+const yes = () => true;
+const no = () => false;
+
 function Quiz({ s, base, wait, setWait, onPassed }: { s: SectionView; base: string; wait: QuizWait | undefined; setWait: (w: QuizWait | undefined) => void; onPassed: () => void }) {
   const [quiz, setQuiz] = useState<QuizStart | null>(null);
   const [answers, setAnswers] = useState<Record<string, number>>({});
@@ -45,7 +49,9 @@ function Quiz({ s, base, wait, setWait, onPassed }: { s: SectionView; base: stri
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
   const [now, setNow] = useState(() => Date.now());
-  const left = wait && !wait.ok ? waitLeft(wait.until, now) : '';
+  // r50 hotfix 2: the countdown starts once the page is in the browser; the server's second and the browser's differed (#418)
+  const hydrated = useSyncExternalStore(noop, yes, no);
+  const left = hydrated && wait && !wait.ok ? waitLeft(wait.until, now) : '';
   useEffect(() => {
     if (!wait || wait.ok) return;
     const t = setInterval(() => setNow(Date.now()), 1000);

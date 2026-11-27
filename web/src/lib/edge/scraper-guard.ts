@@ -142,7 +142,11 @@ export const PLACE_MARKET_KEY = 'carmacars/place-market';
 /** Until the tick has written the mask: Ontario only (the market since release 40). */
 export const MARKET_DEFAULT = 1;
 const US_SET = new Set(US_CODES.split('|'));
-const REGION_PLACE = new RegExp(`^(?:/[a-z]{2,3})?/(?:car-rental|detailing|body-shop|buy)/([a-z0-9-]+)/[a-z0-9-]+-(${CA_CODES.join('|')}|${US_CODES}|${MX_CODES})/?$`);
+// r50 hotfix 2: a place slug may end with a number after its region code when two places share a name (el-salto-mic-79245)
+const REGION_PLACE = new RegExp(`^(?:/[a-z]{2,3})?/(?:car-rental|detailing|body-shop|buy)/([a-z0-9-]+)/[a-z0-9-]+-(${CA_CODES.join('|')}|${US_CODES}|${MX_CODES})(?:-\\d+)?/?$`);
+/** r50 hotfix 2 (Nov 25: crawlers on /t/auto-detailing/nissan/rogue/2019/sv/hanover-junction-pa/white and the like): the
+ *  place of a vehicle tree page, /cars, /buy or /t/<term> then make, model, year, trim, place and an optional colour. */
+const VEHICLE_PLACE = new RegExp(`^(?:/[a-z]{2,3})?/(?:buy|t/[a-z0-9-]+)/[a-z0-9-]+/[a-z0-9-]+/(?:19|20)\\d\\d/[a-z0-9-]+/[a-z0-9-]+?-(${CA_CODES.join('|')}|${US_CODES}|${MX_CODES})(?:-\\d+)?(?:/[a-z0-9-]+)?/?$`);
 /** The pages of a whole province, territory or country (no region code in the slug): /car-rental/quebec, the term pages
  *  in it (/detailing/<term>/quebec), and the countries (/car-rental/united-states). Ontario and Canada are not here: they
  *  stay on (Canada's page says we operate in Ontario). */
@@ -158,11 +162,12 @@ export function placeRegionBit(pathname: string): number | null {
     const slug = r[1] ?? r[3]!;
     if (Object.prototype.hasOwnProperty.call(REGION_ROOTS, slug) && (!/\/buy\//.test(pathname) || SALE_TERM.test(r[2]!))) return REGION_ROOTS[slug]!;
   }
-  const m = REGION_PLACE.exec(pathname);
-  if (!m) return null;
+  const v = VEHICLE_PLACE.exec(pathname);
+  const m = v ? null : REGION_PLACE.exec(pathname);
+  if (!v && !m) return null;
   // /buy/<a>/<b> is the vehicle tree (a make and a model) unless <a> is a buying help term
-  if (/\/buy\//.test(pathname) && !SALE_TERM.test(m[1]!)) return null;
-  const code = m[2]!;
+  if (m && /\/buy\//.test(pathname) && !SALE_TERM.test(m[1]!)) return null;
+  const code = v ? v[1]! : m![2]!;
   const ca = (CA_CODES as readonly string[]).indexOf(code);
   return ca >= 0 ? ca : US_SET.has(code) ? MARKET_US_BIT : MARKET_MX_BIT;
 }

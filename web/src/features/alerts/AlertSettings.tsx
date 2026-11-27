@@ -1,13 +1,17 @@
 'use client';
 import '@/styles/push.css';
 import '@/styles/alerts.css';
-import { useState, useTransition } from 'react';
+import { useState, useSyncExternalStore, useTransition } from 'react';
 import { saveAlertPrefs } from '@/server/actions/alerts';
 import { clock, HALF_HOURS, type AlertPrefs } from './types';
 
 // The staff alert settings (migration 0466): quiet hours (non-urgent phone alerts wait until they end) and focus mode
 // (only urgent alerts reach the phone for a while). Everything still shows in the Alerts feed.
 const until = (iso: string) => new Date(iso).toLocaleTimeString('en-CA', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'America/Toronto' });
+
+const noop = () => () => {};
+const yes = () => true;
+const no = () => false;
 
 export function AlertSettings({ initial, className = 'pt-card stack' }: { initial: AlertPrefs; className?: string }) {
   const [p, setP] = useState(initial);
@@ -26,7 +30,9 @@ export function AlertSettings({ initial, className = 'pt-card stack' }: { initia
       setP(r.data); setMsg(done); setNow(Date.now());
     });
   };
-  const focus = p.focus_until && new Date(p.focus_until).getTime() > now ? p.focus_until : null;
+  // r50 hotfix 2: whether focus mode is still on is read once the page is in the browser (the server's time differed: #418)
+  const hydrated = useSyncExternalStore(noop, yes, no);
+  const focus = hydrated && p.focus_until && new Date(p.focus_until).getTime() > now ? p.focus_until : null;
 
   return (
     <section className={`${className} as`} aria-labelledby="as-title" data-testid="alert-settings">
