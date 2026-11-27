@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
 // http://localhost:3000/...: new URL(path, req.url) sent installed apps and signed-out visitors to localhost.
 // A relative Location keeps the browser on the host it asked (carmacars.ca, www, new.).
 export function localRedirect(path: string, status = 302, headers: Record<string, string> = {}): NextResponse {
-  if (!path.startsWith('/') || path.startsWith('//')) throw new Error('localRedirect takes a path on this site');
+  if (!path.startsWith('/') || path.startsWith('//') || path.includes('\\')) throw new Error('localRedirect takes a path on this site');
   return new NextResponse(null, { status, headers: { ...headers, Location: path } });
 }
 
