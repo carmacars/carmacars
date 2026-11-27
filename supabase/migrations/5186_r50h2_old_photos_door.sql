@@ -7,6 +7,9 @@
 --   ops_do   old_photo_plate_record the vision call, recorded with its model and neurons (never the photo or the plate)
 -- app.handover_report: each photo says whether it was added later, by whom and when; a check-in or check-out report not
 -- completed yet is shown when it has photos added later (otherwise those photos would show nowhere).
+-- The renter's copy (server_renter_handover_report) drops the photos added later and any report not completed (an owner's
+-- browser session never reads those photos: the restrictive policy of 5185). A capture time shows only when the phone's
+-- time was inside the booking's own dates (5185 keeps the claim as the device time and the capture time apart).
 -- No applied migration is edited: the door is wrapped (_pre5186), handover_report is patched in place (its grants kept).
 
 create function pg_temp.copy_grants(p_new regprocedure, p_old regprocedure) returns void
@@ -60,3 +63,21 @@ select pg_temp.patch_fn('app.handover_report(uuid)'::regprocedure,
   $o$c.kind in ('pickup', 'return', 'swap_out', 'swap_in') and c.completed_at is not null)$o$,
   $n$c.kind in ('pickup', 'return', 'swap_out', 'swap_in')
          and (c.completed_at is not null or exists (select 1 from condition_report_photos lp where lp.condition_report_id = c.id and lp.added_later_at is not null)))$n$);
+
+-- an added-later photo shows its capture time only when it was accepted (taken_at is the device time); otherwise none
+select pg_temp.patch_fn('app.handover_report(uuid)'::regprocedure,
+  $o$'taken_at', coalesce(p.device_taken_at, p.taken_at),$o$,
+  $n$'taken_at', case when p.added_later_at is not null and p.device_taken_at is not null and p.device_taken_at <> p.taken_at then null
+                                                 else coalesce(p.device_taken_at, p.taken_at) end,$n$);
+
+-- the renter sees the completed check-in and check-out, without the photos added later
+create or replace function public.server_renter_handover_report(p_booking uuid, p_by uuid) returns jsonb
+language plpgsql stable security definer set search_path = public, app, pg_temp as $$
+declare r jsonb;
+begin
+  perform app.assert_booking_renter(p_booking, p_by);
+  r := app.handover_report(p_booking) - 'waivers';
+  return jsonb_set(r, '{reports}', coalesce((
+    select jsonb_agg(jsonb_set(x, '{photos}', coalesce((select jsonb_agg(ph) from jsonb_array_elements(x -> 'photos') ph where ph ->> 'added_later_at' is null), '[]'::jsonb)) order by o)
+      from jsonb_array_elements(r -> 'reports') with ordinality t(x, o) where x ->> 'completed_at' is not null), '[]'::jsonb));
+end $$;

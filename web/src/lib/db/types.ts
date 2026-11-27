@@ -22343,6 +22343,7 @@ export type Database = {
           old_photos_days: number;
           old_photos_match_hours: number;
           old_photos_group_minutes: number;
+          old_photos_plate_daily: number;
         };
         Insert: {
           id?: string;
@@ -23338,6 +23339,7 @@ export type Database = {
           old_photos_days?: number;
           old_photos_match_hours?: number;
           old_photos_group_minutes?: number;
+          old_photos_plate_daily?: number;
         };
         Update: {
           id?: string;
@@ -24333,6 +24335,7 @@ export type Database = {
           old_photos_days?: number;
           old_photos_match_hours?: number;
           old_photos_group_minutes?: number;
+          old_photos_plate_daily?: number;
         };
         Relationships: [];
       };
@@ -24549,6 +24552,7 @@ export type Database = {
           created_at: string;
           units: number | null;
           unit: string | null;
+          created_by: string | null;
         };
         Insert: {
           id?: string;
@@ -24564,6 +24568,7 @@ export type Database = {
           created_at?: string;
           units?: number | null;
           unit?: string | null;
+          created_by?: string | null;
         };
         Update: {
           id?: string;
@@ -24579,6 +24584,7 @@ export type Database = {
           created_at?: string;
           units?: number | null;
           unit?: string | null;
+          created_by?: string | null;
         };
         Relationships: [];
       };

@@ -484,7 +484,7 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 
 ### REQ-055 Photos for past bookings
 - Status: in progress
-- Proof: branch r50-hotfix2-oldphotos (not on main): migrations 5185 to 5187, docs/changes/2026-11-27-r50h2-old-photos.md
+- Proof: branch r50-hotfix2-oldphotos (not on main): migrations 5185 to 5187, docs/changes/2026-11-27-r50h2-old-photos.md; fresh-eyes fixes: photos added later hidden from the renter and the owner, capture time only inside the booking's dates, 200 photos a report, 30 plate reads a person a day
 - Test: supabase/tests/99_r50h2_old_photos.sql; web/src/features/old-photos/old-photos.test.ts; web/tests/e2e/r50h2-old-photos.spec.ts
 - Asked: Nov 26 14:43, Nov 27 07:12
 - Rule: upload check-in and out photos for previous bookings, in bulk; field staff can see those bookings.

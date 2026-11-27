@@ -1,7 +1,8 @@
 -- 99: R50 hotfix 2, Add old photos (migrations 5185 and 5186). Every past booking of the last 60 days, whoever handled it,
 -- searchable by plate, car or renter, newest first; a photo attached to the check-in or check-out report "added later" with
 -- its capture time, once per upload key; no booking change and no renter or owner notice; the bulk suggestion by time and
--- plate; who may. Fixtures start with "olp".
+-- plate; who may. Fixtures start with "olp". Hotfix review: the capture time only inside the booking's dates, 200 photos a
+-- report, photos added later hidden from the renter and the owner, 30 plate reads a person a day.
 select test.suite('99 r50h2 add old photos');
 
 select test.mk_user('olp_admin', 'admin');
@@ -115,3 +116,55 @@ select test.throws('suggest: Sales cannot', $$ select pg_temp.sugg('olp_sales', 
 select test.ok('plate gate: field staff may ask (allowed or not by the day''s allowance)', pg_temp.dr('olp_field', 'ops_read', 'old_photo_plate_gate') ? 'allowed');
 select test.throws('plate gate: Sales cannot', $$ select pg_temp.dr('olp_sales', 'ops_read', 'old_photo_plate_gate') $$, '%');
 select test.lives('plate record: the call is recorded', $$ select pg_temp.dr('olp_field', 'ops_do', 'old_photo_plate_record', '{"model": "fake", "ok": false, "error": "no plate read"}') $$);
+
+-- ================================================================ 7. review fixes: capture time, 200 photos, renter and owner, daily plate cap
+-- a phone time 10 days before the pickup (the booking's dates, 3 days either side): kept as the device time, not the capture time
+select pg_temp.attach('olp_field', 'olp_key5', 'OLP-1', 'pickup', (pg_temp.at('OLP-1', 'pickup') - interval '10 days')::text);
+select test.ok('capture time: a phone time outside the booking''s dates is kept as the device time, not as the capture time',
+  (select p.device_taken_at = pg_temp.at('OLP-1', 'pickup') - interval '10 days' and p.taken_at <> p.device_taken_at
+     from condition_report_photos p where p.client_key = test.id('olp_key5')));
+select test.ok('capture time: the report shows no capture time for it, and shows the accepted one',
+  (select bool_or(p ->> 'taken_at' is null) and bool_or(p ->> 'taken_at' is not null)
+     from olp_rep, jsonb_array_elements(app.handover_report(test.id('booking:OLP-1')) -> 'reports') x, jsonb_array_elements(x -> 'photos') p where x ->> 'kind' = 'pickup'));
+select pg_temp.attach('olp_field', 'olp_key6', 'OLP-1', 'pickup', (pg_temp.at('OLP-1', 'pickup') - interval '2 days')::text);
+select test.ok('capture time: 2 days before the pickup is inside the 3 days',
+  (select p.taken_at = p.device_taken_at from condition_report_photos p where p.client_key = test.id('olp_key6')));
+
+-- 200 photos a report
+insert into condition_report_photos (condition_report_id, seq, shot, storage_path)
+select c.id, s.n, 'other', 'bookings/' || c.booking_id || '/old/' || gen_random_uuid() || '.jpg'
+  from condition_reports c, lateral (select max(seq) m from condition_report_photos where condition_report_id = c.id) mx, generate_series(mx.m + 1, 200) s(n)
+ where c.booking_id = test.id('booking:OLP-1') and c.kind = 'pickup';
+select test.throws('200 photos: the 201st is refused', $$ select pg_temp.attach('olp_field', 'olp_key7') $$, '%already has 200 photos%');
+select test.eq('200 photos: a retry of a photo already attached still answers as a duplicate', pg_temp.attach('olp_field', 'olp_key1') ->> 'duplicate', 'true');
+select test.eq('200 photos: the other side of the booking still takes photos', pg_temp.attach('olp_field', 'olp_key8', 'OLP-1', 'return') ->> 'duplicate', 'false');
+
+-- the renter and the owner never see a photo added later
+select test.ok('renter: a report not completed is not shown to the renter, though it shows to staff',
+  jsonb_array_length(public.server_renter_handover_report(test.id('booking:OLP-1'), test.id('olp_renter')) -> 'reports') = 0
+  and jsonb_array_length(app.handover_report(test.id('booking:OLP-1')) -> 'reports') = 2);
+update condition_reports set completed_at = now(), details_pending = false where booking_id = test.id('booking:OLP-1') and kind = 'return';
+insert into condition_report_photos (condition_report_id, seq, shot, storage_path, uploaded_by)
+select c.id, (select max(seq) + 1 from condition_report_photos where condition_report_id = c.id), 'other', 'bookings/' || c.booking_id || '/front.jpg', test.id('olp_field')
+  from condition_reports c where c.booking_id = test.id('booking:OLP-1') and c.kind = 'return';
+select test.eq('renter: a completed report shows the renter its own photos only (staff see the photos added later too)',
+  (select jsonb_array_length(x -> 'photos') from jsonb_array_elements(public.server_renter_handover_report(test.id('booking:OLP-1'), test.id('olp_renter')) -> 'reports') x where x ->> 'kind' = 'return')::text
+  || '/' || (select jsonb_array_length(x -> 'photos') from jsonb_array_elements(app.handover_report(test.id('booking:OLP-1')) -> 'reports') x where x ->> 'kind' = 'return')::text, '1/3');
+select test.eq('renter: no report of the renter carries an added-later photo',
+  (select count(*) from jsonb_array_elements(public.server_renter_handover_report(test.id('booking:OLP-1'), test.id('olp_renter')) -> 'reports') x, jsonb_array_elements(x -> 'photos') p where p ->> 'added_later_at' is not null), 0::bigint);
+update condition_reports set performed_by = test.id('olp_owner') where booking_id = test.id('booking:OLP-1') and kind = 'return';
+select test.login(test.id('olp_owner'));
+create temp table olp_own as select test.visible('select 1 from condition_report_photos p join condition_reports c on c.id = p.condition_report_id where c.booking_id = ''' || test.id('booking:OLP-1') || ''' and c.kind = ''return''') seen;
+select test.logout();
+select test.login(test.id('olp_admin'));
+create temp table olp_adm as select test.visible('select 1 from condition_report_photos p join condition_reports c on c.id = p.condition_report_id where c.booking_id = ''' || test.id('booking:OLP-1') || ''' and c.kind = ''return''') seen;
+select test.logout();
+select test.eq('owner: a report the owner made shows the owner the photo of the report, not the ones added later; an Admin sees both', (select seen from olp_own) || '/' || (select seen from olp_adm), '1/3');
+
+-- 30 plate reads a person a day
+select pg_temp.dr('olp_cs', 'ops_do', 'old_photo_plate_record', '{"model": "fake", "ok": true}') from generate_series(1, 30);
+select test.ok('plate cap: 30 reads in a day end that person''s day', pg_temp.dr('olp_cs', 'ops_read', 'old_photo_plate_gate') @> '{"allowed": false, "reason": "daily"}');
+select test.ok('plate cap: another person is not held by it', pg_temp.dr('olp_fleet', 'ops_read', 'old_photo_plate_gate') ->> 'reason' is distinct from 'daily');
+update program_settings set old_photos_plate_daily = 31 where id = (app.settings()).id;
+select test.ok('plate cap: the number is a Program setting', pg_temp.dr('olp_cs', 'ops_read', 'old_photo_plate_gate') ->> 'reason' is distinct from 'daily');
+update program_settings set old_photos_plate_daily = 30 where id = (app.settings()).id;
