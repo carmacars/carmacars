@@ -25,12 +25,12 @@ export function mediaConfig(): MediaConfig {
 }
 
 export interface Joined { in_site: boolean; room: string; kind: string; title: string; meeting_at: string | null; identity: string; name: string; role: CallRole; minutes: number; fallback_url: string | null }
-export type JoinAs = { room: 'townhall' } | { room: 'interview'; application_id: string };
+export type JoinAs = { room: 'townhall' } | { room: 'interview'; application_id: string } | { room: 'admin_call' };
 export interface CallTicket { provider: CallsProvider; url: string | null; token: string | null; room: string; identity: string; name: string; role: CallRole }
 
 /** The ticket for a signed-in staff member or Admin: the database checks the room, then the token is minted. */
 export async function staffTicket(userId: string, as: JoinAs): Promise<{ joined: Joined; ticket: CallTicket }> {
-  const joined = await door<Joined>(userId, as.room === 'interview' ? 'admin_read' : 'ops_read', 'call_join', as as unknown as Record<string, unknown>);
+  const joined = await door<Joined>(userId, as.room === 'townhall' ? 'ops_read' : 'admin_read', 'call_join', as as unknown as Record<string, unknown>);
   return { joined, ticket: await ticketFor(joined.room, joined.identity, joined.name, joined.role) };
 }
 

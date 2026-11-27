@@ -7,7 +7,7 @@ import './calls.css';
 // video, the townhall deck in sync with the presenter (anyone may browse on their own and come back), or the candidate's
 // details for an interview. The server gives the ticket (who, which room, as what) only when Join is pressed.
 export interface DeckSlide { key: string; title: string; points: Array<{ label: string; value: string }>; lines: string[] }
-type JoinAs = { room: 'townhall' } | { room: 'interview'; application_id: string };
+type JoinAs = { room: 'townhall' } | { room: 'interview'; application_id: string } | { room: 'admin_call' };
 interface Chat { id: string; from: string; name: string; text: string; at: number }
 interface Live { in: Array<{ identity: string; name: string; role: string; since: string }>; left: Array<{ identity: string; name: string; minutes: number }>; not_joined: Array<{ user_id: string; name: string }> }
 

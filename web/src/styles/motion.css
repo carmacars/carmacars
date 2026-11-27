@@ -331,3 +331,19 @@
   .now__fact.is-warn .now__v { animation: sp-now 300ms 300ms var(--ease-out) 1 backwards; }
 }
 
+
+/* ---------- r50 hotfix 2: the stepped tracker (Milestones): a step done since the last visit draws its stretch of line and
+   its check pops; the step to do now breathes once; the finish flag pops when the last step is done. Transform and
+   opacity, 300 ms or less (the countdown's tiles do not move: the figures change in place). ---------- */
+@media (prefers-reduced-motion: no-preference) {
+  .ms__step { animation: step-in 300ms var(--ease-out) backwards; }
+  .ms__step:nth-child(2) { animation-delay: 40ms; } .ms__step:nth-child(3) { animation-delay: 80ms; } .ms__step:nth-child(4) { animation-delay: 120ms; }
+  .ms__step:nth-child(n + 5) { animation-delay: 160ms; }
+  .ms__step.is-new .ms__node { animation: ck-tick 300ms 280ms var(--ease-spring) backwards; }
+  .ms__step.is-new:not(:last-child)::after { animation: ms-draw 300ms var(--ease-out) backwards; }
+  @keyframes ms-draw { from { transform: scaleY(0); } }
+  .ms__step[data-state="now"] .ms__node { animation: sp-now 300ms 300ms var(--ease-out) 1 backwards; }
+  .ms[data-complete] .ms__finish .ms__node { animation: ck-tick 300ms 300ms var(--ease-spring) backwards; }
+  .ms__detail { animation: step-in 200ms var(--ease-out) backwards; }
+  .cal-menu[open] .cal-menu__list { animation: step-in 200ms var(--ease-out) backwards; }
+}

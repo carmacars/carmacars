@@ -54,6 +54,8 @@ export const ADMIN_HUBS: Hub[] = [
     { href: '/admin/hiring', label: 'Hiring' }, { href: '/admin/portals', label: 'Portals and view as' },
     // r35 part K: the office staff's hours and the weekly townhall
     { href: '/admin/timesheet', label: 'Timesheet' }, { href: '/admin/townhall', label: 'Townhall' },
+    // r50 hotfix 2: the weekly Admin call (5150) and the demo portals
+    { href: '/admin/admin-call', label: 'Admin call' }, { href: '/admin/demo', label: 'Demo portals' },
     // r35 part C (1502, 1504): the schedules and the role KPIs
     { href: '/admin/schedules', label: 'Schedules' }, { href: '/admin/kpis', label: 'KPIs' },
     // r48 (3261): who gets staff perks, what was used
@@ -185,7 +187,7 @@ export const STAFF_SECTIONS: Section[] = [
   { key: 'finance', label: 'Finance', items: ['money', 'owner-money', { href: '/staff/tolls', label: 'Tolls and tickets', fns: 'finance' }, { href: '/staff/turo', label: 'Turo trips', fns: 'finance' }, { href: '/staff/maintenance', label: 'Maintenance bills', fns: 'finance' }] },
   { key: 'bookings', label: 'Bookings', items: [{ href: '/staff/bookings', label: 'Bookings', fns: OFFICE }, { href: '/staff/calendar', label: 'Calendar', fns: OFFICE }, { href: '/staff/cars', label: 'Find a car', fns: OFFICE },
     { href: '/staff/renters', label: 'Find a renter', fns: 'cs fleet finance' }, { href: '/staff/card-coverage', label: 'Card coverage', fns: OFFICE }] },
-  { key: 'me', label: 'Me', items: ['numbers', 'hours', { href: '/staff/townhall', label: 'Townhall', fns: `${OFFICE} field` }, { href: '/staff/field/sales', label: 'My sales', fns: 'field' }, { href: '/staff/field/referrals', label: 'Referrals', fns: 'field' }, { href: '/staff/field/profile', label: 'Profile', fns: 'field' }, { href: '/staff/academy', label: 'Academy', fns: `${OFFICE} field` }, { href: '/staff/bug-reports', label: 'My bug reports', fns: OFFICE }] }
+  { key: 'me', label: 'Me', items: ['numbers', 'hours', { href: '/staff/townhall', label: 'Townhall', fns: `${OFFICE} field` }, { href: '/staff/demo', label: 'Demo portals', fns: `${OFFICE} field` }, { href: '/staff/field/sales', label: 'My sales', fns: 'field' }, { href: '/staff/field/referrals', label: 'Referrals', fns: 'field' }, { href: '/staff/field/profile', label: 'Profile', fns: 'field' }, { href: '/staff/academy', label: 'Academy', fns: `${OFFICE} field` }, { href: '/staff/bug-reports', label: 'My bug reports', fns: OFFICE }] }
 ];
 
 /** Actions that are buttons on a page, not menu items (r27 consolidation): each with its parent page. They stay one search away. */

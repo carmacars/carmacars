@@ -76,3 +76,29 @@ export function readinessHref(key: string, base: string): string {
 }
 /** The first thing still to do (the phone's compact bar), or null when all is done. */
 export const readyNext = (lines: ReadyLine[]) => lines.find((l) => !l.done) ?? null;
+
+/** r50 hotfix 2: the staff steps from the sale to the pickup, as the stepped tracker draws them (Milestones). The steps the
+ *  renter does say they wait on the renter; the others are the team's. Done steps stay done whatever their order; the
+ *  first one not done is the one to do now. */
+export interface SaleStep { key: string; label: string; state: 'done' | 'now' | 'later'; hint: string | null; href: string | null; cta: string | null; yours: boolean; turn: string }
+export const SALE_STATUSES = ['requested', 'offered', 'pending_payment', 'tentative', 'confirmed', 'on_rent', 'returned', 'closed'];
+export function saleSteps(f: ReadyFacts, base: string): SaleStep[] {
+  const lines = readinessLines(f);
+  const line = (k: string) => lines.find((l) => l.key === k);
+  const out = ['on_rent', 'returned', 'closed'].includes(f.status);
+  const raw: Array<{ key: string; label: string; done: boolean; hint: string; renter: boolean; line: string }> = [
+    { key: 'answer', label: 'Request answered with an offer', done: f.status !== 'requested', hint: 'Check the car and the dates, then send the offer from Review.', renter: false, line: 'offer' },
+    { key: 'accept', label: 'Offer accepted', done: !!line('offer')?.done, hint: line('offer')!.hint, renter: true, line: 'offer' },
+    { key: 'agreement', label: 'Agreement signed', done: !!line('agreement')?.done, hint: line('agreement')!.hint, renter: true, line: 'agreement' },
+    { key: 'paid', label: line('paid')!.label, done: !!line('paid')?.done, hint: line('paid')!.hint, renter: true, line: 'paid' },
+    { key: 'verified', label: 'Licence and coverage checked', done: !!line('identity')?.done && !!line('coverage')?.done, hint: `${line('identity')!.hint} ${line('coverage')!.hint}`, renter: false, line: line('identity')?.done ? 'coverage' : 'identity' },
+    { key: 'deposit', label: 'Deposit and drivers', done: !!line('deposit')?.done && !!line('drivers')?.done, hint: `${line('deposit')!.hint} ${line('drivers')!.hint}`.trim(), renter: true, line: line('deposit')?.done ? 'drivers' : 'deposit' },
+    { key: 'prepared', label: 'Car prepared for the pickup', done: line('prepare') ? !!line('prepare')!.done : f.status === 'confirmed' || out, hint: line('prepare')?.hint ?? 'Clean, fuelled, photos ready and the add-ons in the car.', renter: false, line: 'prepare' },
+    { key: 'pickup', label: 'Picked up', done: out, hint: 'Record the pickup: the photos, the km and the fuel.', renter: false, line: 'prepare' }
+  ];
+  // once the car is out, every step before counts as done
+  const done = raw.map((r) => out || r.done);
+  const first = done.indexOf(false);
+  return raw.map((r, i) => ({ key: r.key, label: r.label, state: done[i] ? 'done' : i === first ? 'now' : 'later', hint: done[i] ? null : r.hint,
+    href: done[i] ? null : readinessHref(r.line, base), cta: done[i] ? null : 'Go there', yours: !r.renter, turn: r.renter ? 'Waiting on the renter: nudge them' : 'Your turn' }));
+}

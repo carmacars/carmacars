@@ -11,6 +11,8 @@ import { AWAITING_SIGNATURE, STATUS, awaitingSignature, bookingPath, nextStep, p
 import { returnReportable, selfPickupOffered } from '@/features/returns/claim';
 import { Back, PriceBreakdown } from '@/features/portal/Blocks';
 import { AddToCalendar } from '@/features/portal/AddToCalendar';
+import { PickupCountdown } from '@/features/portal/PickupCountdown';
+import { requestNow } from '@/features/va/lanes';
 import { walletReady } from '@/server/wallet';
 import { InfoReply } from '@/features/portal/InfoReply';
 import { Messages, type Msg } from '@/features/portal/Messages';
@@ -147,6 +149,9 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
   // r50 (4000): the monthly check-in visit of a long rental
   const checkin = ['confirmed', 'on_rent'].includes(b.status) && b.booking_type !== 'owner' ? await renterCheckin(user.id, b.booking_number) : null;
   const addr = ourAddress(s);
+  // r50 hotfix 2: the countdown shows from the offer until the car is picked up
+  const pickupLeft = new Date(b.pickup_at).getTime() - requestNow();
+  const countdownOn = ['offered', 'pending_payment', 'confirmed'].includes(b.status) && pickupLeft > -6 * 3600e3 && !b.handed_over_at;
   const act = nextAction(b, step, { pickupPlace: placeText(b.pickup_place ?? addr, b.pickup_method, true), returnPlace: placeText(b.return_place ?? addr, b.return_method, false),
     balanceCents: balanceDue, needs: stillNeededOf(b), reviewDue });
 
@@ -163,7 +168,7 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
     ...files.filter((f) => ['receipt', 'renter_statement', 'statement'].includes(f.kind)).map((f) => ({ key: `${f.kind}:${f.key}`, kind: f.kind, title: f.title, at: f.at, href: `/files/${f.kind}/${f.key}` }))];
 
   const next = <NextActionPanel a={act} testId="booking-next-step" titleId="booking-next-step-h" primaryTestId={stepId} dropTrip
-    extra={live ? <><AddToCalendar number={b.booking_number} car={`${b.vehicle_year} ${b.vehicle_make} ${b.vehicle_model}`} pickup={b.pickup_at} ret={b.return_at} place={b.pickup_place ?? 'CarmaCars'} />{wallet && <a className="btn now__btn" href={bookingPath(b.booking_number, 'wallet')} data-testid="add-to-wallet">Add to Apple Wallet</a>}{phone && <a className="btn now__btn" href={`tel:${tel}`}>Call us {phone}</a>}</> : null} />;
+    extra={live ? <>{wallet && <a className="btn now__btn" href={bookingPath(b.booking_number, 'wallet')} data-testid="add-to-wallet">Add to Apple Wallet</a>}{phone && <a className="btn now__btn" href={`tel:${tel}`}>Call us {phone}</a>}</> : null} />;
 
   return (
     <>
@@ -181,6 +186,11 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
       {/* r40 "Do this next": the one action and its button, then the steps and the one to-do list (what is still needed,
           the quick links and the agreement's details form); nothing above it competes */}
       {next}
+      {/* r50 hotfix 2: the live countdown to the pickup and Add to calendar (Apple, Google, Outlook, .ics), from the offer on */}
+      {countdownOn && <section className="stack" aria-label="Your pickup" data-testid="pickup-block">
+        <PickupCountdown until={b.pickup_at} initialMs={pickupLeft} place={placeText(b.pickup_place ?? addr, b.pickup_method, true)} />
+        <div className="row"><AddToCalendar number={b.booking_number} car={`${b.vehicle_year} ${b.vehicle_make} ${b.vehicle_model}`} pickup={b.pickup_at} ret={b.return_at} place={placeText(b.pickup_place ?? addr, b.pickup_method, true)} /></div>
+      </section>}
       {!['cancelled', 'declined', 'expired', 'closed'].includes(b.status) ? (
         <PortalCard id="pt-prog" title={stageSummary(track).text} testId="trip-progress">
           <StepTracker number={b.booking_number} stages={track} todos={todos(b.booking_number, stillNeededOf(b), quickLinks({ ...b, missing: b.readiness?.missing ?? null }, (licMissing?.length ?? 0) > 0))}>

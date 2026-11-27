@@ -7,6 +7,7 @@ import { sessionId, visitorId } from '@/features/live/beacon';
 import { claimProblems, isReplay, keptWords, mayPlayAgain, waitingWords, wonWords, type GameKind, type PrizeWord, type Trigger, type Visit } from './rules';
 import { forgetSaved, memory, remember, rememberAgain, rememberClaim, rememberSeen, rememberWon, signedIn } from './GameGate';
 import { SavedAsYouType, useCapture } from '@/features/capture/useCapture';
+import { GAME_LOAD } from './load';
 
 // Discount games (migrations 0069 and 0081): the game itself. A slide-in card on a computer and a bottom sheet on a
 // phone, never a full-screen block, always closable (the close button and Esc). On the first page of a phone visit
@@ -52,12 +53,7 @@ export interface Play { ok: boolean; reason?: string; /** 0172: with reason clai
   keep?: { from: 'new' | 'saved'; token: string; prize: Play['prize']; other: string } }
 export interface GameProps { prize: Play['prize']; prizes: PrizeWord[]; reduced: boolean; onReveal: () => void }
 
-const LOAD: Record<GameKind, () => Promise<{ default: ComponentType<GameProps> }>> = {
-  wheel: () => import('./games/Wheel'), scratch: () => import('./games/Scratch'), blackjack: () => import('./games/Blackjack'),
-  cups: () => import('./games/Cups'), plinko: () => import('./games/Plinko'), pack: () => import('./games/Pack'),
-  coin: () => import('./games/Coin'), dice: () => import('./games/Dice'), slots: () => import('./games/Slots'), drop: () => import('./games/Drop'),
-  mystery: () => import('./games/Mystery')
-};
+const LOAD = GAME_LOAD;
 /** The games' code, fetched ahead (idle time) so a game opens at once. */
 export function preloadGames() { for (const f of Object.values(LOAD)) void f().catch(() => undefined); }
 const GAMES: Record<GameKind, { title: string; pitch: string; C: ComponentType<GameProps> }> = {

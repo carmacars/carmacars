@@ -6,7 +6,8 @@ import { requireUser } from '@/server/portal/data';
 import { money } from '@/lib/format';
 import { ladderView, tierRank, type RewardsState, type TierPerk } from '@/features/rewards/types';
 import { CancelCode, CopyLink, GoogleClaim, PerkHint, Redeem, TierUpOnce } from '@/features/rewards/RewardsClient';
-import { Timeline, TimelineItem } from '@/components/portal-ui';
+import { Milestones } from '@/components/portal-ui/Milestones';
+import { RewardsGame } from '@/features/rewards/RewardsGame';
 import { MyDiscounts } from '@/features/rewards/MyDiscounts';
 import type { SavedDiscount } from '@/features/rewards/discounts';
 import { BirthdayForm } from '@/features/rewards/BirthdayForm';
@@ -69,6 +70,8 @@ export default async function Rewards() {
             <p>Worth <b>{money(r.value_cents, { cents: true })}</b> off the rental charge. {r.expires_on ? `They end on ${fmtDate(r.expires_on)} unless you rent or redeem before then.` : ''}</p>
             {r.tier.promo_code && <p className="small">Your earlier tier code {r.tier.promo_code} still works until it ends.</p>}
           </section>
+          {/* r50 hotfix 2 (5151): the games inside Rewards, for points */}
+          <RewardsGame userId={user.id} portal="renter" />
           <MyDiscounts list={discounts} />
           <section className="pt-card" aria-labelledby="rw-use">
             <h2 className="d4" id="rw-use">Use your points</h2>
@@ -111,11 +114,10 @@ export default async function Rewards() {
             <section className="pt-card" aria-labelledby="rw-tiers" data-testid="rewards-ladder">
               <h2 className="d4" id="rw-tiers">Tiers</h2>
               <p className="small muted">By points earned in the last 12 months. Each tier keeps the perks of the ones before it.</p>
-              <Timeline label="Rewards tiers">{lv.states.map(({ tier, state }) => (
-                <TimelineItem key={tier.code} testId={`rewards-ladder-${tier.code}`} state={state === 'done' ? 'done' : state === 'now' ? 'now' : 'future'}
-                  title={<>{tier.name}{tier.code === l.tier_code ? ' (your tier)' : ''}</>} amount={`${tier.min_points.toLocaleString('en-CA')} points`}
-                  meta={<>{tier.perks.map((k) => <span key={k.code}>{k.label}{k.detail ? `: ${k.detail}` : ''}</span>)}</>} />))}
-              </Timeline>
+              {/* r50 hotfix 2: the tiers on the shared stepped tracker; the next tier says the points to go */}
+              <Milestones testId="rewards-ladder" storageKey="rewards-ladder" label="Rewards tiers" finish={`Top tier: ${lv.states[lv.states.length - 1]?.tier.name ?? 'Black'}`}
+                steps={lv.states.map(({ tier, state }) => ({ key: tier.code, label: `${tier.name}: ${tier.min_points.toLocaleString('en-CA')} points${tier.code === l.tier_code ? ' (your tier)' : ''}`, state,
+                  hint: [state === 'now' ? lv.line : null, tier.perks.map((k) => k.label).join(', ') || null].filter(Boolean).join('. ') || null, yours: state === 'now', turn: state === 'now' ? lv.line : undefined }))} />
             </section>
           )}
           {r.occasions && <section className="pt-card stack" aria-labelledby="rw-occ" data-testid="rewards-occasions">

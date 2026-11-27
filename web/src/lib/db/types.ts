@@ -687,6 +687,69 @@ export type Database = {
         };
         Relationships: [];
       };
+      admin_call_decisions: {
+        Row: {
+          id: string;
+          deck_id: string;
+          item_key: string;
+          decision: string;
+          note: string | null;
+          decided_by: string;
+          decided_at: string;
+        };
+        Insert: {
+          id?: string;
+          deck_id: string;
+          item_key: string;
+          decision: string;
+          note?: string | null;
+          decided_by: string;
+          decided_at?: string;
+        };
+        Update: {
+          id?: string;
+          deck_id?: string;
+          item_key?: string;
+          decision?: string;
+          note?: string | null;
+          decided_by?: string;
+          decided_at?: string;
+        };
+        Relationships: [];
+      };
+      admin_call_decks: {
+        Row: {
+          id: string;
+          week_of: string;
+          call_at: string;
+          built_at: string;
+          built_by: string | null;
+          slides: Json;
+          notes: Json;
+          reminded_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          week_of: string;
+          call_at: string;
+          built_at?: string;
+          built_by?: string | null;
+          slides?: Json;
+          notes?: Json;
+          reminded_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          week_of?: string;
+          call_at?: string;
+          built_at?: string;
+          built_by?: string | null;
+          slides?: Json;
+          notes?: Json;
+          reminded_at?: string | null;
+        };
+        Relationships: [];
+      };
       ads_job_state: {
         Row: {
           singleton: boolean;
@@ -22325,6 +22388,11 @@ export type Database = {
           owner_stage_uvip_url: string;
           calls_mode: string;
           staff_notice_days: number;
+          admin_call_weekday: number;
+          admin_call_time: string;
+          admin_call_minutes: number;
+          rewards_game_on: boolean;
+          rewards_game_prizes: Json;
         };
         Insert: {
           id?: string;
@@ -23317,6 +23385,11 @@ export type Database = {
           owner_stage_uvip_url?: string;
           calls_mode?: string;
           staff_notice_days?: number;
+          admin_call_weekday?: number;
+          admin_call_time?: string;
+          admin_call_minutes?: number;
+          rewards_game_on?: boolean;
+          rewards_game_prizes?: Json;
         };
         Update: {
           id?: string;
@@ -24309,6 +24382,11 @@ export type Database = {
           owner_stage_uvip_url?: string;
           calls_mode?: string;
           staff_notice_days?: number;
+          admin_call_weekday?: number;
+          admin_call_time?: string;
+          admin_call_minutes?: number;
+          rewards_game_on?: boolean;
+          rewards_game_prizes?: Json;
         };
         Relationships: [];
       };
@@ -26571,6 +26649,48 @@ export type Database = {
           limit_text?: string;
           sort?: number;
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+      reward_game_plays: {
+        Row: {
+          id: string;
+          user_id: string;
+          portal: string;
+          day: string;
+          game: string;
+          prize_key: string;
+          points: number;
+          test: boolean;
+          renter_id: string | null;
+          ledger_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          portal: string;
+          day: string;
+          game: string;
+          prize_key: string;
+          points: number;
+          test?: boolean;
+          renter_id?: string | null;
+          ledger_id?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          portal?: string;
+          day?: string;
+          game?: string;
+          prize_key?: string;
+          points?: number;
+          test?: boolean;
+          renter_id?: string | null;
+          ledger_id?: string | null;
+          created_at?: string;
         };
         Relationships: [];
       };
@@ -38087,6 +38207,7 @@ export type Database = {
       server_review_helper: { Args: { p_token: string }; Returns: Json };
       server_review_helper_act: { Args: { p_token: string; p_act: string }; Returns: Json };
       server_review_photos_set: { Args: { p_booking: string; p_by: string; p_photos: Json }; Returns: Json };
+      server_rewards_game: { Args: { p_by: string; p_action: string; p?: Json }; Returns: Json };
       server_rideshare_docs: { Args: { p_by: string; p_booking: string }; Returns: Json };
       server_rideshare_docs_request: { Args: { p_by: string; p: Json }; Returns: Json };
       server_rolling_link_send: { Args: { p_id: string; p_link: string }; Returns: Json };

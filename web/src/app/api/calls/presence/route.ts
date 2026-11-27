@@ -20,8 +20,8 @@ export async function POST(req: Request) {
     }
     const user = await currentUser();
     if (!user) return NextResponse.json({ error: 'Sign in first' }, { status: 401, headers: H });
-    const as = b.as?.room === 'interview' ? { room: 'interview', application_id: String(b.as.application_id ?? '') } : { room: 'townhall' };
-    const j = await door<Joined>(user.id, as.room === 'interview' ? 'admin_read' : 'ops_read', 'call_join', as);
+    const as = b.as?.room === 'interview' ? { room: 'interview', application_id: String(b.as.application_id ?? '') } : b.as?.room === 'admin_call' ? { room: 'admin_call' } : { room: 'townhall' };
+    const j = await door<Joined>(user.id, as.room === 'townhall' ? 'ops_read' : 'admin_read', 'call_join', as);
     await recordEvent(j.room, j.identity, ev);
     return NextResponse.json({ ok: true }, { headers: H });
   } catch (e) {

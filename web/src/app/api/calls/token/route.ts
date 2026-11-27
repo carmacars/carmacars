@@ -16,7 +16,8 @@ export async function POST(req: Request) {
     }
     const user = await currentUser();
     if (!user) return NextResponse.json({ error: 'Sign in first' }, { status: 401, headers: H });
-    const as = b.as?.room === 'interview' ? { room: 'interview' as const, application_id: String(b.as.application_id ?? '') } : { room: 'townhall' as const };
+    // r50 hotfix 2 (5150): the weekly Admin call has its own room (Admins only, the database checks)
+    const as: JoinAs = b.as?.room === 'interview' ? { room: 'interview', application_id: String(b.as.application_id ?? '') } : b.as?.room === 'admin_call' ? { room: 'admin_call' } : { room: 'townhall' };
     return NextResponse.json((await staffTicket(user.id, as)).ticket, { headers: H });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message || 'The call could not be opened' }, { status: 403, headers: H });

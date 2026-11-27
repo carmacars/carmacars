@@ -1,6 +1,7 @@
 import { pageMeta } from '@/features/seo/meta';
 import { requireStaff, sessionAal } from '@/server/door';
 import { loadMyRewards, MyRewards } from '@/features/staff-rewards/MyRewards';
+import { RewardsGame } from '@/features/rewards/RewardsGame';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'My rewards', path: '/staff/field/rewards', noindex: true, description: 'Your staff discount and your free rental days.' });
@@ -12,6 +13,8 @@ export default async function FieldRewardsPage() {
   return (
     <>
       <header className="fp-hello"><h1>My rewards</h1><p>A discount on your own rentals, and free rental days you earn.</p></header>
+      {/* r50 hotfix 2 (5151): the games inside Rewards, for CarmaCars Rewards points */}
+      <RewardsGame userId={user.id} portal="staff" />
       {r ? <MyRewards r={r} refresh={['/staff/field/rewards', '/staff/field']} />
         : <div className="pt-empty" data-testid="my-rewards-error"><p className="d4">My rewards did not load.</p><p className="muted">Reload the page. Nothing was changed.</p></div>}
     </>

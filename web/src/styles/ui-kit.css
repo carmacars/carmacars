@@ -276,3 +276,69 @@
 .portal-error .lead { font-size: var(--fs-body); }
 .ad-toasts { bottom: calc(var(--s-5) + env(safe-area-inset-bottom, 0px)); }
 @media (max-width: 640px) { .ready-next { padding-bottom: calc(var(--s-2) + env(safe-area-inset-bottom, 0px)); } }
+
+/* ---------------------------------------------------------------- r50 hotfix 2: the stepped tracker (Milestones), the pickup
+   countdown and the Add to calendar menu (components/portal-ui/Milestones.tsx, features/portal/PickupCountdown.tsx,
+   features/portal/AddToCalendar.tsx). One tracker for every process in steps: bookings, owner applications, staff sale
+   to pickup, Rewards tiers. The node line: black up to the step to do now, then the grey track. */
+.ms { display: grid; gap: var(--s-3); }
+.ms__head { display: flex; align-items: baseline; gap: var(--s-3); flex-wrap: wrap; }
+.ms__count { margin: 0; font-family: var(--font-display); font-size: var(--fs-d3); line-height: 1; font-variant-numeric: tabular-nums; color: var(--grey-600); }
+.ms__count b { color: var(--black); }
+.ms__sum { margin: 0; font-weight: 700; text-wrap: balance; }
+.ms__list { list-style: none; margin: 0; padding: 0; display: grid; }
+.ms__step { position: relative; display: grid; grid-template-columns: 2rem minmax(0, 1fr); gap: var(--s-3); padding-bottom: var(--s-3); min-height: 3rem; }
+.ms__step:not(:last-child)::after { content: ""; position: absolute; left: calc(1rem - 1px); top: 2.1rem; bottom: 0.1rem; width: 2px; border-radius: 2px; background: var(--grey-200); transform-origin: top; }
+.ms__step[data-state="done"]:not(:last-child)::after { background: var(--black); }
+.ms__node { position: relative; z-index: 1; display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: var(--ui-r-pill); border: 2px solid var(--grey-300); background: var(--white); color: var(--grey-600); font-size: var(--fs-xs); font-weight: 800; font-variant-numeric: tabular-nums; }
+.ms__step[data-state="done"] .ms__node { background: var(--black); border-color: var(--black); color: var(--white); }
+.ms__step[data-state="now"] .ms__node { border-color: var(--red-600); color: var(--red-600); box-shadow: 0 0 0 4px rgb(208 17 27 / 0.16); }
+.ms__finish[data-state="done"] .ms__node { background: var(--red-600); border-color: var(--red-600); color: var(--white); box-shadow: 0 0 0 4px rgb(208 17 27 / 0.16); }
+.ms__body { display: grid; gap: 0.15rem; align-content: start; min-width: 0; padding-top: 0.35rem; }
+.ms__label { justify-self: start; padding: 0; border: 0; background: none; font: inherit; font-weight: 600; color: inherit; text-align: left; text-wrap: pretty; cursor: default; }
+button.ms__label { cursor: pointer; min-height: 2rem; margin-top: -0.35rem; padding: 0.35rem 0; text-decoration: underline; text-decoration-color: rgb(0 0 0 / 0.2); text-underline-offset: 3px; }
+button.ms__label:focus-visible { outline: 2px solid var(--red-600); outline-offset: 2px; border-radius: 4px; }
+@media (hover: hover) { button.ms__label:hover { text-decoration-color: currentColor; } }
+.ms__step[data-state="done"] .ms__label { color: var(--grey-700); }
+.ms__step[data-state="now"] .ms__label { font-family: var(--font-display); font-weight: 700; font-size: var(--fs-body); }
+.ms__step[data-state="later"] .ms__label { color: var(--grey-600); }
+.ms__turn { justify-self: start; font-size: var(--fs-2xs); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--grey-600); }
+.ms__turn.is-yours { color: var(--red-600); }
+.ms__when { font-size: var(--fs-xs); color: var(--grey-600); font-variant-numeric: tabular-nums; }
+.ms__detail { display: grid; gap: var(--s-2); justify-items: start; padding: var(--s-2) var(--s-3); margin-top: var(--s-1); border-radius: var(--ui-r-tile); background: var(--grey-50); font-size: var(--fs-sm); }
+.ms__detail p { margin: 0; text-wrap: pretty; }
+.ms[data-complete] .ms__sum { color: var(--red-600); }
+
+.cd { display: grid; gap: var(--s-2); padding: var(--s-4); border-radius: var(--ui-r-card); background: var(--black); color: var(--white); }
+.cd__label { margin: 0; font-size: var(--fs-2xs); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: rgb(255 255 255 / 0.7); }
+.cd__tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--s-2); }
+.cd__tile { display: grid; justify-items: center; gap: 0.1rem; padding: var(--s-2) 0; border-radius: var(--ui-r-tile); background: rgb(255 255 255 / 0.08); border: 1px solid rgb(255 255 255 / 0.12); }
+.cd__tile b { font-family: var(--font-display); font-size: var(--fs-d3); line-height: 1.1; font-variant-numeric: tabular-nums; }
+.cd__tile small { font-size: var(--fs-2xs); color: rgb(255 255 255 / 0.7); }
+.cd__place { margin: 0; font-size: var(--fs-sm); color: rgb(255 255 255 / 0.85); overflow-wrap: anywhere; }
+.cd--now { background: var(--red-600); }
+.cd--now .cd__label { color: var(--white); font-size: var(--fs-sm); }
+
+.cal-menu { position: relative; display: inline-block; }
+.cal-menu > summary { list-style: none; }
+.cal-menu > summary::-webkit-details-marker { display: none; }
+.cal-menu__list { position: absolute; z-index: 30; top: calc(100% + 6px); left: 0; display: grid; min-width: min(17rem, calc(100vw - 2rem)); padding: var(--s-1); border-radius: var(--ui-r-tile); border: 1px solid var(--ui-line); background: var(--white); box-shadow: var(--ui-shadow); }
+.cal-menu__item { display: grid; gap: 0.1rem; min-height: 44px; padding: var(--s-2) var(--s-3); border: 0; border-radius: 8px; background: none; color: inherit; font: inherit; text-align: left; text-decoration: none; cursor: pointer; }
+.cal-menu__item small { color: var(--grey-600); font-size: var(--fs-xs); }
+.cal-menu__item:focus-visible { outline: 2px solid var(--red-600); outline-offset: -2px; }
+@media (hover: hover) { .cal-menu__item:hover { background: var(--grey-100); } }
+.ms__step[data-skip] .ms__node { background: var(--white); border-style: dashed; border-color: var(--grey-400); color: var(--grey-600); }
+.ms__step[data-skip] .ms__label { text-decoration: line-through; text-decoration-color: rgb(0 0 0 / 0.3); }
+/* r50 hotfix 2 (5151): the game inside Rewards (features/rewards/RewardsGameClient.tsx) */
+.rg__head { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--s-3); flex-wrap: wrap; }
+.rg__head h2 { margin: 0; }
+.rg__points { margin: 0; display: grid; justify-items: end; line-height: 1; }
+.rg__points b { font-family: var(--font-display); font-size: var(--fs-d2); font-variant-numeric: tabular-nums; }
+.rg__points small { font-size: var(--fs-xs); color: var(--grey-600); }
+.rg__prizes { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--s-1); }
+.rg__prizes li { padding: 0.2rem 0.6rem; border-radius: var(--ui-r-pill); border: 1px solid var(--ui-line); font-size: var(--fs-xs); font-weight: 700; font-variant-numeric: tabular-nums; }
+.rg__stage { display: grid; gap: var(--s-2); justify-items: center; padding: var(--s-3); border-radius: var(--ui-r-tile); background: var(--grey-50); }
+.rg__stage .ccg-stage { width: 100%; max-width: 22rem; }
+.rg__won { display: grid; gap: var(--s-1); justify-items: center; padding: var(--s-4); border-radius: var(--ui-r-tile); background: var(--black); color: var(--white); text-align: center; }
+.rg__won .d3 { margin: 0; font-variant-numeric: tabular-nums; }
+.rg__won .small { margin: 0; color: rgb(255 255 255 / 0.8); }
