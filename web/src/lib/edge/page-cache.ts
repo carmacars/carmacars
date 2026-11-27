@@ -100,6 +100,17 @@ export function edgeTtl(pathname: string, status: number, headers: { get(name: s
   return 0;
 }
 
+/** r50 hotfix 2 (dbbusy): on the company's server (scripts/vps-server.mjs) the kept copy of a long-tail page (a place
+ *  page or a programmatic page: rendered on demand, the same for everyone) answers as the Worker's edge copy did, for
+ *  the same time (PLACE_TTL_S, PROGRAMMATIC_TTL_S), so a crawler no longer renders each of them again. Only a copy this
+ *  process kept (`startedAt`): a copy from an earlier build names other script files. No tag generation on the server:
+ *  a car put on or taken off shows on these pages within that time, or at the next restart or deploy. */
+export function keptCopyFresh(pathname: string, storedAt: number, startedAt: number, now: number): boolean {
+  if (storedAt < startedAt || storedAt > now) return false;
+  const ttl = isPlacePage(pathname) ? PLACE_TTL_S : PROGRAMMATIC.test(pathname) ? PROGRAMMATIC_TTL_S : 0;
+  return ttl > 0 && now - storedAt < ttl * 1000;
+}
+
 /** True when a tag rebuilt on demand can change a public page (portal and API pages only change themselves). */
 export function tagsTouchPublic(tags: ReadonlyArray<string | { tag: string }>): boolean {
   return tags.some((t) => {

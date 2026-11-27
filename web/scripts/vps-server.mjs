@@ -37,7 +37,7 @@ import { crossSiteRefusal, crossSiteWriteRefused, unusedFrameworkPath } from '..
 import { refreshSession } from '../src/lib/auth/edge-refresh.ts';
 import { emailLinkCookie } from '../src/lib/track/shared.ts';
 import { SCHEMA_HEADER, SCHEMA_MARKER } from '../src/lib/schema-marker.ts';
-import { ORIGIN_WAIT_MS, STALE_HEADER, hasSession, isProbe, staleKey, staleWorthy } from '../src/lib/edge/page-cache.ts';
+import { EDGE_HEADER, ORIGIN_WAIT_MS, STALE_HEADER, hasSession, isProbe, keptCopyFresh, staleKey, staleWorthy } from '../src/lib/edge/page-cache.ts';
 import { checkPage, fromEngine, longTail, marketOf, marketStored, offMarketPlace, oldModelYear, oldYearGone, outOfMarket, placeRegionBit, scraperGuard, tooMany, vehiclePageYear } from '../src/lib/edge/scraper-guard.ts';
 import { RATE_LIMITED_BOT, keptToScope, shield, shieldResponse } from '../src/lib/edge/bot-shield.ts';
 import { hostAction } from '../src/lib/edge/canonical-host.ts';
@@ -148,6 +148,8 @@ const tailGate = new RenderGate(Number(env.LONGTAIL_RENDERS) || 6, 60);
 const TAIL_WAIT_MS = 3_000;
 const guardOn = env.SCRAPER_GUARD !== '0';
 let copies = null;
+// r50 hotfix 2 (dbbusy): only copies kept by this process answer as fresh (page-cache.ts keptCopyFresh)
+const STARTED_AT = Date.now();
 if (env.KEPT_COPIES !== '0') {
   keptCopies(env.COPIES_DIR || path.join(os.tmpdir(), 'carmacars-copies')).then((c) => {
     copies = c;
@@ -289,6 +291,16 @@ async function handle(req, res) {
     const c = sKey ? await copies.get(sKey) : null;
     if (c) return htmlOut(200, copyHeaders('guard'), c.body);
     return sendWeb(res, checkPage(secHeaders()));
+  }
+  // r50 hotfix 2 (dbbusy): a long-tail page kept by this build within its time answers from the copy, as the Worker's
+  // edge copy did, with no render and no database call
+  if (sKey) {
+    const c = await copies.get(sKey);
+    if (c && keptCopyFresh(pathname, c.storedAt, STARTED_AT, Date.now())) {
+      req.resume();
+      const h = copyHeaders('fresh'); delete h[STALE_HEADER]; h[EDGE_HEADER] = 'HIT';
+      return htmlOut(200, h, c.body);
+    }
   }
   if (crossSiteWriteRefused(method, url.toString(), head('origin'), head('sec-fetch-site'))) { req.resume(); return sendWeb(res, crossSiteRefusal(secHeaders())); }
   if (viewAsWriteRefused(method, pathname, head('cookie'))) { req.resume(); return sendWeb(res, viewAsRefusal(req.headers['next-action'] !== undefined, secHeaders())); }

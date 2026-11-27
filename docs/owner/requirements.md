@@ -848,6 +848,15 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 - Rule: Turo trip emails forwarded from rent@ go to trips@in.carmacars.ca and the site reads them; the root carmacars.ca mail (Google Workspace) stays as it is.
 - Done when: Turo trip emails forwarded from rent@ reach trips@in.carmacars.ca and are read by the site, root carmacars.ca mail (Google Workspace) unchanged.
 
+### REQ-123 Database busy errors after the server switch
+- Status: in progress
+- Proof: merge of r50-hotfix2-dbbusy (f02c7aa2): web/scripts/vps-server.mjs serves a long-tail page from the copy this build kept (src/lib/edge/page-cache.ts keptCopyFresh), as the Worker's edge copy did
+- Test: web/src/lib/edge/page-cache.test.ts
+- Asked: Nov 27 12:36
+- Owner: "I'm getting a bunch of error notifications from the site, fix it"; "Setup amazon ses and the switch to the server ASAP"
+- Rule: the site on the company's server never floods the Admins with "the database is busy" errors; the long-tail pages crawlers read are not rendered again while a good copy is fresh.
+- Done when: site_errors shows no "gave up: the database is busy" spike for 24 hours after the deploy, and the 15-minute error spike incident does not reopen.
+
 ## 16. Earlier decisions (Oct to Nov 12, from the chat extraction)
 
 ### REQ-092 Corporation, shares and shareholder money
