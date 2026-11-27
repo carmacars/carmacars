@@ -46,13 +46,79 @@
   .qb-acts .btn { min-height: 44px; flex: 1 1 auto; }
 }
 
-/* Calls in the browser (r44, VoiceDock.tsx): one bar at the bottom left (the caller pop-up keeps the bottom right); on a
-   phone across the top, so the two never cover each other. */
-.vd { position: fixed; left: 16px; bottom: 16px; z-index: 61; width: min(22rem, calc(100vw - 32px)); display: grid; gap: 8px; padding: 12px 14px;
-  border-radius: 14px; background: var(--white); color: var(--text); box-shadow: 0 0 0 1px rgb(0 0 0 / 0.08), 0 18px 40px -16px rgb(0 0 0 / 0.45); }
-.vd-line { margin: 0; display: flex; gap: 8px; flex-wrap: wrap; align-items: baseline; overflow-wrap: break-word; }
-.vd-time { font-variant-numeric: tabular-nums; margin-left: auto; }
-.vd-acts { margin: 0; display: flex; gap: 8px; flex-wrap: wrap; }
-.vd-pad { margin: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-@media (max-width: 47.99rem) { .vd { top: 12px; bottom: auto; left: 16px; } }
-@media (prefers-color-scheme: dark) { .vd { background: var(--grey-900); color: var(--white); box-shadow: 0 0 0 1px rgb(255 255 255 / 0.08), 0 18px 40px -16px rgb(0 0 0 / 0.9); } }
+/* Calls in the browser (r44; r50 hotfix 2: a call screen like a phone's own, VoiceDock.tsx). A card at the bottom left on a
+   computer (the caller pop-up keeps the bottom right); the whole screen on a phone. Its own surface in both themes, so the
+   buttons never disappear into a dark page: green to call or answer, the site's red to end. */
+.vc, .vc-launch { --vc-bg: var(--white); --vc-fg: var(--black); --vc-muted: var(--grey-600); --vc-btn: var(--grey-100); --vc-btn-fg: var(--black);
+  --vc-on: var(--black); --vc-on-fg: var(--white); --vc-go: #15803d; --vc-go-hover: #166534; --vc-end: var(--red-600); --vc-end-hover: var(--red-700); }
+.vc { position: fixed; left: 16px; bottom: 16px; z-index: 61; width: min(21rem, calc(100vw - 32px)); max-height: calc(100dvh - 32px); overflow: auto;
+  display: grid; gap: 14px; padding: 18px 16px 16px; border-radius: 20px; background: var(--vc-bg); color: var(--vc-fg);
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.08), 0 24px 56px -18px rgb(0 0 0 / 0.5); }
+.vc-head { display: flex; justify-content: flex-end; margin: -8px -6px -10px 0; }
+.vc-x { border: 0; background: none; color: var(--vc-muted); font-size: 1.6rem; line-height: 1; width: 44px; height: 44px; border-radius: 50%; cursor: pointer; }
+.vc-x:hover { background: var(--vc-btn); }
+.vc-who { display: grid; justify-items: center; gap: 4px; text-align: center; padding-top: 4px; }
+.vc-avatar { display: grid; place-items: center; width: 64px; height: 64px; border-radius: 50%; background: var(--vc-btn); font-size: 1.6rem; font-weight: 700; margin-bottom: 4px; }
+.vc-name { margin: 0; font-size: 1.25rem; font-weight: 700; overflow-wrap: anywhere; }
+.vc-number { margin: 0; color: var(--vc-muted); font-variant-numeric: tabular-nums; }
+.vc-status { margin: 0; color: var(--vc-muted); font-variant-numeric: tabular-nums; min-height: 1.4em; }
+.vc--in_call .vc-status { color: var(--vc-fg); }
+.vc-ic { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.vc-ctrls { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.vc-ctl { display: grid; justify-items: center; gap: 6px; border: 0; background: none; color: inherit; padding: 0; cursor: pointer; font: inherit; }
+.vc-ctl__b { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; background: var(--vc-btn); color: var(--vc-btn-fg); transition: background-color 0.15s, color 0.15s; }
+.vc-ctl:hover .vc-ctl__b { background: var(--grey-200); }
+.vc-ctl.is-on .vc-ctl__b { background: var(--vc-on); color: var(--vc-on-fg); }
+.vc-ctl:disabled { opacity: 0.45; cursor: default; }
+.vc-ctl__t { font-size: 0.8rem; color: var(--vc-muted); white-space: nowrap; }
+.vc-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; justify-items: center; }
+.vc-key { display: grid; place-items: center; align-content: center; width: 64px; height: 64px; border-radius: 50%; border: 0; background: var(--vc-btn); color: var(--vc-btn-fg); cursor: pointer; font: inherit; }
+.vc-key:hover { background: var(--grey-200); }
+.vc-key:active { background: var(--grey-300); }
+.vc-key__n { font-size: 1.5rem; line-height: 1; }
+.vc-key__s { font-size: 0.6rem; letter-spacing: 0.12em; min-height: 0.8em; color: var(--vc-muted); }
+.vc-row { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; justify-items: center; gap: 8px; }
+.vc--ringing_in .vc-row { grid-template-columns: 1fr 1fr; }
+.vc-spacer { width: 56px; }
+.vc-roundwrap { display: grid; justify-items: center; gap: 6px; }
+.vc-round { display: grid; place-items: center; width: 64px; height: 64px; border-radius: 50%; border: 0; color: var(--white); cursor: pointer; transition: background-color 0.15s, transform 0.1s; }
+.vc-round:active:not(:disabled) { transform: scale(0.96); }
+.vc-round:disabled { opacity: 0.4; cursor: default; }
+.vc-round--go { background: var(--vc-go); }
+.vc-round--go:hover:not(:disabled) { background: var(--vc-go-hover); }
+.vc-round--end { background: var(--vc-end); }
+.vc-round--end:hover:not(:disabled) { background: var(--vc-end-hover); }
+.vc-round--plain { width: 56px; height: 56px; background: none; color: var(--vc-muted); }
+.vc-end { display: grid; transform: rotate(135deg); }
+.vc-link { border: 0; background: none; color: var(--vc-fg); text-decoration: underline; cursor: pointer; font: inherit; font-size: 0.9rem; min-height: 44px; }
+.vc-dial { display: grid; gap: 12px; }
+.vc-num { width: 100%; border: 0; border-bottom: 1px solid var(--grey-300); background: transparent; color: var(--vc-fg); text-align: center; font-size: 1.75rem;
+  font-variant-numeric: tabular-nums; padding: 6px 0; border-radius: 0; }
+.vc-num:focus { outline: none; border-bottom-color: var(--vc-fg); }
+.vc-hint { margin: 0; text-align: center; }
+.vc-audio { display: grid; gap: 8px; }
+.vc-sel { display: grid; gap: 4px; }
+.vc-sel .input { font-size: 16px; width: 100%; min-width: 0; }
+.vc-acts { margin: 0; display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.vc :focus-visible, .vc-launch:focus-visible { outline: 3px solid var(--red-600); outline-offset: 2px; }
+.vc-launch { position: fixed; left: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 60; display: grid; place-items: center; width: 48px; height: 48px;
+  border-radius: 50%; border: 0; background: var(--vc-go); color: var(--white); cursor: pointer; box-shadow: 0 10px 24px -10px rgb(0 0 0 / 0.55); }
+.vc-launch:hover { background: var(--vc-go-hover); }
+.vc-launch .vc-ic { width: 22px; height: 22px; }
+@media (max-width: 47.99rem) {
+  .vc { inset: 0; width: auto; max-height: none; border-radius: 0; padding: calc(20px + env(safe-area-inset-top, 0px)) 24px calc(24px + env(safe-area-inset-bottom, 0px));
+    align-content: space-between; }
+  .vc--problem { inset: auto 0 0 0; border-radius: 20px 20px 0 0; align-content: start; }
+  .vc-who { padding-top: 6vh; }
+  .vc-avatar { width: 88px; height: 88px; font-size: 2rem; }
+  .vc-name { font-size: 1.6rem; }
+  .vc-key { width: 72px; height: 72px; }
+  .vc-round { width: 72px; height: 72px; }
+}
+@media print { .vc, .vc-launch { display: none; } }
+@media (prefers-reduced-motion: reduce) { .vc-round, .vc-ctl__b { transition: none; } }
+@media (prefers-color-scheme: dark) {
+  .vc { --vc-bg: var(--grey-900); --vc-fg: var(--white); --vc-muted: var(--grey-400); --vc-btn: var(--grey-800); --vc-btn-fg: var(--white);
+    --vc-on: var(--white); --vc-on-fg: var(--black); box-shadow: 0 0 0 1px rgb(255 255 255 / 0.08), 0 24px 56px -18px rgb(0 0 0 / 0.9); }
+  .vc-ctl:hover .vc-ctl__b, .vc-key:hover { background: var(--grey-700); }
+}
