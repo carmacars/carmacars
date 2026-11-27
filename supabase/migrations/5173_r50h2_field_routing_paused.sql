@@ -50,14 +50,21 @@ end $$;
 update program_settings set field_slots_auto = false, field_jobs_auto_assign = 'least_busy'
  where field_slots_auto is distinct from false or field_jobs_auto_assign is distinct from 'least_busy';
 -- the open slots still to come that nobody holds (their jobs are routed again by fx_slot_jobs_after, then field_route_run)
+-- A cancel names who cancelled (field_shift_slots_check2): the slot's creator, else the first Admin. A database with no
+-- Admin yet (a fresh build) deletes the slot instead when nothing but its jobs points at it (the jobs lose the slot).
 do $$
-declare n integer;
+declare n integer; d integer; v_admin uuid := (select r.user_id from user_roles r where r.role = 'admin' order by r.granted_at, r.user_id limit 1);
 begin
-  update field_shift_slots s set cancelled_at = now()
-   where s.cancelled_at is null and s.starts_at > now()
+  update field_shift_slots s set cancelled_at = now(), cancelled_by = coalesce(s.created_by, v_admin)
+   where s.cancelled_at is null and s.starts_at > now() and coalesce(s.created_by, v_admin) is not null
      and not exists (select 1 from field_shift_plans x where x.slot_id = s.id and x.cancelled_at is null);
   get diagnostics n = row_count;
-  raise notice '5173: % open slot(s) nobody held cancelled (shifts paused)', n;
+  delete from field_shift_slots s
+   where s.cancelled_at is null and s.starts_at > now() and coalesce(s.created_by, v_admin) is null
+     and not exists (select 1 from field_shift_plans x where x.slot_id = s.id)
+     and not exists (select 1 from field_shift_offers o where o.slot_id = s.id);
+  get diagnostics d = row_count;
+  raise notice '5173: % open slot(s) nobody held cancelled, % deleted (shifts paused)', n, d;
 end $$;
 
 -- ================================================================ 2. where a job goes
