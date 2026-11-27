@@ -72,7 +72,19 @@ insert into notifications (user_id, code, title, entity, entity_id, dedupe_key) 
   (test.id('lac_rep'), 'staff_lead_new', 'New lead', 'lead', test.id('lead:lac1'), 'lac:rep');
 select test.eq('lead alert: no notice is written to the one mid-academy (bell, push, email, text)',
   (select string_agg(dedupe_key, ',' order by dedupe_key) from notifications where dedupe_key like 'lac:%'), 'lac:rep');
-select test.throws('claim: refused', $$insert into lead_claims (lead_id, claimed_by, expires_at, cap_at) values (test.id('lead:lac1'), test.id('lac_mid'), now() + interval '1 hour', now() + interval '2 hours')$$, 'has not finished onboarding');
+-- only the lead rules: an owner trip (on shift for fleet, customer service and sales) still reaches the one mid-academy
+select test.ok('other alerts: an on-shift rule that is not about leads still reaches the one mid-academy',
+  exists (select 1 from app.staff_alert_users('owner_trip_new', '{}') u where u.user_id = test.id('lac_mid')));
+select test.ok('lead codes: an exact list (leaderboard, lead_time, override_requested, owner_trip_new are not leads)',
+  app.lead_notice_code('staff_lead_new') and app.lead_notice_code('visitor_signal')
+  and not app.lead_notice_code('leaderboard') and not app.lead_notice_code('lead_time') and not app.lead_notice_code('override_requested')
+  and not app.staff_alert_is_lead('owner_trip_new'));
+insert into notifications (user_id, code, title, entity, entity_id, dedupe_key) values
+  (test.id('lac_mid'), 'staff_booking_request_new', 'Top of the leaderboard', 'leaderboard', null, 'lacx:board'),
+  (test.id('lac_mid'), 'staff_booking_request_new', 'Lead time', 'lead_time', null, 'lacx:time');
+select test.eq('notice fence: leaderboard and lead_time notices still reach the one mid-academy',
+  (select count(*)::int from notifications where dedupe_key like 'lacx:%'), 2);
+select test.throws('claim: refused',$$insert into lead_claims (lead_id, claimed_by, expires_at, cap_at) values (test.id('lead:lac1'), test.id('lac_mid'), now() + interval '1 hour', now() + interval '2 hours')$$, 'has not finished onboarding');
 select test.throws('Admin reassign: refused', $$select pg_temp.dr('lac_admin', 'ops_do', 'lead_reassign', jsonb_build_object('lead', test.id('lead:lac1'), 'to', test.id('lac_mid')))$$, 'has not finished onboarding');
 update leads set assigned_to = test.id('lac_mid') where id = test.id('lead:lac1');
 select test.eq('assignment: not given', (select assigned_to from leads where id = test.id('lead:lac1')), null::uuid);
@@ -83,5 +95,13 @@ select test.lives('lead list: the onboarded salesperson reads it', $$select pg_t
 insert into academy_waivers (user_id, waived_by, reason) values (test.id('lac_mid'), test.id('lac_admin'), 'Passed elsewhere');
 select test.eq('waived: leads open', app.staff_leads_ok(test.id('lac_mid')), true);
 select test.lives('waived: the claim goes through', $$insert into lead_claims (lead_id, claimed_by, expires_at, cap_at) values (test.id('lead:lac1'), test.id('lac_mid'), now() + interval '1 hour', now() + interval '2 hours')$$);
+-- the waiver taken away: the held lead goes back at once, with the reason
+update academy_waivers set revoked_at = now(), revoked_by = test.id('lac_admin') where user_id = test.id('lac_mid');
+select test.ok('waiver taken away: the held lead goes back at once',
+  not exists (select 1 from lead_claims where lead_id = test.id('lead:lac1') and claimed_by = test.id('lac_mid'))
+  and coalesce((select assigned_to from leads where id = test.id('lead:lac1')), test.id('lac_rep')) <> test.id('lac_mid'));
+select test.eq('waiver taken away: the note says the academy',
+  (select note from lead_claim_log where lead_id = test.id('lead:lac1') and user_id = test.id('lac_mid') and action = 'release' order by id desc limit 1),
+  'Academy not passed: the lead went back');
 
 update program_settings set staff_onboarding_gate = true, academy_read_wpm = 200 where id = (app.settings()).id;

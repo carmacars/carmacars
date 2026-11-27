@@ -14,12 +14,15 @@
 --      assignee list (lead_assignee_ok), the return target (lead_previous_owner), the lead list, a lead's page and the
 --      dashboard (sl_may, sl_sees: nothing), a visitor's assignment (trigger on visitor_sessions: cleared), and a lead or
 --      visitor To do (trigger on tasks: unassigned).
---   3. The alerts: staff_alert_users leaves such a person out of every shift route (on_duty, unassigned_on_duty, fn) and of
---      the lead and visitor rules; and a notice about a lead or a visitor is not written to them (trigger on notifications,
+--   3. The alerts: staff_alert_users leaves such a person out of the lead and visitor rules (every route but Admin; other
+--      rules still reach them); and a notice about a lead or a visitor is not written to them (trigger on notifications,
 --      notification_outbox, push_outbox and phone_outbox), so no bell, push, email, text or WhatsApp.
 --   4. Auto hire of Sales (hiring_auto_hire_sales) makes a staff member at the first onboarding step: it gives no lead, and
 --      the person gets none until the steps above pass.
---   5. Now: every open lead held by such a person goes back (app.leads_return_unonboarded, as 1151 does).
+--   4. A reset by an Admin or a waiver taken away returns the person's held leads at once; a change to a path's sections
+--      checks every holder again; a pass or a waiver clears the kept answer (app.leads_ok_memo).
+--   5. Now: every open lead held by such a person goes back (app.leads_return_unonboarded, as 1151 does); the note says
+--      "Academy not passed" when that is the reason, and the count is logged.
 -- No applied migration is edited: functions are patched in place (the patch refuses when the text is not found) or replaced
 -- with the same signature (grants kept).
 set local check_function_bodies = off;
@@ -53,7 +56,8 @@ begin
 end $$;
 comment on function app.staff_academy_cleared(uuid) is 'R50 hotfix 2 (5071): the academy is behind this person: an Admin, a test account, no staff record, exempt, waived by an Admin, or every path of their functions passed (the Sales path too when they work Sales). Ignores the gate switches.';
 
--- kept for the statement (a list asks it once a row): app.leads_ok_memo holds 'user|statement start|answer'
+-- kept for the statement (a list asks it once a row): app.leads_ok_memo holds 'user|transaction|statement start|answer'.
+-- A pass, a waiver, a reset or a path change clears it (app.leads_ok_forget, section 4).
 create function app.staff_leads_ok(p_user uuid) returns boolean
 language plpgsql stable security definer set search_path = public, app, pg_temp as $$
 declare
@@ -62,7 +66,7 @@ declare
   v_ok boolean;
 begin
   if p_user is null then return true; end if;
-  v_key := p_user::text || '|' || statement_timestamp()::text || '|';
+  v_key := p_user::text || '|' || coalesce(txid_current_if_assigned()::text, '-') || '|' || statement_timestamp()::text || '|';
   if left(v_memo, length(v_key)) = v_key then return substr(v_memo, length(v_key) + 1) = 't'; end if;
   v_ok := app.staff_fully_onboarded(p_user) and app.staff_academy_cleared(p_user);
   perform set_config('app.leads_ok_memo', v_key || case when v_ok then 't' else 'f' end, true);
@@ -97,6 +101,13 @@ select pg_temp.patch_fn('app.lead_previous_owner(uuid, uuid)'::regprocedure,
   'app.staff_fully_onboarded(x.u)', 'app.staff_leads_ok(x.u)');
 select pg_temp.patch_fn('app.leads_return_unonboarded(uuid, uuid)'::regprocedure,
   'not app.staff_fully_onboarded(coalesce(c.claimed_by, l.assigned_to))', 'not app.staff_leads_ok(coalesce(c.claimed_by, l.assigned_to))');
+-- the note says the reason; by_user stays null (the system): there is no system account, and app.system_admin is a real Admin
+select pg_temp.patch_fn('app.leads_return_unonboarded(uuid, uuid)'::regprocedure,
+  'select l.id from leads l', 'select l.id, coalesce(c.claimed_by, l.assigned_to) holder from leads l');
+select pg_temp.patch_fn('app.leads_return_unonboarded(uuid, uuid)'::regprocedure,
+  'perform app.lead_return_do(r.id, p_by, ''Not fully onboarded (academy, agreement and WhatsApp): the lead went back'');',
+  'perform app.lead_return_do(r.id, p_by, case when app.staff_fully_onboarded(r.holder) then ''Academy not passed: the lead went back''
+                                                else ''Not fully onboarded (academy, agreement and WhatsApp): the lead went back'' end);');
 select pg_temp.patch_fn('app.lead_assignee_ok(uuid)'::regprocedure,
   'app.staff_fully_onboarded(p_user)', 'app.staff_leads_ok(p_user)');
 
@@ -134,16 +145,24 @@ end $$;
 create trigger b_lead_task_assignee_ok before insert or update of assigned_to on tasks for each row execute function app.lead_task_assignee_ok();
 
 -- ================================================================ 3. the alerts
--- the rules about leads and visitors (who names Sales, or the rule is about a lead, a visitor, a request or an offer)
-create function app.staff_alert_is_lead(p_rule text) returns boolean
-language sql stable security definer set search_path = public, app, pg_temp as $$
-  select p_rule ~ '(lead|visitor|request|offer)'
-      or exists (select 1 from staff_alert_rules r, unnest(r.who) w where r.rule = p_rule and w ~ 'sales$')
+-- the alert rules and notice codes about a lead, a visitor or a sales request: an exact list (not a word match, so
+-- leaderboard, lead_time, override_requested or owner_trip_new are not caught). Booking requests and offers are customer
+-- service work and stay open to them.
+create function app.lead_notice_code(p_code text) returns boolean
+language sql immutable set search_path = public, app, pg_temp as $$
+  select coalesce(p_code, '') in ('staff_lead_new', 'staff_owner_lead_new', 'staff_hot_visitor', 'visitor_signal', 'lead_phone_shown',
+                                  'staff_request_unfinished', 'staff_request_open_to_sales', 'staff_offer_reopen_ask')
 $$;
+create function app.staff_alert_is_lead(p_rule text) returns boolean
+language sql immutable set search_path = public, app, pg_temp as $$
+  select app.lead_notice_code(p_rule)
+$$;
+-- only the lead rules ask for the academy: a fleet, finance or customer service alert (booking_not_back) still reaches
+-- the person on shift while they learn
 select pg_temp.patch_fn('app.staff_alert_users(text, jsonb)'::regprocedure,
   'where not app.staff_is_test(c.uid)',
   'where not app.staff_is_test(c.uid)
-       and (c.ord = 0 or ((c.ord = 1 and not app.staff_alert_is_lead(p_rule)) or app.staff_leads_ok(c.uid)))');
+       and (c.ord = 0 or not app.staff_alert_is_lead(p_rule) or app.staff_leads_ok(c.uid))');
 
 -- a notice about a lead or a visitor is never written to such a person (every channel starts at one of these tables)
 create function app.lead_notice_fence() returns trigger
@@ -151,9 +170,11 @@ language plpgsql security definer set search_path = public, app, pg_temp as $$
 declare
   j jsonb := to_jsonb(new);
   v_who uuid := nullif(coalesce(j ->> 'user_id', j ->> 'recipient_user_id'), '')::uuid;
-  v_about text := lower(concat_ws(' ', j ->> 'entity', j ->> 'code', j ->> 'kind', j ->> 'sms_kind'));
 begin
-  if v_who is null or v_about !~ '(lead|visitor)' then return new; end if;
+  if v_who is null or not (coalesce(j ->> 'entity', '') in ('lead', 'leads', 'visitor', 'visitor_sessions')
+                           or app.lead_notice_code(j ->> 'code') or app.lead_notice_code(j ->> 'kind') or app.lead_notice_code(j ->> 'sms_kind')) then
+    return new;
+  end if;
   if app.staff_is_member(v_who) and not app.staff_leads_ok(v_who) then return null; end if;
   return new;
 end $$;
@@ -162,11 +183,43 @@ create trigger b_lead_notice_fence before insert on notification_outbox for each
 create trigger b_lead_notice_fence before insert on push_outbox for each row execute function app.lead_notice_fence();
 create trigger b_lead_notice_fence before insert on phone_outbox for each row execute function app.lead_notice_fence();
 
+-- ================================================================ 4. the academy changes: forget the kept answer, return the leads
+-- a pass (academy_attempts) or a waiver given: the kept answer is forgotten. An Admin's reset, a waiver taken away: the
+-- person's held leads go back now. A path's sections changed: every holder is checked again.
+create function app.leads_ok_forget() returns trigger
+language plpgsql security definer set search_path = public, app, pg_temp as $$
+begin
+  perform set_config('app.leads_ok_memo', '', true);
+  if TG_TABLE_NAME = 'academy_path_sections' then perform app.leads_return_unonboarded(null, null); end if;
+  return null;
+end $$;
+create function app.leads_academy_lost() returns trigger
+language plpgsql security definer set search_path = public, app, pg_temp as $$
+begin
+  perform set_config('app.leads_ok_memo', '', true);
+  if TG_OP = 'DELETE' then
+    perform app.leads_return_unonboarded(null, old.user_id);
+  elsif TG_TABLE_NAME = 'academy_resets' then
+    perform app.leads_return_unonboarded(null, new.user_id);
+  elsif new.revoked_at is not null then
+    perform app.leads_return_unonboarded(null, new.user_id);
+  end if;
+  return null;
+end $$;
+create trigger z_leads_ok_forget after insert on academy_attempts for each statement execute function app.leads_ok_forget();
+create trigger z_leads_ok_forget after insert or update or delete on academy_path_sections for each statement execute function app.leads_ok_forget();
+create trigger z_leads_academy_lost after insert or update on academy_resets for each row execute function app.leads_academy_lost();
+create trigger z_leads_academy_lost after insert or update or delete on academy_waivers for each row execute function app.leads_academy_lost();
+
 -- ================================================================ privileges: the server only
 revoke all on function app.staff_academy_cleared(uuid), app.staff_leads_ok(uuid), app.visitor_assignee_ok(), app.lead_task_assignee_ok(),
-  app.staff_alert_is_lead(text), app.lead_notice_fence() from public, anon, authenticated;
+  app.lead_notice_code(text), app.staff_alert_is_lead(text), app.lead_notice_fence(), app.leads_ok_forget(), app.leads_academy_lost() from public, anon, authenticated;
 grant execute on function app.staff_academy_cleared(uuid), app.staff_leads_ok(uuid), app.visitor_assignee_ok(), app.lead_task_assignee_ok(),
-  app.staff_alert_is_lead(text), app.lead_notice_fence() to service_role;
+  app.lead_notice_code(text), app.staff_alert_is_lead(text), app.lead_notice_fence(), app.leads_ok_forget(), app.leads_academy_lost() to service_role;
 
 -- ================================================================ 5. now
-select app.leads_return_unonboarded(null, null);
+do $$
+declare n integer := app.leads_return_unonboarded(null, null);
+begin
+  raise notice '5071: % open lead(s) returned from people who have not passed the academy or onboarding', n;
+end $$;
