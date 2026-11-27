@@ -50,8 +50,9 @@ select test.ok('the academy home: the basics done, the counts and the pay hold',
 select test.ok('a section carries core: the first five of customer service', (select bool_and((s ->> 'core')::boolean = ((s ->> 'sort')::int <= 5))
   from jsonb_array_elements(app.academy_path_progress(test.id('bas_cs'), 'cs') -> 'sections') s));
 
--- ================================================================ 2. commission waits for the whole academy, hours never do (5170)
--- Ontario's Employment Standards Act: earned wages on the regular pay day (coordinator, Nov 27; the owner may change this).
+-- ================================================================ 2. pay waits for the whole academy (5170, REQ-067)
+-- The owner (Nov 27 12:36): "Pay for hours should also be held until academy is passed. Field staff must finish entire academy.
+-- Same with customer service and fleet and finance." Commission, bonuses and referral fees wait for everyone.
 select test.mk_user('bas_sales', 'va', 'sales');      -- a salesperson mid-academy with an approved commission
 update staff_profiles set onboarding_exempt = false where user_id = test.id('bas_sales');
 select test.mk_owner('bas_po');
@@ -60,8 +61,12 @@ select test.mk_renter('bas_pr');
 select test.mk_booking('BAS-P1', 'BASPAY', 'bas_pr', (app.today() - 20)::text || ' 10:00', (app.today() - 18)::text || ' 10:00', 'closed', 20000);
 insert into staff_commissions (booking_id, staff_id, kind, scheme, month, rental_days, base_cents, rate_bps, amount_cents, status, approved_at)
 values (test.id('booking:BAS-P1'), test.id('bas_sales'), 'commission', 'flat', app.month_start(app.today()), 2, 20000, 1000, 2000, 'approved', now() - interval '1 day');
-select test.ok('pay hold: the reason names the sections passed, holds commission, bonuses and referral fees, never hours',
-  app.academy_pay_hold(test.id('bas_sales')) ~ '^Academy not finished: \d+ of \d+ sections passed\. Commission, bonuses and referral fees are paid once the whole academy is passed .*Hours worked are always paid\.$');
+select test.ok('pay hold: the reason names the sections passed (the entire academy) and the release on the next pay run',
+  app.academy_pay_hold(test.id('bas_sales')) ~ '^Academy not finished: \d+ of \d+ sections passed\. Held pay .* is paid in full on the first pay run after the whole academy is passed');
+select test.eq('pay hold: the entire academy, not the basics (customer service has passed its basics)', app.academy_done(test.id('bas_cs')) || '/' || (app.academy_pay_hold(test.id('bas_cs')) is not null), 'true/true');
+select test.eq('the hours part covers Field, customer service, Fleet and Finance, not Sales', app.academy_hours_role(test.id('bas_cs')) || '/' || app.academy_hours_role(test.id('bas_fleet'))
+  || '/' || app.academy_hours_role(test.id('bas_field')) || '/' || app.academy_hours_role(test.id('bas_sales')), 'true/true/true/false');
+select test.eq('the setting is on by default', (select column_default from information_schema.columns where table_name = 'program_settings' and column_name = 'academy_hold_hours'), 'true');
 select test.eq('pay hold: none for an Admin or an exempt person', coalesce(app.academy_pay_hold(test.id('bas_admin')), 'none') || '/' || coalesce(app.academy_pay_hold(test.id('bas_field2')), 'none'), 'none/none');
 select test.throws('commission is held: a commission payout to a person mid-academy is refused with the reason',
   $$insert into staff_commission_payouts (staff_id, method, reference, paid_on, amount_cents, recorded_by) values (test.id('bas_sales'), 'e_transfer', 'REF1', app.today(), 2000, test.id('bas_admin'))$$, 'Academy not finished');
@@ -70,13 +75,20 @@ insert into field_pay_runs (id, period_start, period_end, status, settings) valu
 insert into field_pay_lines (id, run_id, staff_id, rate_cents, wage_cents, gross_cents, statement_number) values
   (test.id('line:bas_cs'), test.id('run:bas'), test.id('bas_cs'), 2000, 40000, 40000, 'BAS-1'),
   (test.id('line:bas_f2'), test.id('run:bas'), test.id('bas_field2'), 1800, 18000, 18000, 'BAS-2'),
-  (test.id('line:bas_sa'), test.id('run:bas'), test.id('bas_sales'), 2000, 30000, 30000, 'BAS-3');
-select test.ok('hourly pay mid-academy: the person is held', app.academy_pay_hold(test.id('bas_cs')) is not null);
-select test.eq('hourly pay is paid while the academy is unfinished', (app.field_pay_line_paid(test.id('bas_admin'), jsonb_build_object('line_id', test.id('line:bas_cs'), 'method', 'cash')) ->> 'status'), 'paid');
-select test.eq('the payroll line notes the held commission and stays payable; no note without a commission waiting',
-  (select string_agg(coalesce(app.payroll_line_json(l) ->> 'academy_hold' like 'Academy not finished:%', false)::text, '/' order by statement_number) from field_pay_lines l where run_id = test.id('run:bas') and status = 'pending'), 'false/true');
-select test.eq('Record all payments pays every line, hours included, and counts the commission held', (select (r ->> 'paid') || '/' || (r ->> 'commission_held') from (
-  select app.payroll_pay_all(test.id('bas_admin'), jsonb_build_object('run_id', test.id('run:bas'), 'method', 'cash')) r) x), '2/1');
+  (test.id('line:bas_sa'), test.id('run:bas'), test.id('bas_sales'), 2000, 30000, 30000, 'BAS-3'),
+  (test.id('line:bas_fl'), test.id('run:bas'), test.id('bas_fleet'), 2000, 20000, 20000, 'BAS-5');
+select test.throws('hourly pay is held: customer service mid-academy, the pay line cannot be marked paid',
+  $$select app.field_pay_line_paid(test.id('bas_admin'), jsonb_build_object('line_id', test.id('line:bas_cs'), 'method', 'cash'))$$, 'Academy not finished');
+select test.eq('the payroll lines: Held (pay), nothing, Commission held, Held',
+  (select string_agg(coalesce(app.payroll_line_json(l) ->> 'academy_hold_kind', 'none'), '/' order by statement_number) from field_pay_lines l where run_id = test.id('run:bas')), 'pay/none/commission/pay');
+-- the owner can turn the hours part off later (one setting)
+update program_settings set academy_hold_hours = false where id = (app.settings()).id;
+select test.eq('hours part off: Fleet''s hourly pay is paid mid-academy', (app.field_pay_line_paid(test.id('bas_admin'), jsonb_build_object('line_id', test.id('line:bas_fl'), 'method', 'cash')) ->> 'status'), 'paid');
+update program_settings set academy_hold_hours = true where id = (app.settings()).id;
+select test.eq('Record all payments pays the rest and holds customer service''s line', (select (r ->> 'paid') || '/' || (r ->> 'held') || '/' || (r ->> 'commission_held') from (
+  select app.payroll_pay_all(test.id('bas_admin'), jsonb_build_object('run_id', test.id('run:bas'), 'method', 'cash')) r) x), '2/1/1');
+select test.eq('the held line waits, marked held', (select status || '/' || (academy_held_at is not null) from field_pay_lines where id = test.id('line:bas_cs')), 'pending/true');
+select test.ok('the held person is told their pay waits', exists (select 1 from app_events e where e.entity = 'field_pay_line' and e.entity_id = test.id('line:bas_cs') and e.payload ->> 'rule' = 'academy_pay_held'));
 -- review 5: told once a pay period, however often Record all payments runs
 do $$ begin perform app.payroll_pay_all(test.id('bas_admin'), jsonb_build_object('run_id', test.id('run:bas'), 'method', 'cash')); exception when others then null; end $$;
 select test.eq('the commission held alert: once a person a pay period', (select count(*) from app_events e join field_pay_lines y on y.id = e.entity_id
@@ -101,6 +113,16 @@ select test.ok('the waiver releases commission: the Admin''s Record payout goes 
 select test.eq('the waiver releases commission: the payout is recorded', (select count(*) from staff_commission_payouts where staff_id = test.id('bas_sales') and reference = 'REF2'), 1::bigint);
 select test.eq('a pay line''s commission is paid on the statement path (the flag is cleared after)', coalesce(current_setting('app.pay_line_commission', true), ''), '');
 update academy_waivers set revoked_at = now(), revoked_by = test.id('bas_admin') where user_id = test.id('bas_sales');
+-- held pay is never lost: the first pay run after the pass pays the held line in full, with a release note
+insert into field_pay_runs (id, period_start, period_end, status, settings) values (test.id('run:bas_next'), app.today() - 70, app.today() - 57, 'approved', '{}');
+select test.eq('still held before the pass: the next run leaves it', (select (r ->> 'released') from (
+  select app.payroll_pay_all(test.id('bas_admin'), jsonb_build_object('run_id', test.id('run:bas_next'), 'method', 'cash')) r) x), '0');
+insert into academy_attempts (user_id, section_id, correct, total, score_bps, passed)
+select test.id('bas_cs'), ps.section_id, 1, 1, 10000, true from academy_path_sections ps where ps.path_code = any (app.academy_paths_of(test.id('bas_cs')));
+select test.eq('passed the whole academy: nothing holds them', app.academy_pay_hold(test.id('bas_cs')), null::text);
+select test.eq('the first pay run after the pass releases the held line', (select (r ->> 'released') from (
+  select app.payroll_pay_all(test.id('bas_admin'), jsonb_build_object('run_id', test.id('run:bas_next'), 'method', 'cash')) r) x), '1');
+select test.eq('paid in full, with the release note', (select status || '/' || gross_cents || '/' || (note like '%Held for the academy since%released in full%') from field_pay_lines where id = test.id('line:bas_cs')), 'paid/40000/true');
 
 -- ================================================================ 3. an Admin opens any lesson and quiz (5170)
 select test.ok('Admin: every path is listed, every section open', (select (h ->> 'all_paths')::boolean and jsonb_array_length(h -> 'paths') = (select count(*) from academy_paths)

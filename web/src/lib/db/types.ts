@@ -17,6 +17,8 @@ export type Database = {
           created_at: string;
           done_at: string | null;
           done_attempt: string | null;
+          cleared_by: string | null;
+          clear_reason: string | null;
         };
         Insert: {
           id?: string;
@@ -28,6 +30,8 @@ export type Database = {
           created_at?: string;
           done_at?: string | null;
           done_attempt?: string | null;
+          cleared_by?: string | null;
+          clear_reason?: string | null;
         };
         Update: {
           id?: string;
@@ -39,6 +43,8 @@ export type Database = {
           created_at?: string;
           done_at?: string | null;
           done_attempt?: string | null;
+          cleared_by?: string | null;
+          clear_reason?: string | null;
         };
         Relationships: [];
       };
@@ -9416,6 +9422,7 @@ export type Database = {
           adjustment_note: string | null;
           clock_minutes: number;
           currency: string;
+          academy_held_at: string | null;
         };
         Insert: {
           id?: string;
@@ -9451,6 +9458,7 @@ export type Database = {
           adjustment_note?: string | null;
           clock_minutes?: number;
           currency?: string;
+          academy_held_at?: string | null;
         };
         Update: {
           id?: string;
@@ -9486,6 +9494,7 @@ export type Database = {
           adjustment_note?: string | null;
           clock_minutes?: number;
           currency?: string;
+          academy_held_at?: string | null;
         };
         Relationships: [];
       };
@@ -22373,6 +22382,7 @@ export type Database = {
           owner_stage_uvip_url: string;
           calls_mode: string;
           staff_notice_days: number;
+          academy_hold_hours: boolean;
         };
         Insert: {
           id?: string;
@@ -23365,6 +23375,7 @@ export type Database = {
           owner_stage_uvip_url?: string;
           calls_mode?: string;
           staff_notice_days?: number;
+          academy_hold_hours?: boolean;
         };
         Update: {
           id?: string;
@@ -24357,6 +24368,7 @@ export type Database = {
           owner_stage_uvip_url?: string;
           calls_mode?: string;
           staff_notice_days?: number;
+          academy_hold_hours?: boolean;
         };
         Relationships: [];
       };

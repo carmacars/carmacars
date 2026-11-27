@@ -11,7 +11,7 @@ import { STAFF_FN_LABEL, type StaffFn } from '@/features/staff/nav';
 // Finance's Payroll page; the Admin-only buttons are shown to an Admin only (the database refuses them to anyone else).
 export type PayLine = { id: string; staff_id: string; name: string; kind: 'salary' | 'hourly'; currency: string; rate_cents: number; minutes_total: number; clock_minutes: number;
   wage_cents: number; salary_cents: number; monthly_salary_cents: number | null; salary_days: number | null; commission_cents: number; vacation_cents: number; adjustment_cents: number;
-  adjustment_note: string | null; gross_cents: number; /** 5170: why the person's commission is held (the whole academy not passed); the line's hours are paid */ academy_hold?: string | null;
+  adjustment_note: string | null; gross_cents: number; /** 5170: why the pay is held (the whole academy not passed); pay: the line waits, commission: a note, the line is payable */ academy_hold?: string | null; academy_hold_kind?: 'pay' | 'commission' | null;
   /** 1800: the office staff's breaks in the period, and whether they are paid */ break_count?: number; break_minutes?: number; break_longest?: number; breaks_paid?: boolean; status: string; statement_number: string | null; paid_on: string | null; method: string | null; reference: string | null; emailed_at: string | null };
 type View = { today: string; admin: boolean; period: { start: string; end: string; label: string; ended: boolean; prev: string; next: string | null };
   run: { id: string; status: string; approved_at: string | null; prepared_at: string | null; approved_by: string | null; prepared_by: string | null } | null;
@@ -59,10 +59,11 @@ export async function Payroll({ userId, aal, base, date }: { userId: string; aal
         { key: 'adjustment_cents', label: 'Bonus or deduction', num: true, render: (r) => (r.adjustment_cents ? <span title={r.adjustment_note ?? ''}>{payMoney(r.adjustment_cents, r.currency)}</span> : '') },
         { key: 'gross_cents', label: 'Total', num: true, render: (r) => <b>{payMoney(r.gross_cents, r.currency)}</b> },
         { key: 'status', label: 'Status', className: 'wrap', render: (r) => r.status === 'paid' ? <span><Badge s="paid" /><span className="ad-sub">{d(r.paid_on)}, {methodWords(r.method)}{r.reference ? `, ${r.reference}` : ''}</span></span>
+          : r.academy_hold_kind === 'pay' && !draft ? <span data-testid={`held-${r.id}`}><Badge s="pending_approval">Held</Badge><span className="ad-sub">{r.academy_hold}</span></span>
           : <span><Badge s="pending_approval">{draft ? 'Draft' : 'To pay'}</Badge>{r.academy_hold && !draft ? <span className="ad-sub" data-testid={`held-${r.id}`}>Commission held: {r.academy_hold}</span> : null}</span> },
         { key: 'act', label: '', render: (r) => !run || draft ? null : <span className="ad-actions">
           <a className="btn btn--ghost btn--sm" href={`/files/pay_statement/${r.id}`} data-testid={`statement-${r.id}`}>{r.statement_number ?? 'Stub'}</a>
-          {v.admin && r.status !== 'paid' && <Act ops action="field_pay_line_paid" payload={{ line_id: r.id }} label="Record payment" variant="primary" testId={`pay-${r.id}`} refresh={R} done="Payment recorded. The stub is emailed."
+          {v.admin && r.status !== 'paid' && r.academy_hold_kind !== 'pay' && <Act ops action="field_pay_line_paid" payload={{ line_id: r.id }} label="Record payment" variant="primary" testId={`pay-${r.id}`} refresh={R} done="Payment recorded. The stub is emailed."
             fields={[{ name: 'method', label: 'How it was paid', type: 'select', required: true, options: PAY_METHODS, value: 'e_transfer' }, { name: 'reference', label: 'Reference (e-Transfer or bank number; not needed for cash)', type: 'text' },
               { name: 'paid_on', label: 'Date paid', type: 'date', value: v.today }, { name: 'note', label: 'Note', type: 'text' }]} />}
           {v.admin && r.status === 'paid' && <Act ops action="field_pay_line_email" payload={{ line_id: r.id }} label={r.emailed_at ? 'Send again' : 'Email the stub'} testId={`email-${r.id}`} refresh={R} done="Emailed." />}</span> }]} />
@@ -102,7 +103,7 @@ export async function MyPayStubs({ userId, aal }: { userId: string; aal?: 'aal1'
       <Table<Record<string, unknown>> rows={s.stubs as unknown as Array<Record<string, unknown>>} rowKey={(r) => String(r.id)} empty="Your first stub appears once an Admin approves the payroll of a finished period." cols={[
         { key: 'period_label', label: 'Period' }, { key: 'gross_cents', label: 'Total', num: true, render: (r) => payMoney(r.gross_cents, String(r.currency)) },
         { key: 'status', label: 'Status', className: 'wrap', render: (r) => (r.status === 'paid' ? `Paid ${d(r.paid_on)}${r.method ? `, ${methodWords(String(r.method))}` : ''}`
-          : r.academy_hold ? <span data-testid={`stub-held-${String(r.id)}`}>Approved, to be paid. Commission held: {String(r.academy_hold)} <Link prefetch={false} className="link" href="/staff/academy">Open the academy</Link></span> : 'Approved, to be paid') },
+          : r.academy_hold ? <span data-testid={`stub-held-${String(r.id)}`}>{r.academy_hold_kind === 'pay' ? 'Held' : 'Approved, to be paid. Commission held'}: {String(r.academy_hold)} <Link prefetch={false} className="link" href="/staff/academy">Open the academy</Link></span> : 'Approved, to be paid') },
         { key: 'id', label: '', render: (r) => <a className="link" href={`/files/pay_statement/${String(r.id)}`} data-testid={`stub-${String(r.id)}`}>{String(r.statement_number ?? 'PDF')}</a> }]} />
     </Card>
   );
