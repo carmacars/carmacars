@@ -1,4 +1,4 @@
--- 99: r50 hotfix2 (migrations 5110 to 5114; docs/changes/2026-11-27-r50-hotfix2.md): card payments off with e-Transfer and
+-- 99: r50 hotfix2 (migrations 5110 to 5115; docs/changes/2026-11-27-r50-hotfix2.md): card payments off with e-Transfer and
 -- direct deposit from Program settings, an ended booking never blocks a car, the connector's set_setting, Instant booking
 -- for a complete profile (never a sample car or an owner kept off it), confirm pay later and start a rental already out,
 -- and the incident card while the renter has the car. Fixtures start with "h2f"; every address is example.test.
@@ -88,6 +88,13 @@ select test.lives('an Admin sets the coverage of the started booking to the rent
   $$select app.door(test.id('h2f_admin'), 'aal2', 'admin_do', 'protection_change', jsonb_build_object('booking', test.id('booking:H2F-OUT'), 'to', 1, 'reason', 'Renter has OPCF 27 on his policy', 'notify', false, 'override', true, 'override_reason', 'Proof asked for by upload'))$$);
 select test.eq('...the booking now asks for the policy and the OPCF 27', (select coverage_option from bookings where id = test.id('booking:H2F-OUT')), 1::smallint);
 select test.eq('the incident card is there while the renter has the car', app.booking_in_progress((select b from bookings b where b.id = test.id('booking:H2F-OUT'))), true);
+
+-- ---------------------------------------------------------------- 5b. the connector's writes for it (5115)
+select test.eq('the four tools are door actions', (select string_agg(app.api_action(t) ->> 'name', ',' order by t) from unnest(array['add_rental', 'change_coverage', 'confirm_pay_later', 'start_rental_pay_later']) t),
+  'manual_rental_create,protection_change,booking_pay_later,booking_start_pay_later');
+select test.mk_booking('H2F-PL2', 'H2FA', 'h2f_r', test.h2ft(interval '10 days'), test.h2ft(interval '12 days'), 'pending_payment');
+select test.eq('confirm_pay_later through the connector: a preview that changes nothing', (select (r #>> '{result,preview}') || ':' || (select status::text from bookings where id = test.id('booking:H2F-PL2'))
+  from (select app.api_call(test.h2f_h('cc_live_h2f_full'), 'confirm_pay_later', jsonb_build_object('booking', 'H2F-PL2', 'reason', 'No processor, pays by e-Transfer'), 'test') r) z), 'true:pending_payment');
 
 -- ---------------------------------------------------------------- 6. the rules
 select test.eq('the new functions are the server''s only', (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
