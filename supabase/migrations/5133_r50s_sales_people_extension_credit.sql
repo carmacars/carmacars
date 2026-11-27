@@ -15,8 +15,10 @@
 --    whose session made it) handles it and earns on it; one the renter asked for, a weekly payment made by the rolling job,
 --    or one an Admin or customer service started goes to Admin (handled_queue admin: no commission, 3101). An Admin can
 --    still give it to a salesperson (extension_assign, with the reason). The extensions already made by default this way
---    and not started by that salesperson move to Admin too, unless that salesperson's commission on the booking is
---    approved or paid (then an Admin decides with Give to); each move is in the audit log and the commission is synced.
+--    and recorded as started by someone else move to Admin too (none whose starter is not recorded), unless that
+--    salesperson's commission on the booking is approved or paid (then an Admin decides with Give to); each move is in the
+--    audit log and the commission is synced. Every new extension records who started it (requested_by: the caller, else
+--    the signed-in session).
 -- SCHEMA_MARKER is not changed. No applied migration is edited: app.sales_staff_options and app.extension_default_handler
 -- are replaced.
 set local check_function_bodies = off;
@@ -40,8 +42,10 @@ create or replace function app.extension_default_handler() returns trigger
 language plpgsql security definer set search_path = public, app, pg_temp as $$
 declare v_by uuid;
 begin
+  -- every path records who started it: the caller's own, else the signed-in session's (null: a job)
+  new.requested_by := coalesce(new.requested_by, nullif(current_setting('request.jwt.claim.sub', true), '')::uuid);
   if new.handled_by is null and new.handled_queue = 'sales' then
-    v_by := coalesce(new.requested_by, nullif(current_setting('request.jwt.claim.sub', true), '')::uuid);
+    v_by := new.requested_by;
     if v_by is not null and app.user_va_has_sales(v_by) and not app.user_is_admin(v_by) then
       new.handled_by := v_by;
     else
@@ -51,37 +55,43 @@ begin
   end if;
   return new;
 exception when invalid_text_representation then
-  new.handled_by := null; new.handled_queue := 'admin';
+  new.requested_by := null; new.handled_by := null; new.handled_queue := 'admin';
   return new;
 end $$;
 
--- the extensions given by default to the booking's salesperson who did not start them
-do $$
+-- the extensions given by default to the booking's salesperson when someone else is recorded as starting them (one with
+-- no requested_by is left as it is: who started it is not known)
+create function app.extension_credit_backfill() returns integer
+language plpgsql security definer set search_path = public, app, pg_temp as $$
 declare
   r record;
+  n integer := 0;
   v_bookings uuid[] := '{}';
   v_b uuid;
 begin
   for r in select e.id, e.booking_id, e.handled_by, e.handled_queue
              from booking_extensions e join bookings b on b.id = e.booking_id
             where e.handled_queue = 'sales' and e.handled_set_by is null and e.handled_by is not null
-              and e.handled_by = b.sales_staff_id and e.requested_by is distinct from e.handled_by
+              and e.handled_by = b.sales_staff_id and e.requested_by is not null and e.requested_by <> e.handled_by
               and e.status not in ('declined', 'lapsed', 'cancelled')
               and not exists (select 1 from staff_commissions c where c.booking_id = e.booking_id and c.staff_id = e.handled_by
                                 and c.kind = 'commission' and c.status in ('approved', 'paid'))
             order by e.booking_id, e.seq loop
     update booking_extensions set handled_by = null, handled_queue = 'admin', handled_set_at = now(),
-           handled_reason = '5133: not started by the salesperson (the renter, Admin or the weekly job did): no commission'
+           handled_reason = '5133: started by someone else (the renter or Admin): no commission'
      where id = r.id;
     insert into audit_log (action, entity_table, entity_id, before, after)
     values ('extension_assign', 'booking_extensions', r.id::text, jsonb_build_object('handled_by', r.handled_by, 'handled_queue', r.handled_queue),
             jsonb_build_object('handled_by', null, 'handled_queue', 'admin', 'reason', '5133: started by someone else'));
+    n := n + 1;
     if not r.booking_id = any (v_bookings) then v_bookings := v_bookings || r.booking_id; end if;
   end loop;
   foreach v_b in array v_bookings loop
     perform app.commission_sync(v_b);
   end loop;
+  return n;
 end $$;
+select app.extension_credit_backfill();
 
-revoke all on function app.sales_staff_options(uuid), app.extension_default_handler() from public, anon, authenticated;
-grant execute on function app.sales_staff_options(uuid), app.extension_default_handler() to service_role;
+revoke all on function app.sales_staff_options(uuid), app.extension_default_handler(), app.extension_credit_backfill() from public, anon, authenticated;
+grant execute on function app.sales_staff_options(uuid), app.extension_default_handler(), app.extension_credit_backfill() to service_role;

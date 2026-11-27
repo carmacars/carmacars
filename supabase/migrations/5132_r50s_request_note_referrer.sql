@@ -15,7 +15,10 @@
 --      a salesperson    the booking is credited to them as sourced (sales_source referral), when nobody is credited yet
 --      field staff      their referral code is the request's (0016/0058: the referral fee)
 --    The booking's history says who the renter named, and that person gets an alert (referral_named). A name typed and
---    not chosen stays as before (details.referrer_name, for staff to read).
+--    not chosen stays as before (details.referrer_name, for staff to read). A renter who names themself (the same sign-in
+--    or email) credits nobody. The credit pays as every commission and referral fee does: it waits for an Admin to
+--    approve it (0058). The search matches what was typed as text (% and _ are not wildcards), in name order.
+--    The notes are read by Admins, Sales and customer service only.
 -- SCHEMA_MARKER is not changed. No applied migration is edited: app.submit_booking_request and app.door are wrapped (_pre5132).
 set local check_function_bodies = off;
 
@@ -114,7 +117,8 @@ select pg_temp.copy_grants('app.admin_requests(uuid, jsonb)'::regprocedure, 'app
 -- p_q: what the renter typed. Active team members who can be credited (Sales, field staff) and active referral partners.
 create function public.server_referrer_search(p_q text) returns jsonb
 language sql stable security definer set search_path = public, app, pg_temp as $$
-  with q as (select lower(btrim(coalesce(p_q, ''))) as t)
+  -- what was typed is matched as text: % and _ are not wildcards
+  with q as (select replace(replace(replace(lower(btrim(coalesce(p_q, ''))), '\', '\\'), '%', '\%'), '_', '\_') as t, lower(btrim(coalesce(p_q, ''))) as raw)
   select coalesce(jsonb_agg(x order by x ->> 'label'), '[]'::jsonb) from (
     select x from (
       select jsonb_build_object('key', 's:' || u.id, 'kind', 'staff',
@@ -122,15 +126,15 @@ language sql stable security definer set search_path = public, app, pg_temp as $
                              else btrim(u.full_name) end,
                'note', 'CarmaCars team') as x
         from users u, q
-       where length(q.t) >= 3 and u.status = 'active' and not u.is_test and nullif(btrim(u.full_name), '') is not null
+       where length(q.raw) >= 3 and u.status = 'active' and not u.is_test and nullif(btrim(u.full_name), '') is not null
          and (app.user_va_has_sales(u.id) or app.is_field_person(u.id))
          and (lower(u.full_name) like q.t || '%' or lower(u.full_name) like '% ' || q.t || '%')
       union all
       select jsonb_build_object('key', 'p:' || rp.referral_code, 'kind', 'partner', 'label', rp.business_name, 'note', 'Partner')
         from referral_partners rp, q
-       where length(q.t) >= 3 and rp.status = 'active'
-         and (lower(rp.business_name) like q.t || '%' or lower(rp.business_name) like '% ' || q.t || '%' or upper(rp.referral_code) = upper(q.t))
-    ) s limit 8) y
+       where length(q.raw) >= 3 and rp.status = 'active'
+         and (lower(rp.business_name) like q.t || '%' or lower(rp.business_name) like '% ' || q.t || '%' or upper(rp.referral_code) = upper(q.raw))
+    ) s order by x ->> 'label' limit 8) y
 $$;
 
 -- The person the renter named credits the booking: a salesperson the sale (when nobody is credited yet), field staff the
@@ -146,6 +150,12 @@ begin
   select * into b from bookings where id = p_booking for update;
   select * into u from users where id = p_staff;
   if b.id is null or u.id is null or u.status <> 'active' or u.is_test or app.credit_blocked(u.id) then return null; end if;
+  -- no self-referral: the renter is the staff member (their sign-in, or the same email)
+  if exists (select 1 from renters r where r.id = b.renter_id and (r.user_id = u.id or (r.email is not null and lower(r.email) = lower(u.email)))) then
+    perform app.log_booking_event(b.id, 'adjusted', b.status::text, b.status::text, null,
+      'The renter named themself as who referred them: nobody is credited', null, 'system', jsonb_build_object('referrer', u.id, 'credited', 'none', 'why', 'self'));
+    return null;
+  end if;
   if app.user_va_has_sales(u.id) and b.sales_staff_id is null then
     update bookings set sales_staff_id = u.id, sales_source = 'referral', sales_sourced = true, sales_attributed_at = now()
      where id = b.id;
@@ -205,7 +215,7 @@ declare v_b uuid;
 begin
   if p_call in ('ops_read', 'va_read', 'admin_read') and p_name = 'request_notes' then
     perform app.door_begin(p_user, p_aal);
-    if not (app.user_is_admin(p_user) or app.user_va_has(p_user)) then raise exception 'Not permitted' using errcode = '42501'; end if;
+    if not (app.user_is_admin(p_user) or app.user_va_has(p_user, 'sales', 'cs')) then raise exception 'Not permitted' using errcode = '42501'; end if;
     select b.id into v_b from bookings b where b.id::text = p ->> 'booking' or b.booking_number = p ->> 'booking';
     if v_b is null then raise exception 'Booking not found' using errcode = 'P0002'; end if;
     return app.request_notes_json(v_b);

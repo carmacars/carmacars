@@ -11,14 +11,17 @@ The owner's nine Sales requests of Nov 27, in one branch (`r50-hotfix2-sales`). 
    (`app.sample_real_cars`: published, not a sample, same class first, then body type, then year). **Send an offer**
    opens the offer form with the first car and the dates; **Open the enquiry** opens the lead. An outcome on the lead
    takes it off the queue. Admin and staff read the same queue.
-2. **Duplicate leads merge by themselves** (5131). `app.lead_merge_target`: open leads of one person and the same kind of
-   customer, by email, phone (last ten digits) or name variants (the same words in any order, or the same first and last
-   word) when their contacts do not disagree, within 30 days for a name match. Any source, any age for email and phone.
-   On insert, on a change of name, email or phone, and every hour (`app.job_lead_merge`, pg_cron); the migration merges
-   the leads already there. The merge is 3230's (`app.lead_merge`): history under the kept lead and in the audit log.
-   Sample-car enquiries are not merged (each is a request). As in 3230, a lead someone already handled is never the one
-   kept: a new form from that person stays a new lead so it is seen, and its page offers the merge. Lookups go by index
-   (email, phone key, two name keys), so a bulk import stays fast.
+2. **Duplicate leads merge by themselves, keeping live work** (5131). `app.lead_merge_target`: open leads of one person and
+   the same kind of customer. The same email or phone (last ten digits) counts when the names fit (the same last name,
+   the same first initial, or one has no name). Name variants (the same words in any order, or the same first and last
+   word) count only within 30 days, with no disagreeing contact, and the same city or car asked about; a name alone stays
+   a suggestion. `app.lead_merge_auto` keeps the lead with live work (a live claim or hold, a logged contact, an assigned
+   salesperson, a stage past New, a lead generator, a first contact) and folds the other into it; when both have live work
+   they stay apart and the lead page offers the merge. A new enquiry into a handled lead merges and reopens it as New, with
+   the same salesperson, who is told (`lead_reopened`). `app.lead_merge` (replaced) carries the lead generator, first
+   contact, stage, assignee and sourced-by, and moves a live claim or hold instead of deleting it. On insert, on a change
+   of name, email or phone, and every hour (`app.job_lead_merge`, pg_cron); the migration itself merges nothing. Sample-car
+   enquiries are not merged. Lookups go by index (email, phone key, two name keys), so a bulk import stays fast.
 3. **Renter notes and Who referred you** (5132). `booking_request_notes`: the renter adds notes to their open request
    (`public.renter_request_note`, account page card "Notes to our team"); staff are told (`request_note`) and see them on
    the request row and the booking ("Notes added"). The request form's **Who referred you?** searches the team and the
@@ -35,6 +38,8 @@ The owner's nine Sales requests of Nov 27, in one branch (`r50-hotfix2-sales`). 
    commission). Extensions defaulted to the booking's salesperson who did not start them move to Admin unless that
    commission is approved or paid (the Tibirica case, CC-10131); each move is audited and the commission synced.
    `99_r48_money_rules` now starts its extension as the salesperson (the old default it tested is the rule this replaces).
+   Every new extension records who started it (the caller, else the signed-in session). The backfill
+   (`app.extension_credit_backfill`) leaves an extension with no recorded starter as it is.
 6. **Lead generators** (5134). `staff_profiles.lead_generator` (Admin: Lead generators, beside Sales team). **Owners I found**:
    **Add an owner** makes an owner lead (`generated_by`, source lead_gen, no automatic follow-ups) for the closers, who
    call it through the site. Duplicates of an open lead or an owner are refused. Lead generators cannot claim leads.
@@ -63,6 +68,19 @@ The owner's nine Sales requests of Nov 27, in one branch (`r50-hotfix2-sales`). 
 
 New tables (RLS, `admin_all`, audit trigger): `booking_request_notes`, `lead_gen_credits`, `shift_claims`, `call_flags`,
 `call_flag_words`. No applied migration is edited.
+
+## Review fixes (Nov 27)
+
+- 5130: sample-car rows show only to a viewer who may open the lead (`app.sl_sees`) and follow the queue's state and
+  search filters.
+- 5132: a renter who names themself credits nobody; a renter-named credit pays only after an Admin approves it, like
+  every commission (0058). The referrer search treats % and _ as text and lists names in order. Request notes are read
+  by Admins, Sales and customer service only.
+- 5134: a lead generator's credit follows the lead their lead was merged into (one credit an owner); an Admin cannot
+  decide a credit on their own lead.
+- 5137: dates, times, prices and booking numbers are not phone numbers (`app.phone_text_clean`); every other path that
+  queues a salesperson's text (`phone_outbox`) refuses one with a phone number.
+- 5139: for a masked viewer, a number matches by its last 4 digits or in full, an email only in full.
 
 ## Guides
 

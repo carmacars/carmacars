@@ -6,7 +6,9 @@
 -- 1. Texts: a text a salesperson sends from the business line (va_do or field_do phone_compose, phone_reply) that holds a
 --    phone number (ten digits, written with or without spaces, dashes, dots or brackets, or spelled out) is refused before
 --    it is queued, with the reason: customers keep their conversation on the CarmaCars line, so no number is passed by
---    text. The attempt is kept as a flag for Admin (source text). Admins and staff without Sales are not limited.
+--    text. The attempt is kept as a flag for Admin (source text). Admins and staff without Sales are not limited. Every
+--    other path that queues a salesperson's text (phone_outbox, kind staff) refuses it too. Dates, times, prices and
+--    booking numbers are not phone numbers.
 -- 2. Calls: when a call's transcript arrives (Quo's dialogue, or the site's own call transcript, 1880) and the staff member
 --    on the call holds the Sales function, each line said by our side (the whole call when the transcript does not say who
 --    spoke) is checked: a phone number, and the words of call_flag_words (swearing, off-platform payment, personal number,
@@ -99,9 +101,21 @@ language sql immutable set search_path = public, app, pg_temp as $$
            '(\d)[\s.,()+-]+(?=\d)', '\1', 'g')
 $$;
 
+-- A phone number: a run of 10 or 11 digits (spaces, dashes, dots and brackets between them allowed, or spoken). Dates,
+-- times, prices and booking numbers are taken out first, so "2026-11-27 10:30", "$1,250.00" and "CC-10673" are not numbers.
+create function app.phone_text_clean(p text) returns text
+language sql immutable set search_path = public, app, pg_temp as $$
+  select regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(lower(coalesce(p, '')),
+           '\m[a-z]{1,4}-\d+\M', ' ', 'g'),                                         -- booking and other references: CC-10673
+           '\$\s*\d[\d,]*(\.\d+)?', ' ', 'g'),                                     -- prices: $1,250.00
+           '\m\d{4}[-/.]\d{1,2}[-/.]\d{1,2}\M|\m\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4}\M', ' ', 'g'),  -- dates
+           '\m\d{1,2}:\d{2}(:\d{2})?(\s*[ap]\.?m\.?)?', ' ', 'g'),               -- times
+           '\m\d[\d,]*\.\d+\M', ' ', 'g')                                         -- decimals
+$$;
+
 create function app.has_phone_number(p text) returns boolean
 language sql immutable set search_path = public, app, pg_temp as $$
-  select app.digits_spoken(p) ~ '(^|\D)1?\d{10}(\D|$)'
+  select app.digits_spoken(app.phone_text_clean(p)) ~ '(^|\D)1?\d{10}(\D|$)'
 $$;
 
 -- the flags of one line: (category, phrase)
@@ -186,6 +200,21 @@ begin
   end;
 end $$;
 
+-- Every other way a salesperson's text is queued (quick texts, the lead and booking pages, templates): the outbox refuses a
+-- staff text with a phone number from a salesperson, with the same reason (compose and reply above answer it on screen
+-- and keep the flag).
+create function app.phone_outbox_guard() returns trigger
+language plpgsql security definer set search_path = public, app, pg_temp as $$
+begin
+  if new.kind = 'staff' and new.sent_by is not null and app.user_va_has_sales(new.sent_by) and not app.user_is_admin(new.sent_by)
+     and app.has_phone_number(new.body) then
+    raise exception 'Not sent: phone numbers are not sent by text on the CarmaCars line. Call the customer through the site, or ask an Admin.'
+      using errcode = '23514';
+  end if;
+  return new;
+end $$;
+create trigger phone_outbox_phone_guard before insert on phone_outbox for each row execute function app.phone_outbox_guard();
+
 -- ================================================================ Admin
 create function app.call_flags_admin(p_by uuid, p jsonb) returns jsonb
 language plpgsql stable security definer set search_path = public, app, pg_temp as $$
@@ -261,7 +290,7 @@ begin
 end $$;
 select pg_temp.copy_grants('app.door(uuid, text, text, text, jsonb)'::regprocedure, 'app.door_pre5137(uuid, text, text, text, jsonb)'::regprocedure);
 
-revoke all on function app.digits_spoken(text), app.has_phone_number(text), app.line_flags(text), app.call_staff(phone_activity), app.call_flag_scan(uuid),
+revoke all on function app.digits_spoken(text), app.phone_text_clean(text), app.phone_outbox_guard(), app.has_phone_number(text), app.line_flags(text), app.call_staff(phone_activity), app.call_flag_scan(uuid),
   app.call_flag_trg(), app.text_phone_guard(uuid, text), app.call_flags_admin(uuid, jsonb), app.call_flag_review(uuid, jsonb), app.call_flag_word(uuid, jsonb) from public, anon, authenticated;
-grant execute on function app.digits_spoken(text), app.has_phone_number(text), app.line_flags(text), app.call_staff(phone_activity), app.call_flag_scan(uuid),
+grant execute on function app.digits_spoken(text), app.phone_text_clean(text), app.phone_outbox_guard(), app.has_phone_number(text), app.line_flags(text), app.call_staff(phone_activity), app.call_flag_scan(uuid),
   app.call_flag_trg(), app.text_phone_guard(uuid, text), app.call_flags_admin(uuid, jsonb), app.call_flag_review(uuid, jsonb), app.call_flag_word(uuid, jsonb) to service_role;

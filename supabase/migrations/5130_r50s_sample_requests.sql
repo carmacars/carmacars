@@ -40,8 +40,10 @@ language sql stable security definer set search_path = public, app, pg_temp as $
    where c.rank <= 3
 $$;
 
--- The open sample-car enquiries as rows of the request queue (the shape of the RequestsQueue rows, plus sample fields).
-create function app.sample_request_rows() returns jsonb
+-- The open sample-car enquiries as rows of the request queue (the shape of the RequestsQueue rows, plus sample fields):
+-- only those the viewer may open (app.sl_sees), and only when the queue's filters allow new requests (p.state empty, new,
+-- sample or all; p.q matches the name, email, phone or car).
+create function app.sample_request_rows(p_by uuid, p jsonb) returns jsonb
 language sql stable security definer set search_path = public, app, pg_temp as $$
   select coalesce(jsonb_agg(x order by x ->> 'requested_at'), '[]'::jsonb) from (
     select jsonb_build_object('id', l.id, 'lead_id', l.id, 'sample', true, 'booking_number', coalesce(l.payload ->> 'reference', 'EQ'),
@@ -59,7 +61,12 @@ language sql stable security definer set search_path = public, app, pg_temp as $
       from leads l
       left join vehicles v on v.id = app.sr_uuid(l.payload ->> 'vehicle_id')
      where l.kind = 'sample_car' and l.merged_into is null and l.status in ('new', 'contacted', 'qualified')
-       and l.sales_outcome is null and l.handled_at is null) q
+       and l.sales_outcome is null and l.handled_at is null
+       and app.sl_sees(p_by, l)
+       and coalesce(nullif(p ->> 'state', ''), 'new') in ('new', 'sample', 'all', 'active')
+       and (nullif(btrim(coalesce(p ->> 'q', '')), '') is null
+            or concat_ws(' ', l.name, l.email, l.phone, l.payload ->> 'car', app.vehicle_name(v.id)) ilike
+               '%' || replace(replace(replace(btrim(p ->> 'q'), '\', '\\'), '%', '\%'), '_', '\_') || '%')) q
 $$;
 
 -- tolerant readers of the enquiry's form (a bad value is no date, never an error in the queue)
@@ -79,9 +86,9 @@ end $$;
 alter function app.admin_requests(uuid, jsonb) rename to admin_requests_pre5130;
 create function app.admin_requests(p_admin uuid, p jsonb) returns jsonb
 language sql stable security definer set search_path = public, app, pg_temp as $$
-  select app.admin_requests_pre5130(p_admin, p) || app.sample_request_rows()
+  select app.admin_requests_pre5130(p_admin, p) || app.sample_request_rows(p_admin, coalesce(p, '{}'::jsonb))
 $$;
 select pg_temp.copy_grants('app.admin_requests(uuid, jsonb)'::regprocedure, 'app.admin_requests_pre5130(uuid, jsonb)'::regprocedure);
 
-revoke all on function app.sample_real_cars(uuid, timestamptz, timestamptz), app.sample_request_rows(), app.sr_at(text), app.sr_uuid(text) from public, anon, authenticated;
-grant execute on function app.sample_real_cars(uuid, timestamptz, timestamptz), app.sample_request_rows(), app.sr_at(text), app.sr_uuid(text) to service_role;
+revoke all on function app.sample_real_cars(uuid, timestamptz, timestamptz), app.sample_request_rows(uuid, jsonb), app.sr_at(text), app.sr_uuid(text) from public, anon, authenticated;
+grant execute on function app.sample_real_cars(uuid, timestamptz, timestamptz), app.sample_request_rows(uuid, jsonb), app.sr_at(text), app.sr_uuid(text) to service_role;

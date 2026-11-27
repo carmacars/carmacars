@@ -47,13 +47,15 @@ select test.ok('sample: an outcome on the enquiry takes it off the queue',
 
 -- ================================================================ 2. duplicate leads merge by themselves (5131)
 insert into leads (id, kind, name, email, phone, source, created_at) values
-  (test.id('lead:rss_a'), 'contact', 'Rss Mona Lisa Smith', 'rss_mona@example.test', null, 'web', now() - interval '20 days'),
-  (test.id('lead:rss_b'), 'phone', 'Smith, Rss Mona Lisa', null, '(647) 555-0177', 'missed_call', now() - interval '5 days');
-select test.eq('merge: a name variant (the same words in another order) with contacts that do not disagree joins the older lead',
+  (test.id('lead:rss_a'), 'contact', 'Rss Mona Lisa Smith', 'rss_mona@example.test', null, 'web', now() - interval '20 days');
+update leads set payload = payload || '{"city": "Toronto"}' where id = test.id('lead:rss_a');
+insert into leads (id, kind, name, email, phone, source, created_at, payload) values
+  (test.id('lead:rss_b'), 'phone', 'Smith, Rss Mona Lisa', null, '(647) 555-0177', 'missed_call', now() - interval '5 days', '{"city": "toronto"}');
+select test.eq('merge: a name variant (the same words in another order), the same city, contacts that do not disagree: joins the older lead',
   (select merged_into from leads where id = test.id('lead:rss_b')), test.id('lead:rss_a'));
 select test.eq('merge: the kept lead took the phone and keeps the merged one under it',
   (select phone || '/' || jsonb_array_length(payload -> 'merged') from leads where id = test.id('lead:rss_a')), '(647) 555-0177/1');
-insert into leads (id, kind, name, email, phone, source, created_at) values (test.id('lead:rss_c'), 'contact', 'R. Mona', 'RSS_MONA@example.test', null, 'web', now());
+insert into leads (id, kind, name, email, phone, source, created_at) values (test.id('lead:rss_c'), 'contact', 'M. Smith', 'RSS_MONA@example.test', null, 'web', now());
 select test.eq('merge: the same email joins it, any source, any age', (select merged_into from leads where id = test.id('lead:rss_c')), test.id('lead:rss_a'));
 insert into leads (id, kind, name, email, phone, source) values (test.id('lead:rss_d'), 'contact', 'Rss Mona Lisa Smith', 'rss_other@example.test', '416-555-0178', 'web');
 select test.eq('merge: the same name with a different email and phone stays apart (two people)', (select merged_into from leads where id = test.id('lead:rss_d')), null::uuid);
@@ -61,9 +63,9 @@ insert into leads (id, kind, name, email, phone, source) values (test.id('lead:r
 select test.eq('merge: an owner lead and a renter lead of one person stay apart', (select merged_into from leads where id = test.id('lead:rss_e')), null::uuid);
 select test.ok('merge: the history is kept (the audit log has each automatic merge)',
   (select count(*) from audit_log where action = 'lead_auto_merge' and entity_id = test.id('lead:rss_a')::text) = 2);
-insert into leads (id, kind, name, email, phone, source, created_at) values (test.id('lead:rss_f'), 'contact', 'Rss Pat Lee', 'rss_pat@example.test', null, 'web', now() - interval '3 days');
-insert into leads (id, kind, name, email, phone, source) values (test.id('lead:rss_h'), 'chat', 'Rss Pat Quinn Lee', null, '416-555-0179', 'web');
-select test.eq('merge: a middle name given once is the same name (no contact disagrees)', (select merged_into from leads where id = test.id('lead:rss_h')), test.id('lead:rss_f'));
+insert into leads (id, kind, name, email, phone, source, created_at, vehicle_text) values (test.id('lead:rss_f'), 'contact', 'Rss Pat Lee', 'rss_pat@example.test', null, 'web', now() - interval '3 days', 'Kia K5');
+insert into leads (id, kind, name, email, phone, source, vehicle_text) values (test.id('lead:rss_h'), 'chat', 'Rss Pat Quinn Lee', null, '416-555-0179', 'web', 'kia k5');
+select test.eq('merge: a middle name given once is the same name (the same car asked about, no contact disagrees)', (select merged_into from leads where id = test.id('lead:rss_h')), test.id('lead:rss_f'));
 insert into leads (id, kind, name, email, phone, source) values (test.id('lead:rss_g'), 'contact', 'Rss Pat Lee', 'rss_pat2@example.test', '416-555-0180', 'web');
 update leads set email = 'rss_pat@example.test' where id = test.id('lead:rss_g');
 select test.eq('merge: a lead whose email is corrected later joins too', (select merged_into from leads where id = test.id('lead:rss_g')), test.id('lead:rss_f'));
@@ -218,7 +220,7 @@ select test.ok('tables: row-level security with admin_all on each new table',
 -- ================================================================ privacy: Find a renter masks for Sales (5139)
 update renters set mobile = '+14165550188', email = 'rss_rita.find@example.test' where id = test.id('renter:rss_rita');
 select test.eq('renter search: Sales gets the mobile and the email masked, and the record id to link by',
-  (select (x ->> 'mobile') || '/' || (x ->> 'email') || '/' || (x ->> 'id') from jsonb_array_elements(app.phone_renter_search(test.id('rss_sam'), '{"q": "rss_rita.find"}')) x),
+  (select (x ->> 'mobile') || '/' || (x ->> 'email') || '/' || (x ->> 'id') from jsonb_array_elements(app.phone_renter_search(test.id('rss_sam'), '{"q": "rss_rita.find@example.test"}')) x),
   '(416) ' || repeat(chr(8226), 3) || '-' || repeat(chr(8226), 2) || '88/r' || repeat('*', 12) || '@example.test/' || test.id('renter:rss_rita'));
 select test.eq('renter search: Sales still finds the renter by the full number (matched on the server)',
   jsonb_array_length(app.phone_renter_search(test.id('rss_sam'), '{"q": "416 555 0188"}')), 1);
@@ -228,4 +230,115 @@ select test.eq('renter search: Admin gets the full mobile and email',
   (select (x ->> 'mobile') || '/' || (x ->> 'email') from jsonb_array_elements(app.door(test.id('rss_admin'), 'aal2', 'admin_read', 'phone_renter_search', '{"q": "rss_rita.find"}')) x),
   '+14165550188/rss_rita.find@example.test');
 select test.eq('renter search: through the door, Sales gets no full value either',
-  (select (x ->> 'mobile') not like '%5550188%' and (x ->> 'email') <> 'rss_rita.find@example.test' from jsonb_array_elements(app.door(test.id('rss_sam'), 'aal2', 'va_read', 'phone_renter_search', '{"q": "rss_rita.find"}')) x), true);
+  (select (x ->> 'mobile') not like '%5550188%' and (x ->> 'email') <> 'rss_rita.find@example.test' from jsonb_array_elements(app.door(test.id('rss_sam'), 'aal2', 'va_read', 'phone_renter_search', '{"q": "Rss Rita"}')) x), true);
+
+-- ================================================================ review fixes (Nov 27): no live work lost, safer matching
+-- matching: the same email needs names that fit; a name alone needs the same city or car
+insert into leads (id, kind, name, email, source, created_at) values (test.id('lead:rss_m1'), 'contact', 'Rss Nora Vale', 'rss_shared@example.test', 'web', now() - interval '2 days');
+insert into leads (id, kind, name, email, source) values (test.id('lead:rss_m2'), 'contact', 'Quentin Brooks', 'rss_shared@example.test', 'web');
+select test.eq('match: the same email with a name that does not fit stays apart', (select merged_into from leads where id = test.id('lead:rss_m2')), null::uuid);
+insert into leads (id, kind, name, email, source) values (test.id('lead:rss_m3'), 'contact', null, 'rss_shared@example.test', 'web');
+select test.eq('match: the same email with no name joins', (select merged_into from leads where id = test.id('lead:rss_m3')), test.id('lead:rss_m1'));
+insert into leads (id, kind, name, email, source, created_at) values (test.id('lead:rss_m4'), 'contact', 'Rss Ivo Stark', 'rss_ivo@example.test', 'web', now() - interval '1 day');
+insert into leads (id, kind, name, phone, source) values (test.id('lead:rss_m5'), 'chat', 'Stark Rss Ivo', '416-555-0190', 'web');
+select test.eq('match: a name alone (no city, no car in common) stays a suggestion', (select merged_into from leads where id = test.id('lead:rss_m5')), null::uuid);
+
+-- live work: the lead with work is kept, the other folds into it
+insert into leads (id, kind, name, email, source, created_at) values (test.id('lead:rss_w1'), 'contact', 'Rss Wade Kim', 'rss_wade@example.test', 'web', now() - interval '4 days');
+begin;
+insert into leads (id, kind, name, email, source) values (test.id('lead:rss_w2'), 'phone', 'Rss Wade Kim', 'rss_wade@example.test', 'missed_call');
+insert into lead_claims (lead_id, claimed_by, expires_at, cap_at) values (test.id('lead:rss_w2'), test.id('rss_sam'), now() + interval '2 hours', now() + interval '1 day');
+commit;
+select test.eq('work: the newer lead with a live claim is kept, the older one without work folds into it',
+  (select merged_into from leads where id = test.id('lead:rss_w1')), test.id('lead:rss_w2'));
+select test.eq('work: the claim stays live on the kept lead', (select claimed_by from lead_claims where lead_id = test.id('lead:rss_w2') and expires_at > now()), test.id('rss_sam'));
+insert into leads (id, kind, name, email, source, created_at, first_contact_at) values (test.id('lead:rss_w3'), 'contact', 'Rss Gil Moss', 'rss_gil@example.test', 'web', now() - interval '4 days', now() - interval '3 days');
+insert into leads (id, kind, name, email, source, first_contact_at) values (test.id('lead:rss_w4'), 'contact', 'Rss Gil Moss', 'rss_gil@example.test', 'web', now());
+select test.eq('work: both leads worked: not merged (the lead page offers it)',
+  (select count(*)::int from leads where id in (test.id('lead:rss_w3'), test.id('lead:rss_w4')) and merged_into is not null), 0);
+-- the merge itself carries the work
+insert into leads (id, kind, name, email, source, created_at) values (test.id('lead:rss_c1'), 'owner_program', 'Rss Cara Dunn', 'rss_cara1@example.test', 'web', now() - interval '3 days');
+insert into leads (id, kind, name, email, source, generated_by, first_contact_at, pipeline_stage, pipeline_stage_at)
+  values (test.id('lead:rss_c2'), 'owner_program', 'Rss Cara Dunn', 'rss_cara2@example.test', 'lead_gen', test.id('rss_eric'), now() - interval '1 day', 'contacted', now() - interval '1 day');
+select app.lead_merge(test.id('rss_admin'), test.id('lead:rss_c1'), test.id('lead:rss_c2'));
+select test.eq('merge: the lead generator, the first contact and the stage are carried, never blanked',
+  (select (generated_by = test.id('rss_eric')) || '/' || (first_contact_at is not null) || '/' || pipeline_stage from leads where id = test.id('lead:rss_c1')), 'true/true/contacted');
+-- the lead generator's credit follows the merged lead
+update leads set pipeline_stage = 'signed', pipeline_stage_at = now() where id = test.id('lead:rss_c1');
+select test.eq('lead gen: the credit follows the lead it was merged into', (select staff_id from lead_gen_credits where lead_id = test.id('lead:rss_c1')), test.id('rss_eric'));
+select test.ok('lead gen: no credit on the merged lead', not exists (select 1 from lead_gen_credits where lead_id = test.id('lead:rss_c2')));
+-- a handled lead written to again: merged and reopened, same salesperson, told
+insert into leads (id, kind, name, email, source, created_at) values (test.id('lead:rss_r1'), 'contact', 'Rss Rae Holt', 'rss_rae@example.test', 'web', now() - interval '6 days');
+update leads set handled_at = now() - interval '5 days', handled_by = test.id('rss_sam') where id = test.id('lead:rss_r1');
+insert into lead_claims (lead_id, claimed_by, expires_at, cap_at) values (test.id('lead:rss_r1'), test.id('rss_sam'), now() + interval '2 hours', now() + interval '1 day');
+insert into leads (id, kind, name, email, message, source) values (test.id('lead:rss_r2'), 'contact', 'Rss Rae Holt', 'rss_rae@example.test', 'Back again for March', 'web');
+select test.eq('reopen: the new enquiry merges into the handled lead', (select merged_into from leads where id = test.id('lead:rss_r2')), test.id('lead:rss_r1'));
+select test.eq('reopen: the lead is New again with the same salesperson',
+  (select l.status || '/' || (l.handled_at is null) || '/' || (c.claimed_by = test.id('rss_sam')) from leads l join lead_claims c on c.lead_id = l.id where l.id = test.id('lead:rss_r1')), 'new/true/true');
+select test.ok('reopen: the salesperson is told', test.rss_alert('lead_reopened') >= 1);
+
+-- Admin never approves a credit of their own lead
+insert into lead_gen_credits (lead_id, staff_id, amount_cents) values (test.id('lead:rss_w3'), test.id('rss_admin'), 10000);
+select test.throws('lead gen: an Admin cannot approve their own credit',
+  format($$select test.rss_admin('lead_gen_credit', jsonb_build_object('credit', %L, 'action', 'approve'))$$, (select id from lead_gen_credits where lead_id = test.id('lead:rss_w3'))), '%another Admin%');
+
+-- the phone filter: dates, times, prices and booking numbers are not phone numbers
+select test.eq('text filter: a date and time, a price and a booking number pass; a phone number is caught',
+  app.has_phone_number('2026-11-27 10:30') || '/' || app.has_phone_number('$1,250.00') || '/' || app.has_phone_number('CC-10673') || '/' || app.has_phone_number('647 575 3377'),
+  'false/false/false/true');
+select test.eq('text filter: a pickup on 11/27/2026 at 10:30 am for $1,250.00 (CC-10673) passes',
+  app.has_phone_number('Pickup 11/27/2026 at 10:30 am, $1,250.00 for CC-10673'), false);
+select test.throws('text filter: every other send path refuses a salesperson''s text with a phone number',
+  $$insert into phone_outbox (thread_id, to_number, body, kind, sent_by) values (test.id('thread:rss'), '+14165550111', 'Reach me at 647 575 3377', 'staff', test.id('rss_sam'))$$, '%phone numbers are not sent%');
+select test.lives('text filter: an Admin''s text is not limited',
+  $$insert into phone_outbox (thread_id, to_number, body, kind, sent_by, status) values (test.id('thread:rss'), '+14165550111', 'Our office: 647 575 3377', 'staff', test.id('rss_admin'), 'skipped')$$);
+
+-- extensions: who started it is always recorded; the backfill leaves an unknown starter alone
+begin;
+select set_config('request.jwt.claim.sub', test.id('rss_sam')::text, true);
+select test.eq('extension: one made in a salesperson''s session records them as its starter', (select requested_by from test.rss_ext(5, null)), test.id('rss_sam'));
+commit;
+insert into booking_extensions (booking_id, seq, status, previous_return_at, new_return_at, previous_days, new_days, previous_rental_charge_cents, new_rental_charge_cents,
+                                rental_difference_cents, handled_by, handled_queue)
+select b.id, 6, 'requested', b.return_at + interval '35 days', b.return_at + interval '42 days', 42, 49, 10000, 20000, 10000, test.id('rss_sam'), 'sales'
+  from bookings b where b.id = test.id('booking:RSS-3');
+update booking_extensions set requested_by = null where booking_id = test.id('booking:RSS-3') and seq = 6;
+select app.extension_credit_backfill();
+select test.eq('extension: the backfill leaves one with no recorded starter with the salesperson',
+  (select handled_queue || '/' || (handled_by = test.id('rss_sam')) from booking_extensions where booking_id = test.id('booking:RSS-3') and seq = 6), 'sales/true');
+
+-- referral: no self-referral; the credit waits for an Admin
+select test.mk_user('rss_selfie', 'va', 'sales');
+select test.mk_renter('rss_selfr');
+update renters set user_id = test.id('rss_selfie') where id = test.id('renter:rss_selfr');
+select test.mk_booking('RSS-9', 'rss_real', 'rss_selfr', '2031-09-01 10:00', '2031-09-04 10:00', 'requested');
+select test.eq('referral: a renter who names themself credits nobody', app.request_referrer_credit(test.id('booking:RSS-9'), test.id('rss_selfie')), null::text);
+select test.eq('referral: the booking stays uncredited', (select sales_staff_id from bookings where id = test.id('booking:RSS-9')), null::uuid);
+select app.commission_sync(test.id('booking:RSS-1'));
+select test.ok('referral: the named salesperson''s commission waits for an Admin (never approved by itself)',
+  not exists (select 1 from staff_commissions where booking_id = test.id('booking:RSS-1') and staff_id = test.id('rss_sam') and status in ('approved', 'paid')));
+
+-- masked search: last 4 digits or the full value only
+select test.eq('masked search: Sales finds by the last 4 digits', jsonb_array_length(app.phone_renter_search(test.id('rss_sam'), '{"q": "0188"}')) >= 1, true);
+select test.eq('masked search: Sales cannot probe part of a number', jsonb_array_length(app.phone_renter_search(test.id('rss_sam'), '{"q": "5550"}')), 0);
+select test.eq('masked search: Sales cannot probe part of an email', jsonb_array_length(app.phone_renter_search(test.id('rss_sam'), '{"q": "rss_rita.fi"}')), 0);
+select test.ok('masked search: Admin still finds part of a number', jsonb_array_length(app.phone_renter_search(test.id('rss_admin'), '{"q": "5550188"}')) >= 1);
+
+-- small fixes
+select test.eq('referrer search: % and _ are text, not wildcards', jsonb_array_length(public.server_referrer_search('%%%')) + jsonb_array_length(public.server_referrer_search('___')), 0);
+select test.ok('referrer search: in name order',
+  (select bool_and(a <= b) from (select x ->> 'label' as a, lead(x ->> 'label') over (order by n) as b from jsonb_array_elements(public.server_referrer_search('rss')) with ordinality t(x, n)) s where b is not null) is not false);
+select test.mk_user('rss_fieldonly', 'field', null, 'driver_detailer', 'RSSFLDON');
+select test.throws('notes: field staff without Sales or customer service do not read them',
+  $$select app.door(test.id('rss_fieldonly'), 'aal2', 'ops_read', 'request_notes', '{"booking": "RSS-1"}')$$, null);
+create temp table rss_eq2 as select app.sample_car_enquiry(jsonb_build_object('vehicle_id', test.id('vehicle:rss_sample'), 'note', 'Second sample ask',
+  'renter', jsonb_build_object('full_name', 'Rss Sample Two', 'email', 'rss_dost2@example.test', 'mobile', '416-555-0145'),
+  'pickup_at', '2031-04-01T15:00:00Z', 'return_at', '2031-04-03T15:00:00Z')) r;
+select test.ok('sample rows: the queue''s state filter is respected',
+  not exists (select 1 from jsonb_array_elements(app.admin_requests(test.id('rss_admin'), '{"state": "offer_out"}')) x where x ->> 'lead_id' = (select r ->> 'lead_id' from rss_eq2)));
+select test.ok('sample rows: the search filter is respected',
+  exists (select 1 from jsonb_array_elements(app.admin_requests(test.id('rss_admin'), '{"q": "Sample Two"}')) x where x ->> 'lead_id' = (select r ->> 'lead_id' from rss_eq2))
+  and not exists (select 1 from jsonb_array_elements(app.admin_requests(test.id('rss_admin'), '{"q": "zzzz-nobody"}')) x where x ->> 'lead_id' = (select r ->> 'lead_id' from rss_eq2)));
+select test.ok('sample rows: only leads the viewer may open',
+  not exists (select 1 from jsonb_array_elements(app.sample_request_rows(test.id('rss_fieldonly'), '{}'::jsonb)) x));
+select test.ok('job: the hourly merge runs (the migration itself merges nothing)', app.job_lead_merge(50) >= 0);

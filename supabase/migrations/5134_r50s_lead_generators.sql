@@ -164,7 +164,8 @@ declare
   v_id uuid;
 begin
   select * into l from leads where id = p_lead;
-  if l.id is null or l.generated_by is null or app.is_test_user(l.generated_by) then return null; end if;
+  -- a merged lead's credit goes with the lead it joined (5131 carries generated_by there)
+  if l.id is null or l.merged_into is not null or l.generated_by is null or app.is_test_user(l.generated_by) then return null; end if;
   select o.id into v_owner from owners o
    where o.id = l.owner_id or (l.email is not null and lower(o.email) = lower(l.email)) or (app.phone_key(l.phone) is not null and app.phone_key(o.phone) = app.phone_key(l.phone))
    order by (o.id = l.owner_id) desc nulls last limit 1;
@@ -172,6 +173,8 @@ begin
           or (v_owner is not null and exists (select 1 from owner_agreements a where a.owner_id = v_owner and a.kind = 'enrollment' and a.status = 'signed'))) then
     return null;
   end if;
+  -- one credit an owner, whichever of their leads signed
+  if v_owner is not null and exists (select 1 from lead_gen_credits c where c.owner_id = v_owner and c.status <> 'void') then return null; end if;
   insert into lead_gen_credits (lead_id, staff_id, owner_id, amount_cents)
   values (l.id, l.generated_by, v_owner, (app.settings()).lead_gen_flat_cents)
   on conflict (lead_id) do nothing
@@ -196,7 +199,7 @@ begin
   if new.generated_by is not null then perform app.lead_gen_credit_check(new.id); end if;
   return null;
 end $$;
-create trigger leads_zz_lead_gen_credit after update of pipeline_stage, owner_id, sales_outcome on leads
+create trigger leads_zz_lead_gen_credit after update of pipeline_stage, owner_id, sales_outcome, generated_by on leads
   for each row when (new.generated_by is not null) execute function app.lead_gen_lead_trg();
 
 create function app.lead_gen_agreement_trg() returns trigger
@@ -205,7 +208,7 @@ declare r record;
 begin
   if new.status <> 'signed' or new.kind <> 'enrollment' then return null; end if;
   for r in select l.id from leads l join owners o on o.id = new.owner_id
-            where l.generated_by is not null
+            where l.generated_by is not null and l.merged_into is null
               and (l.owner_id = o.id or (l.email is not null and lower(l.email) = lower(o.email)) or (app.phone_key(l.phone) is not null and app.phone_key(l.phone) = app.phone_key(o.phone))) loop
     perform app.lead_gen_credit_check(r.id);
   end loop;
@@ -283,6 +286,10 @@ begin
   perform app.assert_admin(p_by);
   select * into c from lead_gen_credits where id = nullif(p ->> 'credit', '')::uuid for update;
   if c.id is null then raise exception 'Credit not found' using errcode = 'P0002'; end if;
+  -- an Admin never decides a credit of their own lead
+  if c.staff_id = p_by or exists (select 1 from leads l where l.id = c.lead_id and l.generated_by = p_by) then
+    raise exception 'This credit is yours: another Admin decides it' using errcode = '42501';
+  end if;
   if v_action = 'approve' then
     if c.status <> 'pending_approval' then raise exception 'This credit is %', replace(c.status, '_', ' ') using errcode = '23514'; end if;
     update lead_gen_credits set status = 'approved', decided_by = p_by, decided_at = now(), note = coalesce(v_note, note) where id = c.id;

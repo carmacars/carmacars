@@ -4,7 +4,8 @@
 -- moment was not Sales). That breaks 0970: customer numbers are hidden from Sales. Now the function masks by itself:
 -- for a Sales rep (app.user_sales_only, or app.viewer_masks_phones) the mobile is the masked display, kept in phone_masks
 -- (so the server's Call and Text find it, 0970), and the email is masked (app.esign_mask_email). The link to a renter
--- still goes by the record id (phone_link renter_id). Search still matches on the full values on the server. Admins and
+-- still goes by the record id (phone_link renter_id). For a masked viewer a number matches by its last 4 digits or in full
+-- and an email only in full, so nothing can be probed out a digit at a time. Admins and
 -- customer service see the full values as before. No applied migration is edited.
 set local check_function_bodies = off;
 
@@ -22,8 +23,14 @@ begin
   v_mask := app.user_sales_only(p_by) or app.viewer_masks_phones(p_by);
   with top as (
     select r.id, r.legal_name, r.email, app.phone_e164(r.mobile) as e164, r.mobile, r.created_at from renters r
-     where r.legal_name ilike '%' || q || '%' or r.email ilike '%' || q || '%'
-        or (d <> '' and regexp_replace(coalesce(r.mobile, ''), '[^0-9]', '', 'g') like '%' || d || '%')
+     where r.legal_name ilike '%' || replace(replace(replace(q, '\', '\\'), '%', '\%'), '_', '\_') || '%'
+        -- a masked viewer matches a number by its last 4 digits or in full, an email in full: nothing can be probed out a
+        -- digit at a time
+        or (not v_mask and r.email ilike '%' || replace(replace(replace(q, '\', '\\'), '%', '\%'), '_', '\_') || '%')
+        or (v_mask and r.email is not null and lower(r.email) = lower(q))
+        or (not v_mask and d <> '' and regexp_replace(coalesce(r.mobile, ''), '[^0-9]', '', 'g') like '%' || d || '%')
+        or (v_mask and length(d) = 4 and right(regexp_replace(coalesce(r.mobile, ''), '[^0-9]', '', 'g'), 4) = d)
+        or (v_mask and length(d) >= 10 and app.phone_e164(r.mobile) = app.phone_e164(q))
      order by r.created_at desc limit 10),
   kept as (
     insert into phone_masks as x (user_id, number, display, seen_at)
