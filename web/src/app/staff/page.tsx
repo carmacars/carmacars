@@ -32,7 +32,7 @@ export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'To do', path: '/staff', noindex: true, description: 'The assistant\'s work queue.' });
 
 type Digest = { open: number; overdue: number; due_today: number; escalated: number; done_today: number; mine: number };
-type Req = { id: string; booking_number: string; status: string; state: string; vehicle: string; renter: string; returning: boolean; waiting_minutes: number;
+type Req = { id: string; booking_number: string; status: string; state: string; vehicle: string; renter: string; returning: boolean; waiting_minutes: number; /** 5130 */ sample?: boolean; lead_id?: string;
   /** 0177 */ claim?: ClaimInfo | null; sales_opens_at?: string | null; sales_waits?: boolean };
 type R = Record<string, unknown>;
 // 0169: the bookings with a licence image or selfie waiting, for Sales
@@ -86,7 +86,10 @@ export default async function Queue({ searchParams }: { searchParams: Promise<Re
 
   // the replies waiting: requests from the requests read, messages, calls and chats from the queue
   const replies: WaitingItem[] = talk ? [
-    ...waiting.map((r): WaitingItem => ({ key: `r-${r.id}`, what: 'Booking request', who: <>{r.renter} <span className="muted">{r.returning ? 'returning' : 'new'}</span></>, detail: [`${r.vehicle} · ${r.booking_number}`, r.sales_waits ? opensToYou(r.sales_opens_at) : r.claim && !r.claim.mine ? r.claim.text : null].filter(Boolean).join(' · '),
+    // 5130: a request for a sample car opens its enquiry (there is no booking), with the real cars to offer
+    ...waiting.filter((r) => r.sample).map((r): WaitingItem => ({ key: `r-${r.id}`, what: 'Sample car request', who: r.renter, detail: `${r.vehicle} · ${r.booking_number}`,
+      since: sinceOf(r.waiting_minutes), href: `/staff/sales-leads/${r.lead_id ?? r.id}`, cta: 'Offer a real car', testId: `va-reply-${r.booking_number}` })),
+    ...waiting.filter((r) => !r.sample).map((r): WaitingItem => ({ key: `r-${r.id}`, what: 'Booking request', who: <>{r.renter} <span className="muted">{r.returning ? 'returning' : 'new'}</span></>, detail: [`${r.vehicle} · ${r.booking_number}`, r.sales_waits ? opensToYou(r.sales_opens_at) : r.claim && !r.claim.mine ? r.claim.text : null].filter(Boolean).join(' · '),
       since: sinceOf(r.waiting_minutes), href: `/staff/bookings/${encodeURIComponent(r.booking_number)}`, cta: r.sales_waits || (r.claim && !r.claim.mine) ? 'Open' : 'Send an offer', testId: `va-reply-${r.booking_number}` })),
     ...all.filter((x) => REPLY[x.task_type]).map((x): WaitingItem => ({ key: x.id, what: REPLY[x.task_type]!.what, who: x.renter_first_name ?? x.title, detail: x.booking_number ?? undefined,
       since: x.created_at, href: taskHref(x), cta: REPLY[x.task_type]!.cta }))

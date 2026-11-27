@@ -33,7 +33,8 @@ export async function RequestsPage({ ctx, sp }: { ctx: PageCtx; sp: Record<strin
   // the first reply target (Program settings, 5 minutes by default; 0057) marks a request waiting too long
   const [all, target] = await Promise.all([read<Req[]>('requests'), ops<{ minutes: number; words: string }>('reply_target', {}).catch(() => ({ minutes: 5, words: '5 minutes' }))]);
   const state = sp.state ?? '';
-  const cards = await bookingCards(user.id, all.map((r) => r.id), admin ? undefined : { va: fn, aal });
+  // 5130: a sample-car enquiry is a lead, not a booking: no booking card
+  const cards = await bookingCards(user.id, all.filter((r) => !r.sample).map((r) => r.id), admin ? undefined : { va: fn, aal });
   const at = admin ? new Date().getTime() : requestNow();
   const waiting = all.filter((r) => r.status === 'requested').length;
   return (

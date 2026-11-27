@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { addressWords, driverRow, driversToOffer, fillFromProfile, licenceWords, profileFlags, type RenterProfile } from './profile-fill.ts';
 
 const empty = () => ({ car: '', from: '', to: '', tf: '10:00', tt: '10:00', pickupAt: 'ours', pickupAddress: { label: '', placeId: '' }, pickupAirport: '', returnAt: 'ours',
-  returnAddress: { label: '', placeId: '' }, returnAirport: '', first: '', last: '', email: '', phone: '', dobY: '', dobM: '', dobD: '', drivers: [], referrer: '', heardAbout: '',
+  returnAddress: { label: '', placeId: '' }, returnAirport: '', first: '', last: '', email: '', phone: '', dobY: '', dobM: '', dobD: '', drivers: [], referrer: '', referrerKey: '', heardAbout: '',
   licClass: '', licIssuer: '', coverage: '', coverageCard: '', coverageCardAck: false, opcfAck: false, bookingType: 'standard', winter: false, babySeats: 0, notes: '', addons: [],
   agree: false, marketing: false, notifyChannel: '', promo: '' }) as never as Parameters<typeof fillFromProfile>[0];
 const profile = (over: Partial<RenterProfile> = {}): RenterProfile => ({

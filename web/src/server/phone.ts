@@ -153,16 +153,17 @@ export function quoProblem(error: string | undefined): string {
  *  in the person's conversation and refuses an opted-out number; this sends it at once from the CarmaCars number.
  *  r27b (0535): the dialog's key makes it one text however often Send is pressed; the database call is bounded. */
 export async function staffCompose(d: Door, call: 'va_do' | 'field_do', p: { number: string; body: string; booking_number?: string; key?: string }): Promise<{ ok: boolean; thread_id?: string; error?: string; note?: string }> {
-  const r = (await within(d(call, 'phone_compose', p), COMPOSE_DB_MS)) as { send?: Send; from?: string; thread_id?: string; note?: string; already?: boolean; pending?: boolean };
-  if (!r.send) return r.already || r.pending ? { ok: true, thread_id: r.thread_id, note: r.note } : { ok: false, error: 'Nothing to send' };
+  const r = (await within(d(call, 'phone_compose', p), COMPOSE_DB_MS)) as { send?: Send; from?: string; thread_id?: string; note?: string; already?: boolean; pending?: boolean; error?: string };
+  // 5137: a salesperson's text with a phone number is refused by the database, with the reason
+  if (!r.send) return r.already || r.pending ? { ok: true, thread_id: r.thread_id, note: r.note } : { ok: false, error: r.error ?? 'Nothing to send' };
   const [res] = await sendTexts([r.send], r.from);
   return res!.ok ? { ok: true, thread_id: r.thread_id } : { ok: false, thread_id: r.thread_id, error: quoProblem(res!.error) };
 }
 
 /** A staff reply: the database checks and queues it (refusing an opted-out number), this sends it at once. */
 export async function staffReply(d: Door, id: string, body: string): Promise<{ ok: boolean; error?: string }> {
-  const r = (await d('va_do', 'phone_reply', { id, body })) as { send?: Send; from?: string };
-  if (!r.send) return { ok: false, error: 'Nothing to send' };
+  const r = (await d('va_do', 'phone_reply', { id, body })) as { send?: Send; from?: string; error?: string };
+  if (!r.send) return { ok: false, error: r.error ?? 'Nothing to send' };
   const [res] = await sendTexts([r.send], r.from);
   return res!.ok ? { ok: true } : { ok: false, error: quoProblem(res!.error) };
 }

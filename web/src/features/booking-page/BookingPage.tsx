@@ -89,7 +89,7 @@ import type { CarLoc } from '@/features/tracking/location';
 // shows by `bookingCan`, so each staff function sees what it saw on its own copy and an Admin keeps everything.
 
 type R = Record<string, unknown>;
-type SalesCredit = { staff_id: string | null; how: string | null; at: string | null; name: string | null; by: string | null; revenue_cents: number; options: Array<{ id: string; name: string; function: string }>;
+type SalesCredit = { staff_id: string | null; how: string | null; at: string | null; name: string | null; by: string | null; revenue_cents: number; options: Array<{ id: string; name: string; function: string; /** 5133: holds the Sales function (field staff with Sales included) */ sales?: boolean }>;
   sourced?: boolean; choice?: string | null; choice_by?: string | null; claim_by?: string | null; supply_type?: string;
   price?: { rental_cents: number; rate_sheet_cents: number | null; reason: string | null; by: string | null; at: string; flags: string[]; reviewed_at: string | null; review_note: string | null;
     /** 0112 */ tax?: 'plus' | 'included'; with_tax_cents?: number | null } | null;
@@ -178,7 +178,7 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
       ? ops<CarOptions>('car_change_options', { booking: b.id }).catch(none(null)) : null,
     (section === 'overview' || section === 'documents') && ['pending_payment', 'confirmed', 'on_rent'].includes(b.status) && notOwner
       ? ops<AccidentCardData>('accident_card', { booking: b.id }).catch(none(null)) : null]);
-  const [ins, km, settings, credit, came, insurerCard, swapCars, fleetStaff, noShift, late] = await Promise.all([
+  const [ins, km, settings, credit, came, insurerCard, swapCars, fleetStaff, noShift, late, reqNotes] = await Promise.all([
     can.admin || can.insurerClaim ? list<{ id: string; name: string }>('insurers', { eq: { is_active: true }, order: 'name', asc: true }).catch(none({ rows: [] as Array<{ id: string; name: string }>, count: 0 })) : { rows: [] as Array<{ id: string; name: string }>, count: 0 },
     can.admin || arranging ? list<{ km_per_day: number }>('km_allowance_choices', { eq: { is_active: true } }).catch(none({ rows: [] as Array<{ km_per_day: number }>, count: 0 })) : { rows: [] as Array<{ km_per_day: number }>, count: 0 },
     can.admin ? read<{ program: { offer_expiry_hours: number } }>('settings') : null,
@@ -195,7 +195,9 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
     // handovers and returns on a day with no field shifts (0880): someone must cover it, or the time must move
     can.scheduleJob ? ops<NoShiftDay[]>('field_no_shift_days', { booking: b.id }).catch(none([] as NoShiftDay[])) : [] as NoShiftDay[],
     // the late-return panel (05-va.md section 3.4) while the car is out past its time
-    can.latePanel && b.status === 'on_rent' ? read<Late | null>('late_panel', { booking: b.id }).catch(none(null)) : null]);
+    can.latePanel && b.status === 'on_rent' ? read<Late | null>('late_panel', { booking: b.id }).catch(none(null)) : null,
+    // 5132: the notes the renter added to their request
+    on('review') && notOwner ? ops<Array<{ id: string; body: string; at: string }>>('request_notes', { booking: b.id }).catch(none([] as Array<{ id: string; body: string; at: string }>)) : [] as Array<{ id: string; body: string; at: string }>]);
   const [driverLinks, manual, paper, moneyByPart, fees, editForm, renterForm, activity, conv] = await Promise.all([
     can.driverLinks && section === 'documents' ? read<DriverLinkRow[]>('driver_links', { booking: b.id }).catch(none([] as DriverLinkRow[])) : [] as DriverLinkRow[],
     // payments received another way and documents signed on paper (migration 0044)
@@ -412,6 +414,7 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
           <div id="bk-review" className={can.admin ? 'ad-cols ad-cols--2' : undefined}>
             <Card title="The request as sent">
               <Kv rows={[['Pickup', t(b.request_sent.pickup_at)], ['Return', t(b.request_sent.return_at)], ['Note', String(b.request_note ?? '')],
+                ...(reqNotes.length ? [['Notes added', <div key="rn" className="stack" data-testid="request-notes">{reqNotes.map((n) => <p key={n.id} className="small"><span className="muted">{t(n.at)}</span> {n.body}</p>)}</div>]] as Array<[string, React.ReactNode]> : []),
                 ['Renter', renterContact ? <>{renterContact('renter-phone')} · {b.renter?.bookings ? `${b.renter.bookings} past bookings` : 'first booking'}{b.renter?.is_blocked ? <b className="ad-late"> blocked</b> : null}</>
                   : `${b.renter?.legal_name ?? ''}${b.renter?.bookings ? `, ${b.renter.bookings} past bookings` : ', first booking'}`],
                 // 2026-10-28: the renter's phone and email, to call or write to them (customer service and Sales)
@@ -534,7 +537,7 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
           </div>}
           {/* r48 MR (3101): each approved extension's money, and who handles it */}
           {notOwner && <ExtensionMoney rows={b.extensions as unknown as ExtensionRow[]} booking={b.booking_number} refresh={[base]}
-            salespeople={(credit?.options ?? []).filter((o) => o.function === 'sales').map((o) => [o.id, o.name] as [string, string])} />}
+            salespeople={(credit?.options ?? []).filter((o) => o.sales ?? o.function === 'sales').map((o) => [o.id, o.name] as [string, string])} />}
           {/* r48 FE (3190): the evidence of every fee, and the return charges */}
           {notOwner && <FeeEvidence userId={user.id} aal={aal} booking={b.booking_number} bookingId={b.id} status={String(b.status)} admin={can.admin} refresh={[base]} />}
           {!moneyByPart && payments && <Card title="Payments"><Table rows={payments} empty="No payments." cols={[{ key: 'created_at', label: 'When', render: (r) => t(r.created_at) }, { key: 'purpose', label: 'Purpose' }, { key: 'kind', label: 'Kind' }, ...(can.admin ? [{ key: 'method', label: 'Method' }] : []), { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }]} />

@@ -24,6 +24,8 @@ interface Shifts {
   /** r35 SP (1770) */ standing?: Standing[]; availability?: Availability; rules?: Rules;
   swaps: Array<{ id: string; incoming: boolean; theirs: { starts_at: string; ends_at: string }; mine: { starts_at: string; ends_at: string }; who: string }>;
   others: Array<{ id: string; starts_at: string; ends_at: string; who: string }>; late_cancels: number;
+  /** 5136: a salesperson's shift claims waiting for an Admin, and the ones decided this week */
+  claims?: Array<{ id: string; slot_id: string; starts_at: string; ends_at: string; status: 'pending' | 'approved' | 'denied' | 'lapsed'; note: string | null }>;
   past: Array<{ day: string; minutes: number; jobs: Array<{ kind: string; vehicle: string; booking: string | null }>; photos: number; spent_cents: number;
     spends: Array<{ id: string; description: string; amount_cents: number; status: string; receipt: boolean }> }>;
 }
@@ -58,6 +60,13 @@ export default async function MyShifts({ searchParams }: { searchParams: Promise
     <>
       <header className="fp-hello"><h1>My shifts</h1><p>{s.mine.length} coming up</p></header>
       {s.locked && <p className="alert alert--warn" role="status"><span>Pass the academy (Training) to claim shifts.</span></p>}
+      {s.claims && s.claims.length > 0 && <section className="fd-card" aria-label="Your shift claims" data-testid="shift-claims">
+        <h2>Shift claims</h2>
+        <ul className="fd-claims">{s.claims.map((c) => <li key={c.id} data-testid={`shift-claim-${c.status}`}>
+          <b>{shiftText(c.starts_at, c.ends_at)}</b>{' '}
+          <span className="small">{c.status === 'pending' ? 'Waiting for an Admin to approve' : c.status === 'approved' ? 'Approved: the shift is yours' : c.status === 'denied' ? `Denied${c.note ? `: ${c.note}` : ''}` : 'Not decided before it started'}</span>
+        </li>)}</ul>
+      </section>}
       {!min.off && <div className={`sp-min${min.met ? ' is-met' : ''}`} data-testid="shift-minimum"><p className="sp-min__n">{min.text}</p>
         <p className="small">{min.met ? 'You hold the minimum. Claim more any time.' : 'Claim shifts below or set a standing weekly shift. Until then you get a reminder each day.'}</p></div>}
       <nav className="sp-tabs" aria-label="View"><Link prefetch={false} href="/staff/field/shifts" aria-current={list ? undefined : 'page'} data-testid="view-week">Week</Link>

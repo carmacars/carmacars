@@ -3342,6 +3342,30 @@ export type Database = {
         };
         Relationships: [];
       };
+      booking_request_notes: {
+        Row: {
+          id: string;
+          booking_id: string;
+          author_id: string | null;
+          body: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          booking_id: string;
+          author_id?: string | null;
+          body: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          booking_id?: string;
+          author_id?: string | null;
+          body?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       booking_request_snapshots: {
         Row: {
           booking_id: string;
@@ -4730,6 +4754,84 @@ export type Database = {
           attendee_email?: string;
           attendee_name?: string | null;
           sig?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      call_flag_words: {
+        Row: {
+          id: string;
+          phrase: string;
+          category: string;
+          active: boolean;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          phrase: string;
+          category: string;
+          active?: boolean;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          phrase?: string;
+          category?: string;
+          active?: boolean;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      call_flags: {
+        Row: {
+          id: string;
+          activity_id: string | null;
+          staff_id: string | null;
+          source: string;
+          category: string;
+          phrase: string | null;
+          line: string;
+          speaker: string;
+          blocked: boolean;
+          reviewed_at: string | null;
+          reviewed_by: string | null;
+          review_note: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          activity_id?: string | null;
+          staff_id?: string | null;
+          source: string;
+          category: string;
+          phrase?: string | null;
+          line: string;
+          speaker?: string;
+          blocked?: boolean;
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
+          review_note?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          activity_id?: string | null;
+          staff_id?: string | null;
+          source?: string;
+          category?: string;
+          phrase?: string | null;
+          line?: string;
+          speaker?: string;
+          blocked?: boolean;
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
+          review_note?: string | null;
           created_at?: string;
         };
         Relationships: [];
@@ -13666,6 +13768,7 @@ export type Database = {
           meet_sync: string | null;
           meet_sync_since: string | null;
           meet_error: string | null;
+          recruited_by: string | null;
         };
         Insert: {
           id?: string;
@@ -13721,6 +13824,7 @@ export type Database = {
           meet_sync?: string | null;
           meet_sync_since?: string | null;
           meet_error?: string | null;
+          recruited_by?: string | null;
         };
         Update: {
           id?: string;
@@ -13776,6 +13880,7 @@ export type Database = {
           meet_sync?: string | null;
           meet_sync_since?: string | null;
           meet_error?: string | null;
+          recruited_by?: string | null;
         };
         Relationships: [];
       };
@@ -13971,6 +14076,57 @@ export type Database = {
         };
         Relationships: [];
       };
+      lead_gen_credits: {
+        Row: {
+          id: string;
+          lead_id: string;
+          staff_id: string;
+          owner_id: string | null;
+          amount_cents: number;
+          status: string;
+          earned_at: string;
+          decided_by: string | null;
+          decided_at: string | null;
+          paid_at: string | null;
+          paid_reference: string | null;
+          note: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          lead_id: string;
+          staff_id: string;
+          owner_id?: string | null;
+          amount_cents: number;
+          status?: string;
+          earned_at?: string;
+          decided_by?: string | null;
+          decided_at?: string | null;
+          paid_at?: string | null;
+          paid_reference?: string | null;
+          note?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          lead_id?: string;
+          staff_id?: string;
+          owner_id?: string | null;
+          amount_cents?: number;
+          status?: string;
+          earned_at?: string;
+          decided_by?: string | null;
+          decided_at?: string | null;
+          paid_at?: string | null;
+          paid_reference?: string | null;
+          note?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       lead_holds: {
         Row: {
           lead_id: string;
@@ -14097,6 +14253,7 @@ export type Database = {
           merged_at: string | null;
           merged_by: string | null;
           not_duplicate_of: string[];
+          generated_by: string | null;
         };
         Insert: {
           id?: string;
@@ -14154,6 +14311,7 @@ export type Database = {
           merged_at?: string | null;
           merged_by?: string | null;
           not_duplicate_of?: string[];
+          generated_by?: string | null;
         };
         Update: {
           id?: string;
@@ -14211,6 +14369,7 @@ export type Database = {
           merged_at?: string | null;
           merged_by?: string | null;
           not_duplicate_of?: string[];
+          generated_by?: string | null;
         };
         Relationships: [];
       };
@@ -22325,6 +22484,7 @@ export type Database = {
           owner_stage_uvip_url: string;
           calls_mode: string;
           staff_notice_days: number;
+          lead_gen_flat_cents: number;
         };
         Insert: {
           id?: string;
@@ -23317,6 +23477,7 @@ export type Database = {
           owner_stage_uvip_url?: string;
           calls_mode?: string;
           staff_notice_days?: number;
+          lead_gen_flat_cents?: number;
         };
         Update: {
           id?: string;
@@ -24309,6 +24470,7 @@ export type Database = {
           owner_stage_uvip_url?: string;
           calls_mode?: string;
           staff_notice_days?: number;
+          lead_gen_flat_cents?: number;
         };
         Relationships: [];
       };
@@ -27570,6 +27732,45 @@ export type Database = {
         };
         Relationships: [];
       };
+      shift_claims: {
+        Row: {
+          id: string;
+          slot_id: string;
+          offer_id: string | null;
+          staff_id: string;
+          status: string;
+          decided_by: string | null;
+          decided_at: string | null;
+          decided_note: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          slot_id: string;
+          offer_id?: string | null;
+          staff_id: string;
+          status?: string;
+          decided_by?: string | null;
+          decided_at?: string | null;
+          decided_note?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          slot_id?: string;
+          offer_id?: string | null;
+          staff_id?: string;
+          status?: string;
+          decided_by?: string | null;
+          decided_at?: string | null;
+          decided_note?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       shift_feeds: {
         Row: {
           id: string;
@@ -29603,6 +29804,9 @@ export type Database = {
           perks_tier_month: string | null;
           birthday_month: number | null;
           birthday_day: number | null;
+          lead_generator: boolean;
+          lead_generator_at: string | null;
+          recruit_code: string | null;
         };
         Insert: {
           user_id: string;
@@ -29671,6 +29875,9 @@ export type Database = {
           perks_tier_month?: string | null;
           birthday_month?: number | null;
           birthday_day?: number | null;
+          lead_generator?: boolean;
+          lead_generator_at?: string | null;
+          recruit_code?: string | null;
         };
         Update: {
           user_id?: string;
@@ -29739,6 +29946,9 @@ export type Database = {
           perks_tier_month?: string | null;
           birthday_month?: number | null;
           birthday_day?: number | null;
+          lead_generator?: boolean;
+          lead_generator_at?: string | null;
+          recruit_code?: string | null;
         };
         Relationships: [];
       };
@@ -37545,6 +37755,8 @@ export type Database = {
       renter_reply_booking_info: { Args: { p_request: string; p_by: string; p_reply: string }; Returns: undefined };
       renter_request_booking_change: { Args: { p_booking: string; p_by: string; p_changes: Json; p_note?: string }; Returns: string };
       renter_request_extension: { Args: { p_booking: string; p_by: string; p_new_return: string; p_note?: string }; Returns: string };
+      renter_request_note: { Args: { p_booking: string; p_by: string; p_body: string }; Returns: Json };
+      renter_request_notes: { Args: { p_booking: string; p_by: string }; Returns: Json };
       renter_request_offer_change: { Args: { p_booking: string; p_by: string; p_note: string }; Returns: undefined };
       renter_request_protection_plan: { Args: { p_booking: string; p_by: string; p_note?: string }; Returns: Json };
       renter_review_state: { Args: { p_booking: string; p_by: string }; Returns: Json };
@@ -37867,6 +38079,7 @@ export type Database = {
       server_hiring_apply_pre0380: { Args: { p: Json; p_ip?: string }; Returns: Json };
       server_hiring_apply_pre1063: { Args: { p: Json; p_ip?: string }; Returns: Json };
       server_hiring_apply_pre1067: { Args: { p: Json; p_ip?: string }; Returns: Json };
+      server_hiring_apply_pre5135: { Args: { p: Json; p_ip?: string }; Returns: Json };
       server_hiring_book: { Args: { p_token: string; p_slot: string }; Returns: Json };
       server_hiring_booking: { Args: { p_token: string }; Returns: Json };
       server_hiring_booking_pre0211: { Args: { p_token: string }; Returns: Json };
@@ -38059,6 +38272,7 @@ export type Database = {
       server_referral_agreements: { Args: { p_by: string }; Returns: Json };
       server_referral_partner_portal: { Args: { p_partner: string }; Returns: Json };
       server_referral_partner_signup: { Args: { p: Json; p_ip?: string }; Returns: Json };
+      server_referrer_search: { Args: { p_q: string }; Returns: Json };
       server_rentalcover_apply: { Args: { p_booking: string; p_quote: string }; Returns: Json };
       server_rentalcover_facts: { Args: { p: Json }; Returns: Json };
       server_rentalcover_record: { Args: { p: Json }; Returns: Json };

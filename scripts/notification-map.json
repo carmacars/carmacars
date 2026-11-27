@@ -140,6 +140,14 @@
   "investor_library.document_published": {"investor": "investor_document_updated"},
   "owner.stage_your_turn": {"owner": "owner_stage_your_turn", "staff_admin": "gap: none: Admin and Fleet get a To do (owner_stage_turn) when a stage is theirs, not an email"},
   "owner.stage_nudge": {"owner": "owner_stage_nudge"},
-  "owner.stage_stalled": {"staff_admin": "staff_owner_stage_stalled", "staff_va_sales": "gap: none: the salesperson gets a To do (owner_stage_stalled), not an email"}
+  "owner.stage_stalled": {"staff_admin": "staff_owner_stage_stalled", "staff_va_sales": "gap: none: the salesperson gets a To do (owner_stage_stalled), not an email"},
+  "booking.request_note_added": {"staff_admin": "rule:request_note", "staff_va_cs": "rule:request_note", "staff_va_sales": "rule:request_note", "renter": "gap: none: the renter wrote it and sees it on their request"},
+  "booking.referrer_named": {"staff_va_sales": "rule:referral_named", "staff_field": "rule:referral_named", "staff_admin": "gap: none: the booking's history says who the renter named"},
+  "lead.generator_owner_signed": {"staff_va_sales": "rule:lead_gen_closed", "staff_admin": "rule:lead_gen_credit_due"},
+  "hiring.recruit_applied": {"staff_va_sales": "rule:recruit_applied", "staff_field": "rule:recruit_applied", "applicant": "applicant_received"},
+  "hiring.recruit_hired": {"staff_va_sales": "rule:recruit_hired", "staff_field": "rule:recruit_hired"},
+  "field.sales_shift_claimed": {"staff_admin": "rule:shift_claim_pending", "staff_field": "gap: none: My shifts shows the claim as waiting for an Admin"},
+  "field.sales_shift_decided": {"staff_field": "rule:shift_claim_decided", "staff_admin": "gap: none: the Admin decided it"},
+  "phone.sales_call_flagged": {"staff_admin": "rule:call_flagged", "staff_va_sales": "gap: none: a text with a phone number is refused on screen with the reason; call flags are for Admin"}
  }
 }

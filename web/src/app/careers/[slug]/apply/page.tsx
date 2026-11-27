@@ -7,7 +7,8 @@ import { utmOf } from '@/features/careers/model';
 import { closedRole, referralPrefill, rolePage } from '@/server/careers';
 
 // The screening form of one role (migration 0173). ?src=indeed|onlinejobs|referral and the utm_ parameters record where the
-// candidate came from; ?ref=<token> (the referral email) fills in their contact details. Not for search engines.
+// candidate came from; ?ref=<token> (the referral email) fills in their contact details; ?by=<code> is a salesperson's
+// invite link (5135). Not for search engines.
 export const dynamic = 'force-dynamic';
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const r = await rolePage((await params).slug);
@@ -22,7 +23,7 @@ export default async function Apply({ params, searchParams }: { params: Promise<
     // 1060: a closed role's application goes to the Sales one, with what was typed
     const c = await closedRole(slug);
     if (!c?.sales) notFound();
-    const q = new URLSearchParams({ src: 'referral', from: slug, ...(one('name') ? { name: one('name')! } : {}), ...(one('email') ? { email: one('email')! } : {}) });
+    const q = new URLSearchParams({ src: 'referral', from: slug, ...(one('by') ? { by: one('by')! } : {}), ...(one('name') ? { name: one('name')! } : {}), ...(one('email') ? { email: one('email')! } : {}) });
     redirect(`/careers/${c.sales.slug}/apply?${q.toString()}`);
   }
   // the referral email's token fills the contact details; else the name and email carried from a filled role's page
@@ -35,7 +36,7 @@ export default async function Apply({ params, searchParams }: { params: Promise<
           <p className="small"><Link prefetch={false} className="link" href={`/careers/${r.slug}`}>{r.title}</Link></p>
           <h1 className="d2">Apply: {r.title}</h1><div className="gm-public"><GuideMe portal="public" /></div>
           <p className="muted">About five minutes. {r.pay_text}. {r.location}.</p>
-          <ApplyForm role={r} src={one('src')} utm={utmOf(sp)} prefill={prefill} refToken={prefill && prefill !== typed ? one('ref') : null} />
+          <ApplyForm role={r} src={one('src')} utm={utmOf(sp)} prefill={prefill} refToken={prefill && prefill !== typed ? one('ref') : null} by={/^[a-z0-9]{8}$/.test(one('by') ?? '') ? one('by') : null} />
         </div>
       </section>
     </div>

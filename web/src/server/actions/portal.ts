@@ -821,3 +821,16 @@ export async function addMainDriver(number: string, p: { full_name: string; emai
     return { ok: true, data: { driverId: r.driver_id } };
   } catch (e) { return fail(dbMessage(e)); }
 }
+
+// ---------------------------------------------------------------- 5132: a note on the renter's own request
+export type RequestNote = { id: string; body: string; at: string };
+export async function addRequestNote(number: string, body: string): Promise<R<RequestNote[]>> {
+  const t = String(body ?? '').trim();
+  if (t.length < 1 || t.length > 1000) return { ok: false, code: 'invalid', message: 'Write a note of up to 1,000 characters.', fieldErrors: { note: 'Write your note.' } };
+  try {
+    const { userId, b } = await mine(number);
+    const notes = (await rpc('renter_request_note', { p_booking: b.id, p_by: userId, p_body: t }, SR)) as unknown as RequestNote[];
+    refresh(number);
+    return { ok: true, data: notes };
+  } catch (e) { return fail(dbMessage(e)); }
+}

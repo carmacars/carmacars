@@ -30,7 +30,9 @@ export function FieldButton({ action, payload, label, testId, primary, fields, s
     try { r = await fieldAct(action, { ...payload, ...nested }); } catch { setErr('No connection. Nothing was saved: try again when you have signal.'); return; }
     if (!r.ok) { setErr(r.message); return; }
     setOpen(false);
-    if (fields?.length) setOk('Saved.');
+    // 5136: a salesperson's shift claim waits for an Admin: the database says so
+    const said = (r.data as { message?: unknown } | null)?.message;
+    if (fields?.length || typeof said === 'string') setOk(typeof said === 'string' ? said : 'Saved.');
     router.refresh();
   });
   const inputs = fields?.map((f) => (

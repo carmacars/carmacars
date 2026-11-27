@@ -629,3 +629,8 @@ a.pu-trip:hover { border-color: var(--pu-hair-strong); box-shadow: var(--pu-shad
   .pu-car__stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .pu-car__stats > div:nth-child(3):last-child { grid-column: 1 / -1; }
 }
+
+/* 5132: the renter's notes on their request */
+.pt-notes { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--s-2); }
+.pt-notes li { padding: var(--s-2) var(--s-3); border-radius: 10px; background: var(--grey-50); min-width: 0; }
+.pt-notes p { margin: 2px 0 0; text-wrap: pretty; overflow-wrap: anywhere; }

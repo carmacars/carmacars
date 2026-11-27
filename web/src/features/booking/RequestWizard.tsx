@@ -1,4 +1,5 @@
 'use client';
+import { ReferrerPicker } from './ReferrerPicker';
 import { InfoTip } from '@/components/InfoTip';
 import { scrollOption } from '@/lib/nav/same-page';
 import { AffiliateNote } from '@/features/coverage/AffiliateNote';
@@ -496,7 +497,7 @@ export function RequestWizard(p: WizardProps) {
               <select className="select" id="rq-heard" value={d.heardAbout} onChange={(e) => set('heardAbout', e.target.value as RequestData['heardAbout'])} data-testid="rq-heard">
                 <option value="">Choose one</option>{HEARD_ABOUT.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
               </select></div>
-            <div className="field"><label className="label" htmlFor="rq-ref">Did someone refer you? <span className="opt">optional</span></label><input className="input" id="rq-ref" value={d.referrer} onChange={(e) => set('referrer', e.target.value)} aria-describedby="rq-ref-hint" /><p className="hint" id="rq-ref-hint">Their name, or the referral code from their flyer or card.</p></div>
+            <ReferrerPicker value={d.referrer} chosen={d.referrerKey} onChange={(text, key) => { set('referrer', text); set('referrerKey', key); }} />
             <div className="req__nav"><button type="button" className="btn btn--ghost" onClick={() => show(1)}>Back</button><button type="button" className="btn btn--primary btn--lg" onClick={() => { if (validate(2)) show(3); }}>Continue to licence</button></div>
           </section>
 

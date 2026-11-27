@@ -229,6 +229,17 @@
 .rq__claim { font-size: var(--fs-xs); color: var(--text-2); }
 .rq__btns { display: flex; flex-wrap: wrap; gap: var(--s-2); margin-left: auto; }
 .rq__btns .btn { min-height: 40px; }
+/* 5132: the renter's latest note, across the row */
+.rq__notes { grid-column: 1 / -1; display: grid; gap: 2px; padding: var(--s-2) var(--s-3); border-radius: 10px; background: var(--grey-50); min-width: 0; }
+.rq__notes p { margin: 0; font-size: var(--fs-xs); text-wrap: pretty; overflow-wrap: anywhere; }
+/* 5130: a sample-car enquiry: the real cars to offer take the price's place */
+.rq--sample { grid-template-areas: "when when" "car car" "who who" "suggest suggest" "act act"; }
+.rq__suggest { grid-area: suggest; display: grid; gap: 4px; min-width: 0; font-size: var(--fs-xs); }
+.rq__suggest ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 2px; }
+.rq__note { margin: 0; color: var(--text-2); text-wrap: pretty; overflow-wrap: anywhere; }
+@media (min-width: 64rem) {
+  .rq--sample { grid-template-columns: 9rem minmax(12rem, 1.3fr) minmax(12rem, 1.2fr) minmax(12rem, 1.2fr) minmax(12rem, 1fr); grid-template-areas: "when car who suggest act"; }
+}
 @media (min-width: 64rem) {
   .rq { grid-template-columns: 9rem minmax(14rem, 1.5fr) minmax(13rem, 1.3fr) 6rem minmax(13rem, 1.2fr); grid-template-areas: "when car who money act"; align-items: center; padding: var(--s-3) var(--s-4); }
   .rq__money { justify-items: start; }

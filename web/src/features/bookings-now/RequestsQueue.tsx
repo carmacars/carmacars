@@ -9,6 +9,7 @@ import { CarLine, Chip, Tile, TileBand, Who } from './parts';
 import { Countdown } from './Countdown';
 import { expiredForLong, money, when, type Car } from './model';
 import { waitWords } from '@/lib/wait-words';
+import { torontoInputOf } from '@/lib/dates';
 import type { Cards } from './cards';
 
 // Requests and offers (Release 26 part 2, migration 0332), the same for an Admin and for customer service, fleet and
@@ -20,12 +21,16 @@ import type { Cards } from './cards';
 // else is answering opens read-only, and Sales waits until it opens to them.
 export type Req = { id: string; booking_number: string; status: string; state: string; vehicle: string; renter: string; returning: boolean; pickup_at: string; return_at: string; days: number;
   total_cents: number; waiting_minutes: number; offer_expires_at: string | null; flags: string[]; drivers?: string[]; assigned?: string | null;
-  claim?: ClaimInfo | null; sales_opens_at?: string | null; sales_waits?: boolean };
+  claim?: ClaimInfo | null; sales_opens_at?: string | null; sales_waits?: boolean;
+  /** 5130: an enquiry on a sample car (a lead, not a booking): its contact and the real cars to offer instead */
+  sample?: boolean; lead_id?: string; contact?: { email?: string; phone?: string }; note?: string | null;
+  suggestions?: Array<{ id: string; name: string; slug: string; same_class: boolean }>;
+  /** 5132: the renter's notes on their request */ renter_notes?: Array<{ id: string; body: string; at: string }> };
 
 /** What the site promises a renter for the first answer (site_settings.reply_wording: "within 2 hours"). */
 export const PROMISE_MINUTES = 120;
 const RANK: Record<string, number> = { requested: 0, pending_payment: 1, offered: 2, expired: 3 };
-const STATE_WORDS: Record<string, string> = { new: 'New request', waiting_on_renter: 'Asked the renter', pushed_back: 'Renter asked for changes', offer_out: 'Offer out', awaiting_payment: 'Accepted, not paid', expired: 'Offer expired' };
+const STATE_WORDS: Record<string, string> = { sample: 'Sample car enquiry', new: 'New request', waiting_on_renter: 'Asked the renter', pushed_back: 'Renter asked for changes', offer_out: 'Offer out', awaiting_payment: 'Accepted, not paid', expired: 'Offer expired' };
 const FLAG_RED = new Set(['Conflict', 'Blocked renter', 'Under 21']);
 
 export function sortRequests(rows: Req[]): Req[] {
@@ -72,7 +77,8 @@ export function RequestsQueue({ all: everyone, cards, state, sp, target, at, bas
       </div>
       {rows.length ? (
         <div className="rq-list" role="list" data-testid="requests">
-          {rows.map((r) => <RequestRow key={r.id} r={r} c={cards[r.id]} target={target.minutes} at={at} base={base} admin={admin} refresh={refresh} />)}
+          {rows.map((r) => (r.sample ? <SampleRow key={r.id} r={r} target={target.minutes} at={at} base={base} />
+            : <RequestRow key={r.id} r={r} c={cards[r.id]} target={target.minutes} at={at} base={base} admin={admin} refresh={refresh} />))}
         </div>
       ) : <p className="bn-none" data-testid="requests-empty">{every.length ? (later.length ? 'Nothing to answer right now.' : 'No request in this state. Choose Active to see the queue.') : 'No requests waiting. New booking requests from the website show up here to price and offer.'}</p>}
       {later.length > 0 && (
@@ -128,6 +134,9 @@ function RequestRow({ r, c, target, at, base, admin, refresh }: { r: Req; c: Car
           {r.flags.map((f) => <Chip key={f} tone={FLAG_RED.has(f) ? 'red' : 'amber'}>{f}</Chip>)}
         </span>
       </div>
+      {r.renter_notes && r.renter_notes.length > 0 && <div className="rq__notes" data-testid={`rq-notes-${r.booking_number}`}>
+        <span className="bn-k">Renter&apos;s note{r.renter_notes.length === 1 ? '' : `s (${r.renter_notes.length})`}</span>
+        <p>{r.renter_notes[r.renter_notes.length - 1]!.body}</p></div>}
       <div className="rq__money"><span className="bn-k">Price</span><b>{money(r.total_cents)}</b></div>
       <div className="rq__act">
         <Chip tone={requested ? (r.waiting_minutes > target ? 'red' : 'dark') : r.status === 'expired' ? 'quiet' : 'amber'}>{STATE_WORDS[r.state] ?? r.state.replace(/_/g, ' ')}</Chip>
@@ -138,6 +147,50 @@ function RequestRow({ r, c, target, at, base, admin, refresh }: { r: Req; c: Car
           {admin && free && <Act action="decline_request" payload={{ booking: r.id }} label="Decline" title={`Decline ${r.booking_number}`}
             fields={[{ name: 'note', label: 'Reason and any alternative', type: 'textarea', required: true }]} refresh={refresh} />}
           {r.status === 'expired' && <ReopenOffer booking={r.id} pickupAt={r.pickup_at} returnAt={r.return_at} refresh={refresh} testId={`rq-reopen-${r.booking_number}`} />}
+        </span>
+      </div>
+    </article>
+  );
+}
+
+// 5130: an enquiry on a sample car (an example car, not a real one) waits here like a request: who asked, for which dates,
+// and up to three real cars free then to offer instead. Send an offer opens the offer form on the first one with the dates.
+function SampleRow({ r, target, at, base }: { r: Req; target: number; at: number; base: string }) {
+  const lead = `${base}/sales-leads/${r.lead_id ?? r.id}`;
+  const dates = `from=${encodeURIComponent(torontoInputOf(r.pickup_at))}&to=${encodeURIComponent(torontoInputOf(r.return_at))}`;
+  const first = r.suggestions?.[0];
+  const offer = `${base}/offers/new?${first ? `car=${first.id}&` : ''}${dates}`;
+  return (
+    <article className={`rq rq--sample ${r.waiting_minutes > target ? 'is-late' : 'is-new'}`} role="listitem" data-testid={`rq-${r.booking_number}`}>
+      <div className="rq__when">
+        <span className="bn-k">Waiting</span>
+        <b className="rq__wait"><LiveWait key={`${r.id}-${r.waiting_minutes}`} minutes={r.waiting_minutes} target={target} /></b>
+      </div>
+      <div className="rq__car">
+        <span className="bn-carline"><span className="bn-carline__text"><span className="bn-carline__name">{r.vehicle}</span>
+          <span className="bn-carline__id">{r.booking_number}</span></span></span>
+        <span className="rq__dates"><b>{when(r.pickup_at, at)}</b> to {when(r.return_at, at)} <span className="rq__days">{r.days} day{r.days === 1 ? '' : 's'}</span></span>
+      </div>
+      <div className="rq__who">
+        <Who r={{ id: r.id, name: r.renter, phone: r.contact?.phone ?? null }} booking={null} />
+        <span className="rq__tags">
+          <Chip tone="amber" testId={`rq-sample-${r.booking_number}`}>Sample car: not a real car</Chip>
+          {r.contact?.email && <Chip tone="quiet">{r.contact.email}</Chip>}
+        </span>
+        {r.note && <p className="rq__note small">{r.note}</p>}
+      </div>
+      <div className="rq__suggest" data-testid={`rq-suggest-${r.booking_number}`}>
+        <span className="bn-k">Offer a real car</span>
+        {r.suggestions && r.suggestions.length > 0
+          ? <ul>{r.suggestions.map((x) => <li key={x.id}><Link prefetch={false} className="bn-link" href={`${base}/offers/new?car=${x.id}&${dates}`}>{x.name}</Link>{x.same_class ? <span className="muted small"> same class</span> : null}</li>)}</ul>
+          : <p className="small muted">No real car is free for these dates: call to suggest other dates.</p>}
+      </div>
+      <div className="rq__act">
+        <Chip tone={r.waiting_minutes > target ? 'red' : 'dark'}>{STATE_WORDS.sample}</Chip>
+        {r.assigned ? <span className="rq__claim">{r.assigned}</span> : null}
+        <span className="rq__btns">
+          <Link prefetch={false} className="btn btn--sm btn--primary" href={offer} data-testid={`rq-go-${r.booking_number}`}>Send an offer</Link>
+          <Link prefetch={false} className="btn btn--sm btn--ghost" href={lead} data-testid={`rq-lead-${r.booking_number}`}>Open the enquiry</Link>
         </span>
       </div>
     </article>

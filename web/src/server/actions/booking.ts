@@ -142,8 +142,12 @@ export async function submitBookingRequest(input: SubmitInput): Promise<SubmitRe
       promo_code: v.promo ? v.promo.toUpperCase() : null,
       // a code typed in the form (a partner's code from a flyer) wins over the link's cookie when it is written like a code
       // (capitals or digits); a plain word such as a first name is only a code when there is no cookie. The database ignores a code nobody holds.
+      // 5132: the person chosen in "Who referred you?" (the database credits them; a partner's key is its code)
+      referred_by: v.referrerKey || null,
       referred_by_code: (() => {
         const c = cookieRef && /^[A-Z0-9]{4,12}$/.test(cookieRef) ? cookieRef : null;
+        if (v.referrerKey.startsWith('p:')) return v.referrerKey.slice(2);
+        if (v.referrerKey.startsWith('s:')) return c;
         const typed = typedReferralCode(v.referrer);
         const codeLike = typed !== null && (/\d/.test(typed) || v.referrer.trim() === typed);
         return codeLike ? typed : (c ?? typed);
@@ -284,4 +288,13 @@ export async function coverageCardCheck(p: { car: string; from: string; to: stri
     return (await rpc('server_coverage_choice_check' as never, { p: { vehicle_id: car.vehicle_id, option: 2, card: p.card, card_ack: p.ack,
       pickup_at: torontoInstant(p.from, '10:00'), return_at: torontoInstant(p.to, '10:00') } } as never, { role: 'service_role' })) as unknown as CoverageCardCheck;
   } catch { return null; }
+}
+
+/** 5132: "Who referred you?": the team members who can be credited and the referral partners whose name starts with
+ *  what was typed (3 letters at least; first name and last initial only for a team member). */
+export type ReferrerOption = { key: string; kind: 'staff' | 'partner'; label: string; note: string };
+export async function searchReferrers(q: string): Promise<ReferrerOption[]> {
+  const t = String(q ?? '').trim().slice(0, 60);
+  if (t.length < 3) return [];
+  try { return ((await rpc('server_referrer_search', { p_q: t }, { role: 'service_role' })) as unknown as ReferrerOption[]) ?? []; } catch { return []; }
 }
