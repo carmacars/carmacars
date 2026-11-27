@@ -106,7 +106,7 @@ function Side({ side, photos, electric }: { side: ConditionSide; photos: Array<C
           <li key={p.seq}>
             {/* eslint-disable-next-line @next/next/no-img-element -- signed private photo */}
             {p.src ? <a href={p.src} target="_blank" rel="noreferrer"><img src={p.src} alt={`${shotName(p.shot)}${p.damage_label ? ` ${p.damage_label}` : ''}`} loading="lazy" decoding="async" width={240} height={160} /></a> : <span className="small muted">Not available</span>}
-            <span className="xs">{p.angle ? angleLabel(p.angle) : shotName(p.shot)}{p.damage_label ? ` ${p.damage_label}` : ''}{p.taken_by_name ? ` · by ${p.taken_by_name}` : ''}{p.taken_at ? ` · ${when(p.taken_at)}` : ''}{p.latitude !== null && p.longitude !== null ? <> · <a className="link" href={`https://www.google.com/maps/search/?api=1&query=${p.latitude},${p.longitude}`} target="_blank" rel="noreferrer">where</a></> : null}</span>
+            <span className="xs">{p.angle ? angleLabel(p.angle) : shotName(p.shot)}{p.damage_label ? ` ${p.damage_label}` : ''}{p.added_later_by ? '' : p.taken_by_name ? ` · by ${p.taken_by_name}` : ''}{p.taken_at ? ` · ${p.added_later_by ? 'taken ' : ''}${when(p.taken_at)}` : ''}{p.added_later_by ? <b data-testid="photo-added-later"> · added later by {p.added_later_by}</b> : null}{p.latitude !== null && p.longitude !== null ? <> · <a className="link" href={`https://www.google.com/maps/search/?api=1&query=${p.latitude},${p.longitude}`} target="_blank" rel="noreferrer">where</a></> : null}</span>
           </li>
         ))}
       </ul>

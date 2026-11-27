@@ -44,6 +44,8 @@ export const ADMIN_HUBS: Hub[] = [
     // R50 hotfix 2 (5144): ownership permits uploaded in bulk, each filed on its car
     { href: '/admin/ownership-documents', label: 'Ownership documents' }],
     actions: [{ href: '/admin/vehicles/new', label: 'Add a car' }, { href: '/admin/vehicles/bulk-rates', label: 'Rates for many cars' }, { href: '/admin/vehicles/samples', label: 'Retire or delete' }, { href: '/admin/vehicles/import-photos', label: 'Import photos from Drive' }] },
+  // R50 hotfix 2 (5185): Add old photos beside Check-in visits (Cars keeps five items)
+  { key: 'visits', label: 'Check-in visits', tabs: [{ href: '/admin/check-ins', label: 'Check-in visits' }, { href: '/admin/old-photos', label: 'Add old photos' }] },
   { key: 'listings', label: 'Listings', tabs: [{ href: '/admin/listings', label: 'Listings' }, { href: '/admin/similar-cars', label: 'Similar cars' }] },
   // the owner: "People -> Owners (tabs: Applications, Owners, Owner forms, Paid and signed; Add a car for an owner as a button)"
   { key: 'owners', label: 'Owners', tabs: [
@@ -115,7 +117,10 @@ export const STAFF_HUBS: Hub[] = [
   { key: 'car-costs', label: 'Maintenance and expenses', tabs: [{ href: '/staff/maintenance', label: 'Maintenance', fns: 'fleet finance' }, { href: '/staff/expenses', label: 'Expenses', fns: 'fleet finance' }] },
   { key: 'checks', label: 'Checks', tabs: [{ href: '/staff/checks', label: 'Daily checks', fns: 'fleet' }, { href: '/staff/reviews', label: 'Photo reviews', fns: 'fleet' }, { href: '/staff/deposit-reviews?view=fleet', label: 'Deposit reviews', fns: 'fleet' },
     // r50 (4000): the monthly check-in visits of long rentals
-    { href: '/staff/check-ins', label: 'Check-in visits', fns: 'fleet' }] },
+    { href: '/staff/check-ins', label: 'Check-in visits', fns: 'fleet cs' },
+    // R50 hotfix 2 (5185): photos of earlier check-ins and check-outs onto past bookings (customer service reaches both from
+    // its Check-in visits link: its group keeps five links)
+    { href: '/staff/old-photos', label: 'Add old photos', fns: 'fleet cs' }] },
   // r50 hotfix 2: the Academy and the demo portals are one Me item (a Me section has at most five items)
   { key: 'learn', label: 'Academy', tabs: [{ href: '/staff/academy', label: 'Academy', fns: 'cs fleet finance sales field' }, { href: '/staff/demo', label: 'Demo portals', fns: 'cs fleet finance sales field' }] },
   { key: 'numbers', label: 'My numbers', tabs: [{ href: '/staff/scorecard', label: 'Scorecard', fns: 'cs fleet finance sales' }, { href: '/staff/my-sales', label: 'My sales', fns: 'cs fleet finance sales' },
@@ -187,7 +192,7 @@ export function movedTo(path: string, tab: string, sp: Record<string, string | s
 
 // ---------------------------------------------------------------- sections (r27, second cut)
 export const ADMIN_SECTIONS: Section[] = [
-  { key: 'cars', label: 'Cars', items: ['vehicles', 'listings', { href: '/admin/field-jobs', label: 'Field jobs' }, { href: '/admin/maintenance', label: 'Maintenance' }, { href: '/admin/check-ins', label: 'Check-in visits' }] },
+  { key: 'cars', label: 'Cars', items: ['vehicles', 'listings', { href: '/admin/field-jobs', label: 'Field jobs' }, { href: '/admin/maintenance', label: 'Maintenance' }, 'visits'] },
   { key: 'people', label: 'People', items: ['owners', 'partners', 'renters', 'team', { href: '/admin/investors', label: 'Investors' }] },
   { key: 'marketing', label: 'Marketing', items: [{ href: '/admin/marketing/marketplace', label: 'Marketplace' }, 'ads', 'channels', 'recruit'] },
   { key: 'money', label: 'Money', items: ['payments', 'owner-money', { href: '/admin/tolls', label: 'Tolls and tickets' }, 'company', 'insurers'] },
