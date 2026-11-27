@@ -92,39 +92,91 @@ select test.ok('5190: and the part-payment receipt went to the billing contact, 
   exists (select 1 from notification_outbox o where o.code = 'insurer_payment_received' and o.to_address = 'claims@rq50n-mutual.example.test'
            and o.payload ->> 'paid_in_full' = 'false' and o.payload ->> 'balance' = '$252.00'));
 
+-- the day paid is Toronto's: 02:00 UTC on Nov 28 is 21:00 on Nov 27 in Toronto
+select app.record_insurer_payment(test.id('ins:rq50n-2'), 1000, test.id('rq50n_admin'), 'cheque', timestamptz '2026-11-28 02:00+00');
+select app.process_events(500, now());
+select test.eq('5190: the receipt''s day paid is the Toronto day',
+  (select o.payload ->> 'paid_on' from notification_outbox o where o.code = 'insurer_payment_received' and o.payload ->> 'amount_paid' = '$10.00'),
+  app.fmt_day(date '2026-11-27'));
+select test.ok('5190: no value the insurer''s receipt prints names CarmaCars (the footer address and phone included)',
+  (select count(*) from notification_outbox o where o.code = 'insurer_payment_received') >= 3
+  and not exists (select 1 from notification_outbox o, jsonb_each_text(o.payload) kv
+                   where o.code = 'insurer_payment_received' and kv.value ~* 'carma'
+                     and kv.key in (select v ->> 'name' from notification_catalogue c, jsonb_array_elements(c.variables) v
+                                     where c.code = 'insurer_payment_received')));
+
 -- ---------------------------------------------------------------- 3. work someone else gives you (5190)
+-- only a person's choice alerts: To do's made in To do's (staff_task), app.assign_task, an Admin's lead reassign or bulk assign
+select test.mk_user('rq50n_cs2', 'va', 'cs');
+select test.mk_user('rq50n_cs3', 'va', 'cs');
 insert into tasks (id, queue, task_type, title, assigned_to, status)
 values (test.id('task:rq50n-auto'), 'cs', 'rq50n_auto', 'rq50n routed by the site', test.id('rq50n_cs'), 'open');
 select test.ok('5190: a To do the site routes by itself makes no alert (the queue and the morning brief have it)',
   not exists (select 1 from app_events where payload ->> 'rule' = 'work_assigned' and entity_id = test.id('task:rq50n-auto')));
 select set_config('request.jwt.claim.sub', test.id('rq50n_admin')::text, false);
-insert into tasks (id, queue, task_type, title, assigned_to, status)
-values (test.id('task:rq50n-routed'), 'cs', 'rq50n_routed', 'rq50n raised by the site during an Admin''s action', test.id('rq50n_cs'), 'open');
 insert into tasks (id, queue, task_type, title, assigned_to, status, created_by)
-values (test.id('task:rq50n-given'), 'cs', 'rq50n_given', 'rq50n call the renter back', test.id('rq50n_cs'), 'open', test.id('rq50n_admin'));
-update tasks set assigned_to = test.id('rq50n_fin') where id = test.id('task:rq50n-auto');
-insert into leads (id, kind, name, email, status) values (test.id('lead:rq50n'), 'contact', 'Rq50n Lead', 'rq50n.lead@example.test', 'new');
-update leads set assigned_to = test.id('rq50n_cs') where id = test.id('lead:rq50n');
+values (test.id('task:rq50n-routed'), 'cs', 'rq50n_routed', 'rq50n raised by the site during an Admin''s action', test.id('rq50n_cs'), 'open', test.id('rq50n_admin'));
+insert into tasks (id, queue, task_type, title, assigned_to, status, created_by)
+values (test.id('task:rq50n-given'), 'cs', 'staff_task', 'rq50n call the renter back', test.id('rq50n_cs'), 'open', test.id('rq50n_admin'));
+update tasks set assigned_to = test.id('rq50n_cs3') where id = test.id('task:rq50n-routed');   -- a move the site makes in an Admin's call
+select app.assign_task(test.id('task:rq50n-auto'), test.id('rq50n_cs2'), test.id('rq50n_admin'));
+insert into leads (id, kind, name, email, status) values (test.id('lead:rq50n'), 'contact', 'Rq50n Lead', 'rq50n.lead@example.test', 'new'),
+                                                         (test.id('lead:rq50n-sys'), 'contact', 'Rq50n Routed', 'rq50n.routed@example.test', 'new');
+select set_config('app.lead_bulk_assign', 'on', false);                                       -- what leads_bulk_assign does
+update leads set assigned_to = test.id('rq50n_cs'), admin_assigned_by = test.id('rq50n_admin'), admin_assigned_at = now()
+ where id = test.id('lead:rq50n');
+select set_config('app.lead_bulk_assign', '', false);
+select set_config('app.lead_admin_move', 'on', false);                                       -- as the site's lead return and hold do
+update leads set assigned_to = test.id('rq50n_cs') where id = test.id('lead:rq50n-sys');
+select set_config('app.lead_admin_move', '', false);
 select set_config('request.jwt.claim.sub', '', false);
-select test.ok('5190: a To do the site raises during an Admin''s action makes no alert (only one a person made)',
+select test.ok('5190: a To do the site raises or moves during an Admin''s action makes no alert (only a person''s choice)',
   not exists (select 1 from app_events where payload ->> 'rule' = 'work_assigned' and entity_id = test.id('task:rq50n-routed')));
-select test.ok('5190: a To do an Admin gives a person alerts that person',
+select test.ok('5190: a To do an Admin makes in To do''s for a person alerts that person',
   exists (select 1 from app_events where payload ->> 'rule' = 'work_assigned' and entity_id = test.id('task:rq50n-given')
            and payload ->> 'assigned_to' = test.id('rq50n_cs')::text and payload ->> 'alert_title' like 'To do for you: rq50n call the renter back%'));
-select test.ok('5190: a To do moved to another person alerts the new one',
+select test.ok('5190: a To do an Admin moves to another person (assign_task) alerts the new one',
   exists (select 1 from app_events where payload ->> 'rule' = 'work_assigned' and entity_id = test.id('task:rq50n-auto')
-           and payload ->> 'assigned_to' = test.id('rq50n_fin')::text));
+           and payload ->> 'assigned_to' = test.id('rq50n_cs2')::text));
 select test.ok('5190: a lead an Admin assigns alerts the salesperson or agent',
   exists (select 1 from app_events where payload ->> 'rule' = 'work_assigned' and entity_id = test.id('lead:rq50n')
            and payload ->> 'assigned_to' = test.id('rq50n_cs')::text));
+select test.mk_user('rq50n_sales', 'va', 'sales');
+insert into leads (id, kind, name, email, status) values (test.id('lead:rq50n-re'), 'contact', 'Rq50n Reassigned', 'rq50n.re@example.test', 'new');
+select app.lead_reassign(test.id('rq50n_admin'), jsonb_build_object('lead', test.id('lead:rq50n-re'), 'to', test.id('rq50n_sales')));
+select test.ok('5190: a lead an Admin reassigns (lead_reassign) alerts the salesperson',
+  exists (select 1 from app_events where payload ->> 'rule' = 'work_assigned' and entity_id = test.id('lead:rq50n-re')
+           and payload ->> 'assigned_to' = test.id('rq50n_sales')::text));
+select test.ok('5190: a lead the site moves makes no alert',
+  not exists (select 1 from app_events where payload ->> 'rule' = 'work_assigned' and entity_id = test.id('lead:rq50n-sys')));
 select test.ok('5190: only the assignee gets it',
   (select array_agg(user_id) from app.staff_alert_users('work_assigned', jsonb_build_object('assigned_to', test.id('rq50n_cs')))) = array[test.id('rq50n_cs')]);
+-- A to B and back to A: A hears it again (the key carries the time of the change)
+select app.assign_task(test.id('task:rq50n-auto'), test.id('rq50n_cs3'), test.id('rq50n_admin'));
+select app.assign_task(test.id('task:rq50n-auto'), test.id('rq50n_cs2'), test.id('rq50n_admin'));
+select test.eq('5190: work moved A to B and back to A alerts A twice',
+  (select count(*) from app_events where payload ->> 'rule' = 'work_assigned' and entity_id = test.id('task:rq50n-auto')
+     and payload ->> 'assigned_to' = test.id('rq50n_cs2')::text), 2::bigint);
 select set_config('request.jwt.claim.sub', test.id('rq50n_cs')::text, false);
-insert into tasks (id, queue, task_type, title, assigned_to, status)
-values (test.id('task:rq50n-self'), 'cs', 'rq50n_self', 'rq50n my own note', test.id('rq50n_cs'), 'open');
+insert into tasks (id, queue, task_type, title, assigned_to, status, created_by)
+values (test.id('task:rq50n-self'), 'cs', 'staff_task', 'rq50n my own note', test.id('rq50n_cs'), 'open', test.id('rq50n_cs'));
 select set_config('request.jwt.claim.sub', '', false);
 select test.ok('5190: a To do you give yourself makes no alert',
   not exists (select 1 from app_events where payload ->> 'rule' = 'work_assigned' and entity_id = test.id('task:rq50n-self')));
+-- end of access (connector end_staff_access, admin_do staff_end): the hand-back and any move the site makes in it are quiet
+insert into tasks (id, queue, task_type, title, assigned_to, status)
+values (test.id('task:rq50n-leaver'), 'cs', 'rq50n_leaver', 'rq50n the leaver''s To do', test.id('rq50n_cs3'), 'open');
+insert into staff_resignations (user_id, resigned_on, notice_days, last_day, status, created_by)
+values (test.id('rq50n_cs3'), current_date, 7, current_date + 7, 'pending', test.id('rq50n_cs3'));
+begin;
+select set_config('request.jwt.claim.sub', test.id('rq50n_admin')::text, true);
+select app.admin_do(test.id('rq50n_admin'), 'staff_end', jsonb_build_object('user', test.id('rq50n_cs3')));
+update tasks set assigned_to = test.id('rq50n_cs2') where id = test.id('task:rq50n-leaver');   -- the site routes it on, in the same call
+commit;
+select test.ok('5190: end of access hands the leaver''s To do back',
+  (select status from staff_resignations where user_id = test.id('rq50n_cs3')) = 'ended');
+select test.ok('5190: a reassignment inside end of access is quiet',
+  not exists (select 1 from app_events where payload ->> 'rule' = 'work_assigned' and entity_id = test.id('task:rq50n-leaver')));
 
 -- ---------------------------------------------------------------- 4. the answer to a bug report (5190)
 insert into bug_reports (id, reporter_id, portal, happened, severity, page_path, status)

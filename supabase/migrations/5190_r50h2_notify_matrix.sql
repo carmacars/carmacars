@@ -37,6 +37,7 @@ create function pg_temp.patch_fn(p_sig regprocedure, p_old text, p_new text) ret
 language plpgsql as $$
 declare d text := pg_get_functiondef(p_sig);
 begin
+  if position(p_new in d) > 0 then return; end if;   -- already applied (a second run)
   if position(p_old in d) = 0 then raise exception '5190: the text to change was not found in %: %', p_sig, left(p_old, 160); end if;
   execute replace(d, p_old, p_new);
 end $$;
@@ -59,7 +60,7 @@ update notification_catalogue set emitted_by = 'app.record_insurer_payment (5190
  where code = 'insurer_payment_received';
 
 -- the adjuster on the booking, else the insurer's billing contact (as app.send_insurer_invoice_email)
-create function app.insurer_invoice_contact(p_invoice uuid) returns jsonb
+create or replace function app.insurer_invoice_contact(p_invoice uuid) returns jsonb
 language plpgsql stable security definer set search_path = public, app, pg_temp as $$
 declare
   ii insurer_invoices;
@@ -79,8 +80,12 @@ begin
   return jsonb_build_object('to_email', v_email, 'to_name', v_name);
 end $$;
 
-alter function app.notification_recipients(app_events, notification_catalogue) rename to notification_recipients_pre5190;
-create function app.notification_recipients(p_event app_events, p_c notification_catalogue)
+do $$ begin
+  if to_regprocedure('app.notification_recipients_pre5190(app_events,notification_catalogue)') is null then
+    alter function app.notification_recipients(app_events, notification_catalogue) rename to notification_recipients_pre5190;
+  end if;
+end $$;
+create or replace function app.notification_recipients(p_event app_events, p_c notification_catalogue)
 returns table (audience text, user_id uuid, email text, name text, renter_id uuid, owner_id uuid, immediate boolean)
 language plpgsql stable security definer set search_path = public, app, pg_temp as $$
 begin
@@ -96,8 +101,12 @@ end $$;
 select pg_temp.copy_grants('app.notification_recipients(app_events, notification_catalogue)'::regprocedure,
                            'app.notification_recipients_pre5190(app_events, notification_catalogue)'::regprocedure);
 
-alter function app.notification_payload(text, app_events, jsonb) rename to notification_payload_pre5190;
-create function app.notification_payload(p_code text, p_event app_events, p_to jsonb) returns jsonb
+do $$ begin
+  if to_regprocedure('app.notification_payload_pre5190(text,app_events,jsonb)') is null then
+    alter function app.notification_payload(text, app_events, jsonb) rename to notification_payload_pre5190;
+  end if;
+end $$;
+create or replace function app.notification_payload(p_code text, p_event app_events, p_to jsonb) returns jsonb
 language plpgsql stable security definer set search_path = public, app, pg_temp as $$
 declare
   ii insurer_invoices;
@@ -116,7 +125,7 @@ begin
     'invoice_number', ii.invoice_number, 'claim_number', coalesce(nullif(ii.claim_number, ''), 'not given'),
     'renter_name', coalesce((select r.legal_name from renters r where r.id = b.renter_id), 'the renter'),
     'amount_paid', app.fmt_money(coalesce((e ->> 'amount_cents')::bigint, 0)),
-    'paid_on', app.fmt_day(coalesce((e ->> 'paid_at')::timestamptz, now())::date),
+    'paid_on', app.fmt_day(app.local_date(coalesce((e ->> 'paid_at')::timestamptz, now()))),
     'invoice_total', app.fmt_money(ii.total_cents),
     'paid_to_date', app.fmt_money(coalesce((e ->> 'paid_cents')::bigint, ii.paid_cents)),
     'balance', app.fmt_money(v_balance),
@@ -151,8 +160,12 @@ insert into staff_alert_rules (rule, label, grp, who, tier, topic, wired, fixed,
    '5190: an Admin marks a bug you reported Fixed or Won''t fix.', 168, 'staff_system')
 on conflict (rule) do nothing;
 
-alter function app.record_insurer_payment(uuid, bigint, uuid, text, timestamptz, text) rename to record_insurer_payment_pre5190;
-create function app.record_insurer_payment(p_invoice uuid, p_amount_cents bigint, p_by uuid default null, p_method text default 'bank_transfer',
+do $$ begin
+  if to_regprocedure('app.record_insurer_payment_pre5190(uuid,bigint,uuid,text,timestamptz,text)') is null then
+    alter function app.record_insurer_payment(uuid, bigint, uuid, text, timestamptz, text) rename to record_insurer_payment_pre5190;
+  end if;
+end $$;
+create or replace function app.record_insurer_payment(p_invoice uuid, p_amount_cents bigint, p_by uuid default null, p_method text default 'bank_transfer',
                                            p_paid_at timestamptz default now(), p_reference text default null) returns text
 language plpgsql security definer set search_path = public, app, pg_temp as $$
 declare
@@ -188,30 +201,81 @@ select pg_temp.copy_grants('app.record_insurer_payment(uuid, bigint, uuid, text,
                            'app.record_insurer_payment_pre5190(uuid, bigint, uuid, text, timestamptz, text)'::regprocedure);
 
 -- ================================================================ 2. work someone else gives you
-create function app.work_assigned_alert() returns trigger
+-- Only a person's choice alerts. The site moves work by itself in many places (routing, the resignation and end of access
+-- hand-back, merges, Data health fixes), often inside a staff member's call, so the actor alone is not the signal:
+--   a new To do:   one a person made in To do's (task_create: task_type staff_task, created_by the actor);
+--   a To do moved: through app.assign_task, which marks the move (app.work_assign_by, local to the transaction);
+--   a lead moved:  an Admin's reassign (app.lead_reassign marks it the same way) or bulk assign (app.lead_bulk_assign on).
+--   (app.lead_admin_move is not the signal: the site's own lead returns and holds set it too.)
+-- The alert key carries the time of the change, so work that goes A to B and back to A alerts A again (app_events.dedupe_key
+-- is unique for ever).
+do $$ begin
+  if to_regprocedure('app.assign_task_pre5190(uuid,uuid,uuid)') is null then
+    alter function app.assign_task(uuid, uuid, uuid) rename to assign_task_pre5190;
+  end if;
+end $$;
+create or replace function app.assign_task(p_task uuid, p_assignee uuid, p_by uuid) returns void
+language plpgsql security definer set search_path = public, app, pg_temp as $$
+begin
+  perform set_config('app.work_assign_by', coalesce(p_by::text, ''), true);
+  perform app.assign_task_pre5190(p_task, p_assignee, p_by);
+  perform set_config('app.work_assign_by', '', true);
+end $$;
+select pg_temp.copy_grants('app.assign_task(uuid, uuid, uuid)'::regprocedure, 'app.assign_task_pre5190(uuid, uuid, uuid)'::regprocedure);
+do $$ begin
+  if to_regprocedure('app.lead_reassign_pre5190(uuid,jsonb)') is null then
+    alter function app.lead_reassign(uuid, jsonb) rename to lead_reassign_pre5190;
+  end if;
+end $$;
+create or replace function app.lead_reassign(p_by uuid, p jsonb) returns jsonb
+language plpgsql security definer set search_path = public, app, pg_temp as $$
+declare v jsonb;
+begin
+  perform set_config('app.work_assign_by', coalesce(p_by::text, ''), true);
+  v := app.lead_reassign_pre5190(p_by, p);
+  perform set_config('app.work_assign_by', '', true);
+  return v;
+end $$;
+select pg_temp.copy_grants('app.lead_reassign(uuid, jsonb)'::regprocedure, 'app.lead_reassign_pre5190(uuid, jsonb)'::regprocedure);
+
+create or replace function app.work_assigned_alert() returns trigger
 language plpgsql security definer set search_path = public, app, pg_temp as $$
 declare
-  v_by uuid := app.uid();
+  v_by uuid;
+  v_chosen boolean := false;
   v_line text;
+  v_key text;
 begin
-  -- only a person's choice (the actor is known and is not the assignee); the site's own routing stays quiet
-  if new.assigned_to is null or v_by is null or v_by = new.assigned_to then return null; end if;
+  if new.assigned_to is null then return null; end if;
   if tg_op = 'UPDATE' and old.assigned_to is not distinct from new.assigned_to then return null; end if;
-  if app.staff_is_test(new.assigned_to) then return null; end if;
+  if tg_table_name = 'tasks' then
+    if tg_op = 'INSERT' then
+      v_by := app.uid();
+      v_chosen := new.task_type = 'staff_task' and new.created_by is not null and new.created_by = v_by;
+    else
+      v_by := nullif(current_setting('app.work_assign_by', true), '')::uuid;
+      v_chosen := v_by is not null;
+    end if;
+  else
+    v_by := nullif(current_setting('app.work_assign_by', true), '')::uuid;
+    v_chosen := v_by is not null;
+    if not v_chosen and coalesce(current_setting('app.lead_bulk_assign', true), '') = 'on' then
+      v_by := coalesce(new.admin_assigned_by, app.uid()); v_chosen := true;
+    end if;
+  end if;
+  if not v_chosen or v_by is not distinct from new.assigned_to or app.staff_is_test(new.assigned_to) then return null; end if;
+  v_key := 'to:' || new.assigned_to || ':' || (extract(epoch from now()) * 1000000)::bigint;
   begin
     if tg_table_name = 'tasks' then
       if new.status in ('done', 'cancelled', 'expired') then return null; end if;
-      -- a new To do alerts only when a person made it (task_create: created_by); a To do the site raises while someone
-      -- works stays in the queue, even when the actor is known (the door sets who acts for every staff call)
-      if tg_op = 'INSERT' and new.created_by is distinct from v_by then return null; end if;
       v_line := left(coalesce(nullif(btrim(new.title), ''), replace(new.task_type, '_', ' ')), 120);
-      perform app.staff_alert('work_assigned', 'task', new.id, 'to:' || new.assigned_to,
+      perform app.staff_alert('work_assigned', 'task', new.id, v_key,
         left('To do for you: ' || v_line, 140),
         left(concat_ws('. ', 'From ' || coalesce((select u.full_name from users u where u.id = v_by), 'an Admin'),
                        case when new.due_at is not null then 'Due ' || app.fmt_at(new.due_at) end), 240),
         jsonb_build_object('assigned_to', new.assigned_to, 'path_admin', '/admin/tasks', 'path_staff', '/staff/tasks'));
     else
-      perform app.staff_alert('work_assigned', 'lead', new.id, 'to:' || new.assigned_to,
+      perform app.staff_alert('work_assigned', 'lead', new.id, v_key,
         left('Lead for you: ' || coalesce(nullif(btrim(new.name), ''), nullif(btrim(new.email), ''), 'a new lead'), 140),
         'From ' || coalesce((select u.full_name from users u where u.id = v_by), 'an Admin'),
         jsonb_build_object('assigned_to', new.assigned_to, 'lead_id', new.id, 'path_admin', '/admin/leads', 'path_staff', '/staff/leads'));
@@ -221,20 +285,22 @@ begin
   end;
   return null;
 end $$;
+drop trigger if exists tasks_work_assigned on tasks;
 create trigger tasks_work_assigned after insert or update of assigned_to on tasks
   for each row execute function app.work_assigned_alert();
 -- a new lead with a person on it already alerts them (staff_lead_new, staff_owner_lead_new): only a change here
+drop trigger if exists leads_work_assigned on leads;
 create trigger leads_work_assigned after update of assigned_to on leads
   for each row execute function app.work_assigned_alert();
 
 -- ================================================================ 3. the reporter hears the answer to their bug report
-create function app.bug_report_closed_alert() returns trigger
+create or replace function app.bug_report_closed_alert() returns trigger
 language plpgsql security definer set search_path = public, app, pg_temp as $$
 begin
   if new.status not in ('fixed', 'wont_fix') or old.status is not distinct from new.status then return null; end if;
   if new.reporter_id is null or new.reporter_id is not distinct from new.status_changed_by or app.staff_is_test(new.reporter_id) then return null; end if;
   begin
-    perform app.staff_alert('bug_report_closed', 'bug_report', new.id, new.status,
+    perform app.staff_alert('bug_report_closed', 'bug_report', new.id, new.status || ':' || (extract(epoch from now()) * 1000000)::bigint,
       left(format('Bug report BR-%s %s', new.number, case when new.status = 'fixed' then 'is fixed' else 'is closed: it will not be fixed' end), 140),
       left(concat_ws('. ', case when nullif(btrim(coalesce(new.fixed_in, '')), '') is not null then 'Fixed in ' || new.fixed_in end,
                      left(btrim(coalesce(new.happened, '')), 160)), 240),
@@ -244,6 +310,7 @@ begin
   end;
   return null;
 end $$;
+drop trigger if exists bug_reports_closed_alert on bug_reports;
 create trigger bug_reports_closed_alert after update of status on bug_reports
   for each row execute function app.bug_report_closed_alert();
 
@@ -278,7 +345,7 @@ do $$
 declare f record;
 begin
   for f in select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-            where n.nspname = 'app' and p.proname = any (array['insurer_invoice_contact', 'work_assigned_alert', 'bug_report_closed_alert',
+            where n.nspname = 'app' and p.proname = any (array['insurer_invoice_contact', 'work_assigned_alert', 'bug_report_closed_alert', 'assign_task_pre5190', 'lead_reassign_pre5190',
               'notification_recipients_pre5190', 'notification_payload_pre5190', 'record_insurer_payment_pre5190',
               'ntf_payments_after', 'sa_payment', 'outbox_text_pre0270']) loop
     execute format('revoke all on function %s from public, anon, authenticated', f.sig);

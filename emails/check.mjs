@@ -249,6 +249,28 @@ for (const f of [...walk('src'), 'build.mjs', 'shots.mjs', 'check.mjs']) written
   check('no info@ or rent@ anywhere; every customer email carries contact@, the phone, hours, reply time and Instagram and TikTok', p);
 }
 
+// 12b. Emails to insurers and adjusters never name CarmaCars (the owner's rule for insurer email), rendered from the
+// templates with the production mailing address and phone as company_address and support_phone (5190). Allowed until the
+// owner's Blind Spot domain exists: the sender mailbox (blindspotcarrental@carmacars.ca) and the 7-day file link (/d/).
+{
+  const p = [];
+  const { render, renderText } = await import('./src/engine.mjs');
+  const { GLOBALS } = await import('./src/brand.mjs');
+  const live = { ...GLOBALS, company_address: '2967 Dundas St W, Unit 208B, Toronto, ON M6P 1Z2', support_phone: '289-312-5991' };
+  for (const e of cat.emails.filter((x) => x.audience === 'insurer')) {
+    const mod = (await import(`./src/emails/${e.code}.mjs`)).default;
+    const values = { ...live, ...(mod.sample || {}) };
+    for (const [kind, f] of [['html', e.template_html], ['txt', e.template_text]]) {
+      const src = read(f);
+      const out = kind === 'html' ? render(src, values, { strict: false }) : renderText(src, values, { strict: false });
+      const left = out.replace(/[a-z0-9.-]*@carmacars\.ca/gi, '').replace(/https:\/\/carmacars\.ca\/d\/[^\s"<)]+/g, '');
+      const m = left.match(/.{0,40}carma.{0,40}/i);
+      if (m) p.push(`${e.code}.${kind}: names CarmaCars: ${m[0].replace(/\s+/g, ' ')}`);
+    }
+  }
+  check('insurer emails, rendered with the live footer values, never name CarmaCars (sender mailbox and file link excepted)', p);
+}
+
 // 13. Gallery links every email.
 {
   const g = read('preview', 'index.html');
