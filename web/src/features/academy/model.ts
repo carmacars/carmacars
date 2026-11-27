@@ -42,8 +42,12 @@ export interface QuizStart { section: string; started_at: string; tries_left?: n
 export interface QuizFix { wrong: string[]; given: Record<string, number> }
 /** 5070: the first check below the pass mark: no attempt recorded, the wrong questions to fix once. */
 export interface QuizFixResult { fix: true; passed: false; wrong: string[]; correct: number; total: number; score_bps: number; pass_bps: number; message: string }
-export interface SectionRow { id: string; slug: string; title: string; blurb: string; sort: number; open: boolean; passed: boolean; unlocked_early: boolean; best_bps: number | null; attempts: number; lessons: number; viewed: number; questions: number; /** 1154 */ flagged?: number; reset_at?: string | null }
-export interface PathRow { code: string; title: string; blurb: string; passed: boolean; sections: SectionRow[] }
+export interface SectionRow { id: string; slug: string; title: string; blurb: string; sort: number; open: boolean; passed: boolean; /** 5170: one of the path's basics */ core?: boolean; unlocked_early: boolean; best_bps: number | null; attempts: number; lessons: number; viewed: number; questions: number; /** 1154 */ flagged?: number; reset_at?: string | null }
+export interface PathRow { code: string; title: string; blurb: string; passed: boolean; sections: SectionRow[]; /** 5170 */ core_count?: number; core_passed?: boolean }
+/** 5170: the basics (open the portal) and the whole academy (opens the payouts), each section once. */
+export interface AcademyCounts { core_passed: number; core_total: number; passed: number; total: number }
+/** 5171: a section to pass before continuing an area of the portal (stuck there). */
+export interface Required { id: string; area: string; path: string; section: string; title: string; href: string; reason: string; at: string }
 export interface QuizResult { correct: number; total: number; score_bps: number; passed: boolean; pass_bps: number; results: Array<{ id: string; given: number | null; answer: number | null; right: boolean; explain: string }>;
   /** 1154 */ quiz?: QuizWait; flagged?: boolean; /** 5070: graded after the one fix */ fixed?: boolean }
 

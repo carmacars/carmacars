@@ -34,25 +34,24 @@ select test.eq('content: no vendor names in the new sections', (select count(*) 
   where s.slug in ('new-r33-bookings', 'new-r33-money', 'new-r33-photos', 'new-r34-caller-notes') and l.scenes::text ~* '(google|stripe|quo\M|openphone|cloudflare|claude)'), 0::bigint);
 
 -- ================================================================ 3. passing: 90% (1154), retakes
--- every section before the last on the path passed; then the last one's quiz
+-- 5170: the basics (the first 5 sections of customer service) open the portal: the first four passed; then the fifth one's quiz
 insert into academy_attempts (user_id, section_id, correct, total, score_bps, passed)
-select test.id('zag_cs'), ps.section_id, 1, 1, 10000, true from academy_path_sections ps join academy_sections s on s.id = ps.section_id
- where ps.path_code in ('cs', 'renter_side') and s.slug <> 'new-r34-caller-notes'; -- 2990: The renter's side is on every staff member's paths
-select test.eq('passing: one section left, still held', test.zag_locked('zag_cs'), true);
+select test.id('zag_cs'), ps.section_id, 1, 1, 10000, true from academy_path_sections ps where ps.path_code = 'cs' and ps.sort <= 4;
+select test.eq('passing: one basics section left, still held', test.zag_locked('zag_cs'), true);
 -- 1154: the quiz is started first (its reading time and cooldown have a suite of their own: off here)
 update program_settings set academy_read_wpm = 0, academy_fail_cooldown_minutes = 0 where id = (app.settings()).id;
 create function test.zag_quiz(p_right integer) returns jsonb language sql as $$
-  select app.academy_quiz_start(test.id('zag_cs'), '{"section": "new-r34-caller-notes"}');
-  select app.academy_quiz_submit(test.id('zag_cs'), jsonb_build_object('section', 'new-r34-caller-notes', 'answers',
+  select app.academy_quiz_start(test.id('zag_cs'), '{"section": "documents-and-signing"}');
+  select app.academy_quiz_submit(test.id('zag_cs'), jsonb_build_object('section', 'documents-and-signing', 'answers',
     (select jsonb_object_agg(q.id::text, case when q.sort <= p_right then q.answer else (q.answer + 1) % jsonb_array_length(q.options) end)
-       from academy_questions q join academy_sections s on s.id = q.section_id where s.slug = 'new-r34-caller-notes'))) $$;
+       from academy_questions q join academy_sections s on s.id = q.section_id where s.slug = 'documents-and-signing'))) $$;
 select test.eq('passing: 3 of 5 right (60%) is not a pass', (select (x ->> 'passed') || '/' || (x ->> 'score_bps') from test.zag_quiz(3) x), 'false/6000');
 select test.eq('passing: still held after a failed quiz', test.zag_locked('zag_cs'), true);
 select test.eq('passing: 4 of 5 (80%) is under the 90% mark (1154)', (select (x ->> 'passed') || '/' || (x ->> 'score_bps') from test.zag_quiz(4) x), 'false/8000');
 select test.eq('passing: a retake with 5 of 5 passes', (select (x ->> 'passed') || '/' || (x ->> 'score_bps') from test.zag_quiz(5) x), 'true/10000');
-select test.eq('passing: every section passed opens the portal', test.zag_locked('zag_cs'), false);
+select test.eq('passing: every basics section passed opens the portal (5170)', test.zag_locked('zag_cs'), false);
 -- 5070: the 3 of 5 was a first check held for its one fix; the 4 of 5 was that fix (graded), then the 5 of 5
-select test.eq('passing: the two graded attempts are kept', (select count(*) from academy_attempts a join academy_sections s on s.id = a.section_id where a.user_id = test.id('zag_cs') and s.slug = 'new-r34-caller-notes'), 2::bigint);
+select test.eq('passing: the two graded attempts are kept', (select count(*) from academy_attempts a join academy_sections s on s.id = a.section_id where a.user_id = test.id('zag_cs') and s.slug = 'documents-and-signing'), 2::bigint);
 
 -- ================================================================ 4. the waiver
 select test.throws('waiver: staff cannot waive', format($$ select app.door(%L, 'aal2', 'admin_do', 'academy_waive', jsonb_build_object('user_id', %L, 'reason', 'experienced')) $$, test.id('zag_other'), test.id('zag_field')), '%Admin%');

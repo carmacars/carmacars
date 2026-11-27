@@ -8,7 +8,7 @@ import { friendlyDbError } from '@/lib/db/friendly';
 import type { Json } from '@/lib/db/types';
 import { currentUser } from '@/server/portal/data';
 import { viewAs, ViewAsReadOnly } from '@/server/view-as';
-import { ACADEMY_OPEN, ONBOARDING_OPEN, SIGN_FIRST_OPEN } from '@/features/academy/gate';
+import { ACADEMY_OPEN, ONBOARDING_OPEN, SIGN_FIRST_OPEN, requiredFor } from '@/features/academy/gate';
 
 // The one door for staff and investors (migration 0031): every call carries the signed-in user and the
 // assurance level of their session (aal2 after the second factor). The database makes them the acting
@@ -24,6 +24,7 @@ export interface Roles { admin: boolean; va: 'finance' | 'fleet' | 'cs' | 'sales
   /** 1060: locked after days without a sign-in, until an Admin unlocks it */ inactive_locked?: boolean; preferred_name?: string | null;
   /** 1151: not fully onboarded (academy, agreement, WhatsApp): Welcome and the onboarding screens only; the database refuses the rest */ onboarding_locked?: boolean;
   /** 1151: the onboarding step now */ onboarding_step?: 'academy' | 'agreement' | 'whatsapp' | 'done';
+  /** 5171: sections to pass before continuing an area of the staff portal (stuck there) */ academy_required?: Array<{ area: string; href: string; title: string }>;
   /** 0931: a field person who asked to do sales too, and whether the Sales path is passed (the Sales function then held) */ sales_opt_in?: boolean; sales_ready?: boolean }
 
 export async function sessionAal(): Promise<'aal1' | 'aal2' | null> {
@@ -93,6 +94,9 @@ export async function requireStaff(kind: 'va' | 'field', next: string): Promise<
   else if (roles.academy_locked && !ACADEMY_OPEN.test(next)) redirect('/staff/welcome');
   // 1151: then the WhatsApp groups; nothing else opens until all three are done (the database holds the same line)
   if (roles.onboarding_locked && !ONBOARDING_OPEN.test(next)) redirect('/staff/welcome');
+  // 5171: stuck on a page: its academy section first, then that area opens again
+  const req = requiredFor(roles.academy_required, next);
+  if (req) redirect(`${req.href}?required=1`);
   return { user, roles };
 }
 

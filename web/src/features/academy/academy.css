@@ -41,6 +41,10 @@
 .ac-badge { font-size: var(--fs-2xs); font-weight: 600; padding: .1rem .5rem; border-radius: var(--ui-r-pill); background: var(--grey-100); color: var(--text); }
 .ac-badge--ok { background: color-mix(in oklch, var(--ui-ok) 14%, var(--white)); color: color-mix(in oklch, var(--ui-ok) 72%, black); }
 .ac-badge--locked { background: var(--grey-200); color: var(--grey-800); }
+/* 5170: a section of the basics (opens the portal) */
+.ac-badge--core { background: var(--white); border: 1px solid var(--grey-300); margin-inline: .4rem; white-space: nowrap; }
+/* 5171: sections to pass before continuing an area */
+.ac-required { list-style: none; margin: 0; padding: 0; display: grid; gap: .4rem; }
 /* 2990: a guide screenshot in a scene, with its line and the link to the guide page */
 .ac-shot { margin: 0; display: grid; gap: .4rem; min-block-size: 0; }
 .ac-shot__img { display: block; inline-size: 100%; max-block-size: clamp(7rem, 32vw, 19rem); object-fit: contain; object-position: left top; border-radius: var(--r-2); background: var(--white); }

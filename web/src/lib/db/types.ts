@@ -6,6 +6,42 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 export type Database = {
   public: {
     Tables: {
+      academy_assignments: {
+        Row: {
+          id: string;
+          user_id: string;
+          section_id: string;
+          path_code: string;
+          area: string;
+          reason: string;
+          created_at: string;
+          done_at: string | null;
+          done_attempt: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          section_id: string;
+          path_code: string;
+          area: string;
+          reason: string;
+          created_at?: string;
+          done_at?: string | null;
+          done_attempt?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          section_id?: string;
+          path_code?: string;
+          area?: string;
+          reason?: string;
+          created_at?: string;
+          done_at?: string | null;
+          done_attempt?: string | null;
+        };
+        Relationships: [];
+      };
       academy_attempts: {
         Row: {
           id: string;
@@ -210,18 +246,21 @@ export type Database = {
           title: string;
           blurb: string;
           sort: number;
+          core_count: number;
         };
         Insert: {
           code: string;
           title: string;
           blurb?: string;
           sort?: number;
+          core_count?: number;
         };
         Update: {
           code?: string;
           title?: string;
           blurb?: string;
           sort?: number;
+          core_count?: number;
         };
         Relationships: [];
       };
@@ -37347,6 +37386,7 @@ export type Database = {
       };
     };
     Functions: {
+      academy_assign_stuck: { Args: { p_by: string; p: Json }; Returns: Json };
       addons_for_car: { Args: { p_vehicle: string; p_pickup?: string; p_return?: string }; Returns: Json };
       admin_account_index: { Args: { p_admin: string }; Returns: Json };
       admin_account_link: { Args: { p_admin: string; p_user: string; p_kind?: string }; Returns: Json };

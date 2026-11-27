@@ -1,0 +1,39 @@
+# R50 hotfix 2: the academy basics, payouts after the whole academy, stuck pages, field routing with shifts paused (5170 to 5174)
+
+Migrations `5170_r50h2_academy_basics.sql`, `5171_r50h2_academy_when_stuck.sql`, `5172_r50h2_academy_shorter.sql`, `5173_r50h2_field_routing_paused.sql`, `5174_r50h2_basics_guides.sql`. Asked by the owner on Nov 27.
+
+## What the owner asked
+
+- The academy causes a huge backlog. The first sections that cover the basics open portal access and work; the full academy is needed only for commission and pay payouts (gate them, show the reason). Shorten it: cut repetition, audit every quiz question against its lesson. A staff member stuck on a page or hitting repeated errors gets that page's section, required before continuing that area. Admins open any lesson and quiz directly. Keep fix once, the 2-minute wait (5070) and the leads gate (5071).
+- Field routing with shifts paused: work not done carries over to the next shift; the person on shift sees every pickup and return of the day and the work up to the next shift; days with pickups or returns and no shift go to the shift before or after by timing. Pause shifts by migration, keep the claimed shifts and the routing.
+
+## Found in production (Nov 27, Admin connector)
+
+- Every open field job had nobody (`assigned_to` null): Program settings `field_jobs_auto_assign` was `none`, which switches off the shift routing of 1051 (`app.field_jobs_shift`). So the person on shift saw none of the day's pickups and returns. 5173 sets it to `least_busy`.
+- Production still has `academy_fail_cooldown_minutes` 30 and `academy_attempts_per_day` 3: 5070 (the 2 minutes and 10 tries) is not live yet. It goes live with this branch.
+
+## Changes
+
+- **The basics (5170).** `academy_paths.core_count`: customer service 5, Sales in person 6, Sales remote 5, field 5 (the field Today moved from 8th to 5th), Finance 5, Fleet 4, Admin 4, the renter's side 0. `app.academy_done` is now "every basics section passed"; the old rule is `app.academy_full_done` (renamed). So the gate (`academy_locked`), the onboarding steps (portal and database role checks), Welcome, the nudges and the leads gate (`staff_academy_cleared`, the Sales path's basics for Sales) all open on the basics. Every cached onboarding answer is refreshed in the migration.
+- **Payouts (5170).** `app.academy_pay_hold(uid)` gives the reason ("Academy not finished: 31 of 52 sections passed ...") or null (Admin, test account, exempt, waived, whole academy passed). Triggers refuse a commission payout and a pay line marked paid with that reason, whatever the path (Admin screen, connector). **Record all payments** skips held lines, returns `held`, and alerts each held person (`academy_pay_held`). The payroll line carries `academy_hold`: Admin sees **Held** with the reason and no **Record payment**; the person's stub says Held with a link to the academy.
+- **Admins (5170).** `academy_home` for an Admin lists every path with every section open; the section, its lessons and its quiz open without passing the one before (already true in the database for the section and the quiz; the list did not link them).
+- **Stuck pages (5171).** `academy_assignments` and `public.academy_assign_stuck` (service role): `/api/help` calls it when the Stuck? prompt shows to a staff member (idle, errors, loop); `/api/client-error` calls it after a staff member's browser error, and the database assigns only at `stuck_errors` errors on the area within 30 minutes. The section comes from the page's entry in the Stuck? help map (`web/src/features/help/routes.ts`); the area is the route up to its first id (`areaOf`). One open assignment a section, none again for 7 days after a pass, never for Admins, test accounts, exempt or waived people. The person gets the `academy_assigned` alert. `my_roles.academy_required` drives `requireStaff`: a page of that area redirects to the section (`requiredFor`; a portal home holds itself only). The section opens to them even off their path. A pass closes it. Admin > Academy shows it per person (`academy_gate_state.required`).
+- **Shorter, audited (5172).** The audit compared each right answer and explanation with its section's lessons (numbers and words), then the flagged ones by hand. Removed as untaught: `r48-map-people` 5, `new-r45-calls-in-the-browser` 6, `new-r33-photos` 4 to 6, `r50-sign-first` 5, `new-r35-field-prep` 5. Fixed: `new-r35-field-prep` 2 (certificate PDF or photo). Taught: `trip-rules` 8 (rideshare welcome, owner decision 1700) stays and the trip-rules lesson gets its scene. Removed as repeats on the same path: `r48-field-guide-cases` 4, `r48-cs-guide-cases` 3 and 5, `new-r35-fleet-shifts-delivery` 1, `finance-deposits-refunds` 3, `new-bookings-r28-r32` 2, `new-r45-calls-in-the-browser` 4. 407 to 393 questions. The renter's side path (9 sections, 47 questions, repeating prices, coverage, trip rules and bookings) is on customer service's paths only. Pending fixes on changed sections start again.
+- **Field routing (5173).** `field_slots_auto` false, `field_jobs_auto_assign` least_busy, every open slot to come that nobody holds is cancelled (its jobs are routed again); claimed shifts stay. `app.fx_route_slot(kind, at)`: the job's own day when it has a live shift; else a pickup or prep the day before with a shift (else after), a return the day after (else before); on that day the shift of its hour. `app.field_route_run` (hourly, in `job_field_shift_plan`, and once in the migration) moves open jobs on no shift with nobody, or on an ended or cancelled shift. Today (`fx_today`) for a person on shift: `mates` is every other pickup and return of the day (any shift or none), `ahead` the pickups and returns up to the next shift's day; Take it works for any job of the day. The field Today page shows **Also today** and **Before the next shift**.
+
+## Tests
+
+- DB: `supabase/tests/99_r50h2_basics_routing.sql` (new): the basics open the portal and leads, Welcome and home counts; pay hold refused with the reason, Record all payments skips and pays the rest, a waiver pays; an Admin opens and passes the last field section; stuck assignment, required area, alert, off-path section opens, pass clears, 7-day rule, repeated errors; the audit; field routing on production-shaped data (a field person on yesterday's and today's 10:00 to 17:00 shift, every job with nobody): carried over, last night's return, tonight's handover, tomorrow's pickup and return, a later held shift, the person sees every pickup and return of the day and the work up to the next shift, Take it, carry over after the shift ends, the hourly job.
+- Updated for the new rules: `99_academy.sql` (paths without the renter's side, at least 3 questions), `99_r34n_academy_gate.sql` (the basics open the portal), `99_r33_hire_academy_connector.sql` (19 questions), `99_r35docs_guides_academy.sql` (at least 3 questions).
+- Unit: `web/src/features/academy/gate.test.ts` (step and gate words, `requiredFor`, `areaOf`).
+
+## Not changed
+
+- Ontario employment law: holding earned hourly wages until training is finished may conflict with the Employment Standards Act for field employees. The owner asked for it; it is built as asked and flagged in the report. A waiver releases any person's pay.
+
+## Guides
+
+- `admin/academy`, `va/academy`, `field/academy`: the basics, payouts after the whole academy, stuck pages, an Admin opens any section, the renter's side for customer service only.
+- `admin/owner-money`: a Held payroll line.
+- `field/my-hours-and-pay`: Also today, Before the next shift, where work goes with shifts paused, a Held stub.
+- `admin/fleet-and-listings`: shifts paused and the routing.

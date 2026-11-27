@@ -9,9 +9,10 @@ select test.eq('academy: six new sections',
 select test.eq('academy: the team rules are on every path',
   (select string_agg(p.path_code, ',' order by p.path_code) from academy_path_sections p join academy_sections s on s.id = p.section_id where s.slug = 'new-r35-team-rules'),
   'admin,cs,field,finance,fleet,sales_in_person,sales_remote');
-select test.eq('academy: each new section has a quiz of at least five questions',
+-- 5172: the audit removed untaught and repeated questions, so a short section keeps 3 or 4
+select test.eq('academy: each new section has a quiz of at least three questions',
   (select count(*)::int from academy_sections s where s.slug like 'new-r35-%' and s.slug not in ('new-r35-fleet-payments', 'new-r35-fleet-phone')
-     and (select count(*) from academy_questions q where q.section_id = s.id) < 5), 0);
+     and (select count(*) from academy_questions q where q.section_id = s.id) < 3), 0);
 select test.eq('academy: field staff get the shift picker, not the Sales section',
   (select string_agg(s.slug, ',' order by s.slug) from academy_path_sections p join academy_sections s on s.id = p.section_id where p.path_code = 'field' and s.slug in ('new-r35-field-shift-picker', 'new-r35-sales-rebook-intent')),
   'new-r35-field-shift-picker');

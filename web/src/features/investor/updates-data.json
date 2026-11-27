@@ -33,6 +33,10 @@
      "Academy quizzes: under the pass mark you fix the questions marked wrong once before it counts as a failed try; the wait after a failed try is 2 minutes and a quiz can be taken 10 times a day",
      "Leads, lead alerts and visitors go only to staff who passed the academy (or whose academy an Admin waived) and finished onboarding",
      "The weekly townhall is at 6:30 pm and interview calls start at 5:30 pm; with no outside call link, Join opens the call in the site",
+     "The Academy's basics (the first sections of each path, marked Basics) open the portal, the work and the leads; the whole academy is needed before staff payouts, and a held payroll line says why. Admins open any section, lesson and quiz directly",
+     "A staff member stuck on a page, or hitting repeated errors there, gets that page's Academy section: that part of the portal waits until it is passed",
+     "A shorter Academy: repeated questions and questions the lessons did not teach are gone; the renter's side is for customer service only",
+     "Field shifts are paused: no new shifts are published, claimed shifts stay, and every pickup and return still goes to a shift and its person (a day without a shift: pickups the shift before, returns the shift after); work not done carries over to the next shift",
      "**Guide me** in every staff portal: an optional coach that walks you through a real job step by step while you do it, on the live screens (send an offer, answer a request, record a payment, a pickup, a return and deposit review, approve an owner's car, a field expense)",
      "**Check-in visits**: long rentals get a free monthly check-in visit; staff work one queue (booked, due, overdue, done) and a short checklist with photos, the odometer, damage, tires, fluids and warning lights. What needs looking after becomes a To do, damage goes to the Admins, and the reading feeds the car's maintenance"
     ]
