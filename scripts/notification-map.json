@@ -173,6 +173,8 @@
   "hiring.recruit_hired": {"staff_va_sales": "rule:recruit_hired", "staff_field": "rule:recruit_hired"},
   "field.sales_shift_claimed": {"staff_admin": "rule:shift_claim_pending", "staff_field": "gap: none: My shifts shows the claim as waiting for an Admin"},
   "field.sales_shift_decided": {"staff_field": "rule:shift_claim_decided", "staff_admin": "gap: none: the Admin decided it"},
-  "phone.sales_call_flagged": {"staff_admin": "rule:call_flagged", "staff_va_sales": "gap: none: a text with a phone number is refused on screen with the reason; call flags are for Admin"}
+  "phone.sales_call_flagged": {"staff_admin": "rule:call_flagged", "staff_va_sales": "gap: none: a text with a phone number is refused on screen with the reason; call flags are for Admin"},
+  "insurer.estimate": {"insurer": "insurer_estimate"},
+  "insurer.rental_added": {"staff_va_finance": "staff_insurer_rental_added", "staff_admin": "staff_insurer_rental_added"}
  }
 }

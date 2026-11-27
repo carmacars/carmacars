@@ -40,7 +40,9 @@ export function itemizeLines(lines: Row[], feeItems: Row[] | null | undefined): 
   const items = (feeItems ?? []).filter((x) => s(x.description) && n(x.amount_cents) !== 0);
   const sum = items.reduce((a, x) => a + n(x.amount_cents), 0);
   for (const l of lines) {
-    const label = s(l.label ?? l.description) || 'Rental';
+    const base = s(l.label ?? l.description) || 'Rental';
+    // 5120: a line typed with its days and rate says them ("Replacement rental: 10 x $65.00")
+    const label = l.quantity !== undefined && l.quantity !== null && l.rate_cents !== undefined && l.rate_cents !== null ? `${base}: ${s(l.quantity)} x ${money(l.rate_cents)}` : base;
     if (/^Fees charged at booking/i.test(label)) {
       if (items.length && sum === n(l.amount_cents)) { for (const x of items) out.push([s(x.description), n(x.amount_cents)]); continue; }
       out.push(['Other charges at booking', n(l.amount_cents)]);
@@ -94,18 +96,33 @@ export function insurerInvoiceBlocks(f0: Row & { company: InvoiceCompany }): Blo
   const lines = itemizeLines((f.lines ?? []) as Row[], f.fee_items as Row[] | undefined);
   const items: Array<[string, number]> = lines.length ? lines : [['Replacement rental', n(f.amount_cents)]];
   const paid = n(f.paid_cents);
+  // 5120: an estimate or an invoice version, with the bill-to typed on it (else the insurer and the adjuster)
+  const estimate = f.doc_kind === 'estimate';
+  const word = estimate ? 'Estimate' : 'Invoice';
+  const bt = (f.bill_to ?? {}) as Row;
+  const adj = (f.adjuster ?? {}) as Row;
+  const version = n(f.version) > 1 ? ` (version ${n(f.version)})` : '';
   const blocks: Block[] = [
-    { t: 'title', text: `Invoice ${num}` },
+    { t: 'title', text: `${word} ${num}${version}` },
     issuerBlock(f.company),
-    kv('Bill to', [['Insurer', s(i.name)], ['Attention', s(i.contact)], ['Address', s(i.address)], ['Email', s(i.email)]]),
-    kv('Invoice details', [['Invoice number', num], ['Invoice date', date(f.sent_at ?? f.created_at)], ['Claim number', s(f.claim_number) || 'Not given'],
+    kv('Bill to', [['Insurer', s(bt.name) || s(i.name)], ['Attention', s(bt.attention) || s(adj.name) || s(i.contact)], ['Address', s(bt.address) || s(i.address)], ['Email', s(bt.email) || s(adj.email) || s(i.email)]]),
+    kv(`${word} details`, [[`${word} number`, num + version], [`${word} date`, date(f.invoice_date ?? f.sent_at ?? f.created_at)], ...(f.due_date && !estimate ? [['Due date', date(f.due_date)] as [string, string]] : []),
+      ['Claim number', s(f.claim_number) || 'Not given'],
       ['Insured / renter', s(f.renter_name)], ['Rental agreement', s(f.booking_number)], ['Vehicle', s(f.vehicle)], ['Rental period', f.period_start ? `${date(f.period_start)} to ${date(f.period_end)}` : '']]),
     { t: 'table', head: ['Description', 'Amount'], kv: true, rows: items.map(([d, a]) => [d, money(a)]) },
-    kv('Totals', [['Subtotal', money(f.amount_cents)], ['HST', money(f.hst_cents)], ['**Total**', `**${money(f.total_cents)}**`], ['Paid', money(paid)],
-      ['**Balance due**', `**${money(f.balance_cents ?? n(f.total_cents) - paid)}**`]])
+    estimate
+      ? kv('Totals', [['Subtotal', money(f.amount_cents)], ['HST', money(f.hst_cents)], ['**Estimated total**', `**${money(f.total_cents)}**`]])
+      : kv('Totals', [['Subtotal', money(f.amount_cents)], ['HST', money(f.hst_cents)], ['**Total**', `**${money(f.total_cents)}**`], ['Paid', money(paid)],
+        ['**Balance due**', `**${money(f.balance_cents ?? n(f.total_cents) - paid)}**`]])
   ];
-  // the insurer's taxes note from its rate sheet (0163)
+  // the insurer's taxes note from its rate sheet (0163), then the notes typed on this version (5120)
   if (s(f.note)) blocks.push({ t: 'p', text: s(f.note) });
+  if (s(f.notes)) blocks.push({ t: 'p', text: s(f.notes) });
+  if (estimate) {
+    blocks.push({ t: 'h2', text: 'Terms' });
+    blocks.push({ t: 'p', text: `This is an estimate, not an invoice: nothing is due. The invoice follows the end of the rental. Please quote estimate ${num} and claim ${s(f.claim_number) || 'number'} when you reply.${f.company.email ? ` Questions: ${f.company.email}.` : ''}` });
+    return blocks;
+  }
   const pay = payBlocks(f.pay as Pay | undefined, num);
   const cheque = chequeBlock(f.company, num, claim);
   if (cheque) {
@@ -114,7 +131,7 @@ export function insurerInvoiceBlocks(f0: Row & { company: InvoiceCompany }): Blo
   }
   blocks.push(...pay);
   blocks.push({ t: 'h2', text: 'Terms' });
-  blocks.push({ t: 'p', text: `Payment is due within 30 days of the invoice date. Please quote invoice ${num} and claim ${s(f.claim_number) || 'number'} with your payment.${f.company.email ? ` Questions: ${f.company.email}.` : ''}` });
+  blocks.push({ t: 'p', text: `Payment is due ${f.due_date ? `by ${date(f.due_date)}` : 'within 30 days of the invoice date'}. Please quote invoice ${num} and claim ${s(f.claim_number) || 'number'} with your payment.${f.company.email ? ` Questions: ${f.company.email}.` : ''}` });
   return blocks;
 }
 

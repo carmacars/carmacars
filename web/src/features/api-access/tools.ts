@@ -469,6 +469,49 @@ export const COMPANY_DOC_TOOLS: Tool[] = [
 ];
 TOOLS.push(...COMPANY_DOC_TOOLS);
 
+// r50 hotfix 2 (5120): Insurance replacements end to end, for an Admin, Finance or customer service (money: Finance or an
+// Admin), as the Insurance replacements page does them. Each write is run and rolled back for the preview (the preview shows
+// the outcome or the refusal), then confirmed. The database (app.api_call) decides and logs each call.
+const insBooking = { booking: str('The booking number, for example CC-10482') };
+const insLine = { type: 'object', additionalProperties: false, required: ['description'], properties: {
+  description: str('What the line is, for example "Replacement rental" or "Winter tire fee"'), quantity: { type: 'number', description: 'Days or quantity' },
+  rate_cents: { type: 'integer', description: 'The rate a day or a unit, in cents' }, amount_cents: { type: 'integer', description: 'The amount in cents (empty: quantity times rate)' },
+  taxable: { type: 'boolean', description: 'HST applies (true by default)' } } };
+const insClaim = { claim_number: str('The claim number'), insurer_id: id('The insurer, from list_insurer_rentals'), insurer_name: str('The insurer\'s name (added when it is new)'),
+  adjuster_name: str('The adjuster'), adjuster_email: { type: 'string', format: 'email' }, adjuster_phone: str('The adjuster\'s phone'),
+  authorized_days: { type: 'integer', minimum: 0, maximum: 400, description: 'Days the insurer authorized' } };
+const insCar = { type: 'object', additionalProperties: false, required: ['year', 'make', 'model', 'plate'], description: 'A car not in the fleet (it never shows in the fleet, on a calendar or to an owner)',
+  properties: { year: { type: 'integer' }, make: str('Make'), model: str('Model'), plate: str('Plate') } };
+export const INSURANCE_TOOLS: Tool[] = [
+  read('list_insurer_rentals', 'Insurance replacements', 'Every rental an insurer pays for (Insurance replacements): booking, claim, insurer, adjuster, renter, car (outside_fleet: typed in), dates, days, stage (upcoming, on_rent, returned, invoiced, negotiating, approved, paid, written_off), off the calendar or not, the invoice with its versions, billed, approved, paid, balance, written off and aging in days; the totals (outstanding, over 30 and 60 days, to invoice) and the insurers with their ids. Filter by query (claim, booking, renter, insurer, adjuster or plate), stage, aging (at least that many days outstanding). Read only.',
+    { query: str('Claim, booking, renter, insurer, adjuster or plate'), stage: { type: 'string', enum: ['upcoming', 'on_rent', 'returned', 'invoiced', 'negotiating', 'approved', 'paid', 'written_off'] },
+      aging: { type: 'integer', minimum: 1, maximum: 999, description: 'Outstanding at least this many days' }, limit: { type: 'integer', minimum: 1, maximum: 500 } }),
+  read('get_insurer_rental', 'One insurance replacement', 'One insurance replacement by booking number: the booking, the claim and adjuster, the renter, the car, the invoice (its status, its working copy: the next version\'s lines, HST, notes, dates and bill-to), what the booking\'s figures give now (from_booking), every version sent (estimate or invoice, as sent, with its PDF at /files/insurer_invoice/<invoice id>:v<version>), the payments and the history. Read only.', insBooking, ['booking']),
+  write('insurer_rental_create', 'Add an insurance replacement', 'Add a rental an insurer pays for, as Insurance replacements > Add does. Needed: renter_name, the insurer (insurer_id or insurer_name), claim_number, pickup_at and return_at, and the car: vehicle_id (a car of the fleet) or car {year, make, model, plate} (a car not in the fleet). The renter\'s phone and email are optional (without an email the renter gets nothing). bypass: off the calendar and owner notices (always for a car not in the fleet; false by default for a fleet car). Finance and the Admins are told.',
+    ['renter_name', 'claim_number', 'pickup_at', 'return_at'],
+    { renter_name: str('The renter\'s full name'), renter_phone: str('Optional'), renter_email: { type: 'string', format: 'email', description: 'Optional' }, ...insClaim,
+      pickup_at: when('Pickup'), return_at: when('Return'), vehicle_id: id('A car of the fleet (list_cars)'), car: insCar,
+      daily_rate_cents: cents('What the insurer pays a day (empty: its rate sheet)'), pays: { type: 'string', enum: ['insurer', 'split'], description: 'insurer: the rental and the fees; split: the rental only' },
+      bypass: { type: 'boolean', description: 'Off the calendar and owner notices' }, notes: str('Notes'), draft_id: id('An unfinished rental it finishes') }),
+  write('insurer_rental_update', 'Change an insurance replacement', 'Change a rental an insurer pays for: the claim, the insurer, the adjuster, the days authorized, the renter\'s phone and email, the notes, bypass (off the calendar and owner notices; a car not in the fleet is always off), and car {year, make, model, plate} for a car not in the fleet. Only what is given changes.',
+    ['booking'], { ...insBooking, ...insClaim, renter_phone: str('The renter\'s phone'), renter_email: { type: 'string', format: 'email' }, notes: str('Notes'), bypass: { type: 'boolean' }, car: insCar }),
+  write('insurer_rental_extend', 'Extend an insurance replacement', 'Move the return of a rental an insurer pays for when the insurer authorizes it: applied at once (refused when the car is not free and the rental is on the calendar). Nothing is charged to the renter; the invoice\'s next version takes the new figures.',
+    ['booking', 'return_at'], { ...insBooking, return_at: when('The new return'), reason: str('Why, for example "Insurer approved 3 more days"') }),
+  write('insurer_invoice_edit', 'Edit an insurer invoice', 'Edit the next version of the invoice of a rental an insurer pays for (made when there is none): lines [{description, quantity, rate_cents, amount_cents, taxable}] (the winter tire fee and any fee is a line), hst_cents (null: 13% of the taxable lines), notes, period_start, period_end, invoice_date, due_date, claim_number, bill_to {name, attention, email, address}; from_booking: true starts from the booking\'s figures now. A version already sent never changes: the insurer owes it until the next one is sent (insurer_invoice_send).',
+    ['booking'], { ...insBooking, lines: { type: 'array', items: insLine, maxItems: 60 }, hst_cents: { type: ['integer', 'null'], minimum: 0 }, notes: str('Printed on the invoice'),
+      period_start: { type: 'string', format: 'date' }, period_end: { type: 'string', format: 'date' }, invoice_date: { type: 'string', format: 'date' }, due_date: { type: 'string', format: 'date' },
+      claim_number: str('The claim number printed'), bill_to: { type: 'object', additionalProperties: false, properties: { name: str('Bill to'), attention: str('Attention'), email: { type: 'string', format: 'email' }, address: str('Address') } },
+      from_booking: { type: 'boolean' } }),
+  write('insurer_invoice_send', 'Send an insurer invoice or estimate', 'Send the next version of the invoice of a rental an insurer pays for, as many times as needed: kind invoice (what the insurer owes from then on) or estimate (bills nothing). email true (default): emailed as Blind Spot Car Rental to the bill-to email, else the adjuster\'s, else the insurer\'s billing email, with a link to that version\'s PDF; false: recorded as sent another way. Finance or an Admin.',
+    ['booking'], { ...insBooking, kind: { type: 'string', enum: ['invoice', 'estimate'] }, email: { type: 'boolean' } }),
+  write('insurer_money', 'Record an insurer\'s approval, payment or write-off', 'On the sent invoice of a rental an insurer pays for: action payment (amount_cents, method cheque, e_transfer or direct_deposit, reference, received_on), approved (amount_cents the adjuster approved, note), negotiating (note: what is disputed; negotiating false ends it) or write_off (reason: what is left unpaid is written off). Finance or an Admin.',
+    ['booking', 'action'], { ...insBooking, action: { type: 'string', enum: ['payment', 'approved', 'negotiating', 'write_off'] }, amount_cents: { type: 'integer', minimum: 0 },
+      method: { type: 'string', enum: ['cheque', 'e_transfer', 'direct_deposit'] }, reference: str('Cheque or transfer number'), received_on: { type: 'string', format: 'date' },
+      note: str('A note (negotiating: what is disputed)'), reason: str('Why it is written off'), negotiating: { type: 'boolean' },
+      client_id: str('Optional: any id of 8 to 120 characters for this one request; the same id again records nothing more and returns the first result') })
+];
+TOOLS.push(...INSURANCE_TOOLS);
+
 export function normalizeToolArgs(args: unknown): unknown {
   if (!args || typeof args !== 'object' || Array.isArray(args)) return args;
   const a = args as Record<string, unknown>;

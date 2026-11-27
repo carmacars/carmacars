@@ -1,0 +1,44 @@
+Blind Spot Car Rental  |  Estimate {{invoice_number}}
+
+========================================
+
+[Estimate]
+Estimate {{invoice_number}}
+
+Hello {{first_name}}. Here is our estimate to {{insurer_name}} for the replacement rental below. It is not an invoice: nothing is due yet.
+
+Estimated total: {{invoice_total}}
+Including HST. The invoice follows the end of the rental.
+
+Estimate: {{invoice_number}}, version {{version}}
+Claim number: {{claim_number}}
+Renter: {{renter_name}}
+Vehicle: {{vehicle_name}}
+Rental period: {{period}}
+
+Charges
+------------------------
+
+{{#each invoice_lines}}
+  Item: {{label}} | Amount: {{amount}}
+{{/each}}
+
+  Amount before HST: {{invoice_amount}}
+  HST: {{invoice_hst}}
+  Estimated total: {{invoice_total}}
+
+Download the estimate (PDF):
+{{invoice_url}}
+
+The download link works for {{link_expiry}}. To approve the estimate or ask about a line, reply to this email.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you are the billing contact for a claim with a replacement rental from Blind Spot Car Rental.
+
+Questions about this rental or invoice: reply to this email.
+
+Blind Spot Car Rental
+{{#if company_address}}{{company_address}}{{/if}}

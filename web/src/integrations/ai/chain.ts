@@ -18,7 +18,7 @@ export const ROUTES: readonly Route[] = ['auto', 'no_gemini', 'local_first', 'wo
 
 /** Never sent to Gemini's free tier (Google may use free-tier requests): a person's identity documents, the recordings, and
  *  the text made from them (call summaries, interview follow-ups and scores). */
-export const PRIVATE_PURPOSES: ReadonlySet<string> = new Set(['licence_read', 'permit_read', 'interview_transcribe', 'call_transcribe', 'phone_summary', 'interview_followup', 'interview_score']);
+export const PRIVATE_PURPOSES: ReadonlySet<string> = new Set(['licence_read', 'permit_read', 'interview_transcribe', 'call_transcribe', 'phone_summary', 'interview_followup', 'interview_score', 'claim_read']);
 
 /** The providers a purpose is asked, in order, for a route. */
 export function providerOrder(route: Route | string | null | undefined, purpose: string): Provider[] {

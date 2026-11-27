@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation';
 import Link from '@/components/Link';
 import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
@@ -5,6 +6,7 @@ import { door } from '@/server/door';
 import { PageHead } from '@/features/admin/ui';
 import { ManualRentalForm, type MrDraft } from '@/features/supply/ManualRentalForm';
 import { MyDrafts } from '@/features/supply/UnfinishedRentals';
+import { DraftGone } from '@/features/insurance/DraftGone';
 import type { DraftRow } from '@/server/actions/supply';
 import type { OwnerDefaults } from '@/features/supply/OwnerChoice';
 
@@ -22,11 +24,13 @@ export default async function AddRental({ searchParams }: { searchParams: Promis
     door<OwnerDefaults>(user.id, 'ops_read', 'owner_visibility_defaults').catch(() => null), door<DraftRow[]>(user.id, 'ops_read', 'drafts', { kind: 'rental' }),
     uuid ? door<{ id: string; data: MrDraft; held: boolean; quick: boolean; status: string } | null>(user.id, 'ops_read', 'draft_get', { id: uuid }) : Promise.resolve(null)]);
   const open = draft && draft.status === 'open' ? draft : null;
+  // 5120: an insurance replacement's draft opens in its own short form
+  if (open && (open.data as { form?: string }).form === 'insurer') redirect(`/admin/insurance-replacements/new?draft=${open.id}`);
   return (
     <>
       <PageHead kicker={<Link prefetch={false} className="link" href="/admin/bookings">Bookings</Link>} title="Add a rental" />
       <p className="ad-intro">For a rental taken by phone, at the counter, from Turo, a partner or an insurer. The dates decide the rest: an upcoming rental is confirmed at once (or waits for the renter&apos;s online payment when you send a payment link); one already underway is recorded as on trip, with a task for anything still missing; one that has ended is kept as completed for the history and the statements. Every case goes on the calendars, and the renter signs the agreement in their portal (the e-signature; never on paper).</p>
-      {uuid && !open && <p className="alert alert--error" role="status"><span>That unfinished rental was already added or discarded.</span></p>}
+      {uuid && !open && <DraftGone draft={draft as Parameters<typeof DraftGone>[0]['draft']} base="/admin" />}
       <div className="stack ad-narrow" ><MyDrafts rows={drafts} base="/admin" current={open?.id} />
         <ManualRentalForm key={open?.id ?? 'new'} cars={cars} base="/admin" adjusters={await door<Array<{ id: string; insurer_id: string; name: string | null; email: string | null; phone: string | null }>>(user.id, 'admin_read', 'insurer_adjusters', {}).catch(() => [])} isAdmin owner={owner} draft={open} /></div>
     </>

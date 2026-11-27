@@ -105,3 +105,17 @@ test('r44: an issued invoice never says Draft, even when its facts say it is not
   assert.equal(invoiceFooter({ ...facts(), status: 'paid' }), 'Blind Spot Car Rental. Invoice INS-5001.');
   assert.match(invoiceFooter({ ...facts(), status: 'draft' }), /Draft: not yet issued/);
 });
+
+test('5120: an estimate version says Estimate, its version, the bill-to typed, the notes, and owes nothing', () => {
+  const blocks = insurerInvoiceBlocks({ invoice_number: 'INS-5009', doc_kind: 'estimate', version: 2, claim_number: 'CLM-9', amount_cents: 65000, hst_cents: 8450, total_cents: 73450,
+    lines: [{ description: 'Replacement rental', quantity: 10, rate_cents: 6500, amount_cents: 65000 }], fee_items: [], notes: 'Rate as approved by the adjuster.',
+    bill_to: { name: 'Example Mutual Claims', attention: 'Pat Example' }, insurer: { name: 'Example Mutual' },
+    company: { brand: 'Blind Spot Car Rental', legal_name: '18122211 Canada Inc.', address: '1 Example St', hst_number: null, phone: '', email: '' } } as never);
+  const text = JSON.stringify(blocks);
+  assert.ok(text.includes('Estimate INS-5009 (version 2)'));
+  assert.ok(text.includes('Replacement rental: 10 x $65.00'));
+  assert.ok(text.includes('Example Mutual Claims') && text.includes('Pat Example'));
+  assert.ok(text.includes('Rate as approved by the adjuster.'));
+  assert.ok(text.includes('Estimated total') && !text.includes('Balance due'));
+  assert.ok(!/carmacars/i.test(text));
+});

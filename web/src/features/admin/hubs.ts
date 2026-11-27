@@ -24,7 +24,7 @@ export const ADMIN_HUBS: Hub[] = [
   { key: 'owner-money', label: 'Owner money', tabs: [
     { href: '/admin/owner-money?tab=invoices', label: 'Invoices' }, { href: '/admin/owner-money?tab=debits', label: 'Debits' },
     { href: '/admin/owner-money?tab=statements', label: 'Statements' }, { href: '/admin/owner-money?tab=payouts', label: 'Payouts' }] },
-  { key: 'insurers', label: 'Insurers', tabs: [{ href: '/admin/insurers?tab=rates', label: 'Rates' }, { href: '/admin/insurers?tab=invoices', label: 'Invoices' }] },
+  { key: 'insurers', label: 'Insurers', tabs: [{ href: '/admin/insurance-replacements', label: 'Replacements' }, { href: '/admin/insurers?tab=rates', label: 'Rates' }, { href: '/admin/insurers?tab=invoices', label: 'Invoices' }] },
   // Company accounts and Staff pay were two pages of the Money row: one now
   // r49 (3480): the Finance dashboard (cash, money in and out, HST, receivables, the bank reconciliation) opens the group
   { key: 'company', label: 'Company', tabs: [{ href: '/admin/finance', label: 'Finance' }, { href: '/admin/reports', label: 'Monthly statements' }, { href: '/admin/money/model', label: 'Company model' }, { href: '/admin/expenses', label: 'Expenses' },
@@ -91,7 +91,9 @@ export const STAFF_HUBS: Hub[] = [
     { href: '/staff/money?tab=deposits', label: 'Deposits', fns: 'finance' }, { href: '/staff/money?tab=reconciliation', label: 'Reconciliation', fns: 'finance' },
     { href: '/staff/money?tab=stripe', label: 'Unlinked Stripe', fns: 'finance' }, { href: '/staff/money?tab=gift', label: 'Gift cards', fns: 'finance' },
     { href: '/staff/money?tab=partners', label: 'Partner invoices', fns: 'finance' }, { href: '/staff/money?tab=kickbacks', label: 'Kickbacks and repairs', fns: 'finance' },
-    { href: '/staff/field-spending', label: 'Field spending', fns: 'finance' }] },
+    { href: '/staff/field-spending', label: 'Field spending', fns: 'finance' },
+    // r50 hotfix 2 (5120): every rental an insurer pays for
+    { href: '/staff/insurance-replacements', label: 'Insurance replacements', fns: 'finance' }] },
   { key: 'owner-money', label: 'Owner money', tabs: [{ href: '/staff/owner-money?tab=invoices', label: 'Invoices', fns: 'finance' }, { href: '/staff/owner-money?tab=statements', label: 'Statements', fns: 'finance' },
     // r35 part K (1061): the whole Partners section, as Admin has it
     { href: '/staff/partners', label: 'Rental partners', fns: 'finance' }, { href: '/staff/referral-partners', label: 'Referral partners', fns: 'finance' }] },
@@ -208,6 +210,8 @@ export const STAFF_ACTIONS: Array<HubTab & { on: string }> = [
   { href: '/staff/offers/new', label: 'Send an offer', fns: 'cs sales', on: '/staff/requests' },
   { href: '/staff/quotes/new', label: 'New quote', fns: OFFICE, on: '/staff/requests' },
   { href: '/staff/bookings/new', label: 'Add a rental', fns: OFFICE, on: '/staff/bookings' },
+  // r50 hotfix 2 (5120): customer service enters and follows insurance replacements from Bookings
+  { href: '/staff/insurance-replacements', label: 'Insurance replacements', fns: 'cs finance', on: '/staff/bookings' },
   // r35 part X: a problem is reported from the Add button on Today; adding a rental is on the Sales tab
   { href: '/staff/field/rentals/new', label: 'Add a rental', fns: 'field', on: '/staff/field/sales' }
 ];

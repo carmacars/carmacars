@@ -89,11 +89,11 @@ select test.eq('Sales read the conversation of a confirmed booking before the ha
 -- ================================================================ 2. the insurance emails: Blind Spot Car Rental
 select test.eq('every email to an insurer, and the insurance message, go as Blind Spot Car Rental and reply to it',
   (select string_agg(code || '=' || from_address || ' / ' || reply_to, '; ' order by code) from notification_catalogue where has_email and (audience = 'insurer' or code = 'insurance_staff_message')),
-  'insurance_staff_message=Blind Spot Car Rental <blindspotcarrental@carmacars.ca> / blindspotcarrental@carmacars.ca; insurer_invoice=Blind Spot Car Rental <blindspotcarrental@carmacars.ca> / blindspotcarrental@carmacars.ca');
+  'insurance_staff_message=Blind Spot Car Rental <blindspotcarrental@carmacars.ca> / blindspotcarrental@carmacars.ca; insurer_estimate=Blind Spot Car Rental <blindspotcarrental@carmacars.ca> / blindspotcarrental@carmacars.ca; insurer_invoice=Blind Spot Car Rental <blindspotcarrental@carmacars.ca> / blindspotcarrental@carmacars.ca');
 select test.eq('the address is an active receiving alias; the outbox reply-to agrees', (select is_active from email_aliases where address = 'blindspotcarrental@carmacars.ca')
   || '/' || app.email_reply_to_for('insurer_invoice', 'insurer') || '/' || app.email_reply_to_for('insurance_staff_message', 'renter'),
   'true/blindspotcarrental@carmacars.ca/blindspotcarrental@carmacars.ca');
-select test.eq('the other emails still go as CarmaCars', (select count(*) from notification_catalogue where has_email and from_address like 'Blind Spot%'), 2::bigint);
+select test.eq('the other emails still go as CarmaCars (5121 adds the insurer estimate)', (select count(*) from notification_catalogue where has_email and from_address like 'Blind Spot%'), 3::bigint);
 
 insert into test.pq select 'c3', app.door(test.id('pq_cs'), 'aal2', 'ops_read', 'booking_conversation', jsonb_build_object('booking', 'PQ-2', '_va', 'cs'));
 select test.eq('an insurer-billed booking offers the adjuster', (test.pqv('c3') ->> 'insurer_billed') || '/' || (test.pqv('c3') #>> '{adjuster,email}') || '/' || (test.pqv('c3') ->> 'insurer_name'),

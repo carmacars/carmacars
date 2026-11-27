@@ -12837,6 +12837,39 @@ export type Database = {
         };
         Relationships: [];
       };
+      insurer_invoice_versions: {
+        Row: {
+          id: string;
+          invoice_id: string;
+          version: number;
+          kind: string;
+          snapshot: Json;
+          emailed_to: string | null;
+          sent_by: string | null;
+          sent_at: string;
+        };
+        Insert: {
+          id?: string;
+          invoice_id: string;
+          version: number;
+          kind: string;
+          snapshot: Json;
+          emailed_to?: string | null;
+          sent_by?: string | null;
+          sent_at?: string;
+        };
+        Update: {
+          id?: string;
+          invoice_id?: string;
+          version?: number;
+          kind?: string;
+          snapshot?: Json;
+          emailed_to?: string | null;
+          sent_by?: string | null;
+          sent_at?: string;
+        };
+        Relationships: [];
+      };
       insurer_invoices: {
         Row: {
           id: string;
@@ -12868,6 +12901,17 @@ export type Database = {
           daily_rate_cents: number | null;
           rate_source: string | null;
           insurer_rate_id: string | null;
+          pending: Json | null;
+          version: number;
+          bill_to: Json;
+          invoice_date: string | null;
+          due_date: string | null;
+          approved_cents: number | null;
+          approved_at: string | null;
+          approved_by: string | null;
+          negotiating_at: string | null;
+          negotiation_note: string | null;
+          written_off_cents: number;
         };
         Insert: {
           id?: string;
@@ -12899,6 +12943,17 @@ export type Database = {
           daily_rate_cents?: number | null;
           rate_source?: string | null;
           insurer_rate_id?: string | null;
+          pending?: Json | null;
+          version?: number;
+          bill_to?: Json;
+          invoice_date?: string | null;
+          due_date?: string | null;
+          approved_cents?: number | null;
+          approved_at?: string | null;
+          approved_by?: string | null;
+          negotiating_at?: string | null;
+          negotiation_note?: string | null;
+          written_off_cents?: number;
         };
         Update: {
           id?: string;
@@ -12930,6 +12985,17 @@ export type Database = {
           daily_rate_cents?: number | null;
           rate_source?: string | null;
           insurer_rate_id?: string | null;
+          pending?: Json | null;
+          version?: number;
+          bill_to?: Json;
+          invoice_date?: string | null;
+          due_date?: string | null;
+          approved_cents?: number | null;
+          approved_at?: string | null;
+          approved_by?: string | null;
+          negotiating_at?: string | null;
+          negotiation_note?: string | null;
+          written_off_cents?: number;
         };
         Relationships: [];
       };
@@ -35681,6 +35747,7 @@ export type Database = {
           fuel_grade: string | null;
           photo_scene: string | null;
           model_family: string | null;
+          outside_fleet: boolean;
         };
         Insert: {
           id?: string;
@@ -35770,6 +35837,7 @@ export type Database = {
           fuel_grade?: string | null;
           photo_scene?: string | null;
           model_family?: string | null;
+          outside_fleet?: boolean;
         };
         Update: {
           id?: string;
@@ -35859,6 +35927,7 @@ export type Database = {
           fuel_grade?: string | null;
           photo_scene?: string | null;
           model_family?: string | null;
+          outside_fleet?: boolean;
         };
         Relationships: [];
       };
