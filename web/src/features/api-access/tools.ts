@@ -507,7 +507,8 @@ export const INSURANCE_TOOLS: Tool[] = [
   write('insurer_money', 'Record an insurer\'s approval, payment or write-off', 'On the sent invoice of a rental an insurer pays for: action payment (amount_cents, method cheque, e_transfer or direct_deposit, reference, received_on), approved (amount_cents the adjuster approved, note), negotiating (note: what is disputed; negotiating false ends it) or write_off (reason: what is left unpaid is written off). Finance or an Admin.',
     ['booking', 'action'], { ...insBooking, action: { type: 'string', enum: ['payment', 'approved', 'negotiating', 'write_off'] }, amount_cents: { type: 'integer', minimum: 0 },
       method: { type: 'string', enum: ['cheque', 'e_transfer', 'direct_deposit'] }, reference: str('Cheque or transfer number'), received_on: { type: 'string', format: 'date' },
-      note: str('A note (negotiating: what is disputed)'), reason: str('Why it is written off'), negotiating: { type: 'boolean' } })
+      note: str('A note (negotiating: what is disputed)'), reason: str('Why it is written off'), negotiating: { type: 'boolean' },
+      client_id: str('Optional: any id of 8 to 120 characters for this one request; the same id again records nothing more and returns the first result') })
 ];
 TOOLS.push(...INSURANCE_TOOLS);
 

@@ -96,7 +96,7 @@ export function InsuranceRental({ x, base, added }: { x: InsRental; base: InsBas
         ...(i?.written_off_cents ? [['Written off', `${$(i.written_off_cents)}: ${i.written_off_reason ?? ''}`] as [string, string]] : [])]} />
       {x.payments.length > 0 && <ul className="ins-history" data-testid="ins-payments">{x.payments.map((p, k) => <li key={k}><time>{d(p.at)}</time>{$(p.amount_cents)} by {METHOD[p.method] ?? p.method}</li>)}</ul>}
       {x.may_money && sentInvoice ? <div className="ins-actions">
-        <Act ops action="insurer_money" payload={{ booking: n, action: 'payment' }} label="Record a payment" variant="primary" title="Money received from the insurer" testId="ins-pay" refresh={R} done="Payment recorded."
+        <Act ops action="insurer_money" payload={{ booking: n, action: 'payment', client_id: `pay:${i!.id}:${i!.version}:${i!.paid_cents}` }} label="Record a payment" variant="primary" title="Money received from the insurer" testId="ins-pay" refresh={R} done="Payment recorded."
           fields={[{ name: 'amount_cents', label: 'Amount received', type: 'money', required: true, value: i!.balance_cents },
             { name: 'method', label: 'How', type: 'select', required: true, value: 'cheque', options: [['cheque', 'Cheque'], ['e_transfer', 'e-Transfer'], ['direct_deposit', 'Direct deposit']] },
             { name: 'reference', label: 'Reference (cheque or transfer number)' }, { name: 'received_on', label: 'Received on', type: 'date', value: new Date().toISOString().slice(0, 10) }]} />

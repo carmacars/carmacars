@@ -49,3 +49,14 @@ is listed whatever its age.
 
 - `admin/insurance-replacements-rates-and-billing`
 - `va/finance`
+
+## Review fixes (Nov 27)
+
+- Insurance replacement drafts (renter phone and email) are listed, opened and restored only by an Admin, Finance or customer service; Field and Sales never see them.
+- Paste text asks the database first (`ops_read insurer_may`): the AI read is for the same people.
+- An extension works out again only the lines the dates make (the rental days at the line's rate, else the rate agreed on the rental; the booking's charges by name) and keeps every line typed by hand (the winter tire fee), on a draft and on a sent invoice's next version.
+- Back on the calendar is refused while another booking or a calendar block holds the car, naming them.
+- Sending the same version again within 10 minutes with nothing changed returns the version sent (no new version, no email); a payment with the same `client_id` is recorded once (`insurer_money_requests`).
+- A new invoice clears the approved amount and the negotiation; aging counts from the latest invoice sent.
+- The connector's logs and previews keep the renter's email and phone masked (`app.insurer_mask_renter`); a preview's arguments stay as given, for its confirm.
+- 5123 says in a notice why it changed nothing (no booking, already off, not billed to an insurer, no rent@carmacars.ca), and the booking_events kind swap fails loudly if the constraint is no longer an ARRAY list.

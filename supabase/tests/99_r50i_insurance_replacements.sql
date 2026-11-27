@@ -157,6 +157,85 @@ select test.eq('a discarded draft says who discarded it', (app.draft_get(test.id
 select app.door(test.id('r50i_admin'), 'aal2', 'ops_do', 'draft_restore', jsonb_build_object('id', test.id('draft:r50i')));
 select test.eq('and is restored, as it was', (select (status, data #>> '{f,renter_name}')::text from rental_drafts where id = test.id('draft:r50i')), '(open,"Old Example")');
 
+-- ================================================================ 8. review fixes (Nov 27)
+select test.mk_user('r50i_sales', 'va', 'sales');
+select test.mk_user('r50i_field', 'field', null, 'driver');
+-- 1. an insurance replacement draft (the renter's phone and email) is not shown to Field or Sales
+insert into rental_drafts (id, kind, created_by, data, title) values (test.id('draft:r50i2'), 'rental', test.id('r50i_cs'),
+  '{"form": "insurer", "f": {"renter_name": "Dee Example", "renter_phone": "4165550100", "renter_email": "dee@example.test"}}', 'Dee Example');
+select test.eq('an insurer draft: customer service sees it, Sales and Field do not',
+  (select string_agg(u || ':' || exists (select 1 from jsonb_array_elements(app.drafts_list(test.id(u), '{"kind": "rental"}')) e where e ->> 'id' = test.id('draft:r50i2')::text), ',' order by u)
+     from unnest(array['r50i_cs', 'r50i_field', 'r50i_sales']) u), 'r50i_cs:true,r50i_field:false,r50i_sales:false');
+select test.throws('Sales cannot open it by its link', $$select app.draft_get(test.id('r50i_sales'), jsonb_build_object('id', test.id('draft:r50i2')))$$, '%insurance replacement%');
+select test.throws('Field cannot restore it', $$select app.draft_restore(test.id('r50i_field'), jsonb_build_object('id', test.id('draft:r50i2')))$$, '%Not permitted%');
+-- 2. Paste text (the AI read) asks the database first
+select test.eq('Paste text: customer service may', app.door(test.id('r50i_cs'), 'aal2', 'ops_read', 'insurer_may', '{}') ->> 'ok', 'true');
+select test.throws('Paste text: Sales may not', $$select app.door(test.id('r50i_sales'), 'aal2', 'ops_read', 'insurer_may', '{}')$$, '%Admins, Finance and customer service%');
+
+-- 3. an extension keeps the lines typed by hand and bills the new days: a typed-in car with no rate card, at the rate agreed
+insert into test.r50i select 'ext', app.insurer_rental_create(test.id('r50i_cs'), test.r50inew(jsonb_build_object('renter_name', 'Ext Example', 'claim_number', 'R50I-EXT',
+  'car', jsonb_build_object('year', 2025, 'make', 'Toyota', 'model', 'RAV4', 'plate', 'RFI555'), 'daily_rate_cents', 7000,
+  'pickup_at', date_trunc('hour', now()) + interval '60 days', 'return_at', date_trunc('hour', now()) + interval '65 days')));
+select app.insurer_invoice_save(test.id('r50i_cs'), jsonb_build_object('booking', test.r50iv('ext') ->> 'booking_number',
+  'lines', jsonb_build_array(jsonb_build_object('description', 'Replacement rental, 5 day(s)', 'quantity', 5, 'rate_cents', 7000), jsonb_build_object('description', 'Winter tire fee', 'amount_cents', 5000))));
+select app.insurer_rental_extend(test.id('r50i_cs'), jsonb_build_object('booking', test.r50iv('ext') ->> 'booking_number', 'return_at', (test.r50ib('ext')).return_at + interval '3 days'));
+select test.eq('a draft edited by hand, extended 3 days: 8 days at $70 and the winter tire fee kept',
+  (select string_agg((e ->> 'description') || '=' || (e ->> 'amount_cents'), ',') from jsonb_array_elements((test.r50ii('ext')).lines) e) || '/' || (test.r50ii('ext')).hst_cents,
+  'Replacement rental, 8 day(s)=56000,Winter tire fee=5000/7930');
+select app.insurer_invoice_send(test.id('r50i_fin'), jsonb_build_object('booking', test.r50iv('ext') ->> 'booking_number', 'email', false));
+-- 6. the adjuster approves, the rental is extended, the next invoice asks again
+select app.insurer_money(test.id('r50i_fin'), jsonb_build_object('booking', test.r50iv('ext') ->> 'booking_number', 'action', 'approved', 'amount_cents', 61000));
+select app.insurer_money(test.id('r50i_fin'), jsonb_build_object('booking', test.r50iv('ext') ->> 'booking_number', 'action', 'negotiating', 'note', 'One day in question'));
+select app.insurer_rental_extend(test.id('r50i_cs'), jsonb_build_object('booking', test.r50iv('ext') ->> 'booking_number', 'return_at', (test.r50ib('ext')).return_at + interval '2 days'));
+select test.eq('a sent invoice, extended 2 days: the next version has 10 days at $70 and still the winter tire fee',
+  (select string_agg((e ->> 'description') || '=' || (e ->> 'amount_cents'), ',') from jsonb_array_elements((test.r50ii('ext')).pending -> 'lines') e),
+  'Replacement rental, 10 day(s)=70000,Winter tire fee=5000');
+-- 5. a send repeated with nothing changed is not a new version
+insert into test.r50i select 'ext_s1', app.insurer_invoice_send(test.id('r50i_fin'), jsonb_build_object('booking', test.r50iv('ext') ->> 'booking_number', 'email', false));
+insert into test.r50i select 'ext_s2', app.insurer_invoice_send(test.id('r50i_fin'), jsonb_build_object('booking', test.r50iv('ext') ->> 'booking_number', 'email', false));
+select test.eq('sent twice in a row: one new version, the second says it is a repeat',
+  ((test.r50iv('ext_s1') ->> 'version'), (test.r50iv('ext_s2') ->> 'version'), (test.r50iv('ext_s2') ->> 'repeat'), (select count(*) from insurer_invoice_versions where invoice_id = (test.r50ii('ext')).id))::text,
+  '(2,2,true,2)');
+select test.eq('the new invoice clears the approval and the negotiation; aging counts from it',
+  ((test.r50ii('ext')).approved_cents is null, (test.r50ii('ext')).negotiating_at is null, (test.r50ii('ext')).total_cents,
+   (test.r50ii('ext')).sent_at = (select max(v.sent_at) from insurer_invoice_versions v where v.invoice_id = (test.r50ii('ext')).id))::text, '(t,t,84750,t)');
+select test.eq('the stage is invoiced again', app.insurer_stage(test.r50ib('ext'), test.r50ii('ext')), 'invoiced');
+-- 5. a payment sent twice with the same client id is recorded once
+insert into test.r50i select 'pay1', app.insurer_money(test.id('r50i_fin'), jsonb_build_object('booking', test.r50iv('ext') ->> 'booking_number', 'action', 'payment', 'amount_cents', 20000, 'method', 'e_transfer', 'client_id', 'pay:r50i:ext:1'));
+insert into test.r50i select 'pay2', app.insurer_money(test.id('r50i_fin'), jsonb_build_object('booking', test.r50iv('ext') ->> 'booking_number', 'action', 'payment', 'amount_cents', 20000, 'method', 'e_transfer', 'client_id', 'pay:r50i:ext:1'));
+select test.eq('a double click records the payment once', ((test.r50ii('ext')).paid_cents, test.r50iv('pay2') ->> 'repeat',
+  (select count(*) from payments p where p.booking_id = (test.r50ib('ext')).id and p.purpose = 'other'))::text, '(20000,true,1)');
+
+-- 4. back on the calendar: refused while another booking holds the car
+insert into test.r50i select 'ova', app.insurer_rental_create(test.id('r50i_admin'), test.r50inew(jsonb_build_object('vehicle_id', test.r50iv('car') ->> 'vehicle_id', 'renter_name', 'Ova Example', 'claim_number', 'R50I-OVA',
+  'pickup_at', date_trunc('hour', now()) + interval '100 days', 'return_at', date_trunc('hour', now()) + interval '105 days', 'bypass', true)));
+insert into test.r50i select 'ovb', app.insurer_rental_create(test.id('r50i_admin'), test.r50inew(jsonb_build_object('vehicle_id', test.r50iv('car') ->> 'vehicle_id', 'renter_name', 'Ovb Example', 'claim_number', 'R50I-OVB',
+  'pickup_at', date_trunc('hour', now()) + interval '101 days', 'return_at', date_trunc('hour', now()) + interval '103 days')));
+select test.throws('back on the calendar over another booking: refused, naming it',
+  format($$select app.insurer_rental_update(test.id('r50i_cs'), jsonb_build_object('booking', %L, 'bypass', false))$$, test.r50iv('ova') ->> 'booking_number'),
+  '%taken on these dates (' || (test.r50iv('ovb') ->> 'booking_number') || '%');
+select test.eq('and it stays off', (test.r50ib('ova')).blocks_calendar, false);
+
+-- 9. the connector's logs and previews keep the renter's email and phone masked
+insert into test.r50i select 'mpv', app.api_call(test.r50ih('cc_live_r50i_full'), 'insurer_rental_update',
+  jsonb_build_object('booking', test.r50iv('ext') ->> 'booking_number', 'renter_email', 'mask.me@example.test', 'renter_phone', '4165550123'), 'test');
+select app.api_call(test.r50ih('cc_live_r50i_full'), 'insurer_rental_update', jsonb_build_object('booking', test.r50iv('ext') ->> 'booking_number', 'renter_email', 'mask.me@example.test',
+  'renter_phone', '4165550123', 'confirm', true, 'preview_id', test.r50iv('mpv') #>> '{result,preview_id}'), 'test');
+select app.api_call(test.r50ih('cc_live_r50i_full'), 'insurer_rental_update', jsonb_build_object('booking', test.r50iv('ext') ->> 'booking_number', 'notes', 'R50i masked'), 'test');
+select test.eq('the renter''s email and phone are not in the logs or the previews'' before and after',
+  (select count(*) from api_calls c where c.target = test.r50iv('ext') ->> 'booking_number' and (c.args::text || coalesce(c.before::text, '') || coalesce(c.after::text, '')) ~ 'mask\.me@|4165550123')
+  + (select count(*) from api_previews v where v.tool = 'insurer_rental_update' and (coalesce(v.before::text, '') || coalesce(v.after::text, '')) ~ 'mask\.me@|4165550123'), 0::bigint);
+select test.eq('masked as the e-sign pages mask them', (select c.args ->> 'renter_email' from api_calls c where c.target = test.r50iv('ext') ->> 'booking_number' and c.tool = 'insurer_rental_update'), 'm******@example.test');
+
+-- 7. 5123 (CC-10067): changes nothing, with a notice, when the Admin account is missing
+update bookings set booking_number = booking_number || '-R50IHOLD' where booking_number = 'CC-10067';
+update bookings set booking_number = 'CC-10067' where id = (test.r50ib('ovb')).id;
+\ir ../migrations/5123_r50i_cc10067_off_calendar.sql
+select test.eq('5123 without rent@carmacars.ca: CC-10067 stays on the calendar', (select blocks_calendar from bookings where booking_number = 'CC-10067'),
+  not exists (select 1 from users where lower(email) = 'rent@carmacars.ca'));
+update bookings set booking_number = (test.r50iv('ovb') ->> 'booking_number') where booking_number = 'CC-10067';
+update bookings set booking_number = 'CC-10067' where booking_number = 'CC-10067-R50IHOLD';
+
 select test.ok('the functions are for the server only', not has_function_privilege('authenticated', 'app.insurer_rental_create(uuid, jsonb)', 'execute')
   and not has_function_privilege('authenticated', 'app.insurer_money(uuid, jsonb)', 'execute') and not has_function_privilege('anon', 'app.draft_restore(uuid, jsonb)', 'execute'));
 update program_settings p set api_access_enabled = s.e, api_calls_per_minute = s.n from r50i_ps s where p.id = s.id;

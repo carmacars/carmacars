@@ -40,7 +40,9 @@ const AI_SYSTEM = 'You read an email or notice from an auto insurer about a repl
  *  what was found for the person to check and use. */
 export async function insuranceParse(text: string, insurers: string[]): Promise<R<{ found: Parsed; ai: boolean }>> {
   try {
-    await me();
+    const { user, aal } = await me();
+    // the AI read is for those who work insurance replacements (an Admin, Finance or customer service): the database says
+    await door(user.id, 'ops_read', 'insurer_may', {}, aal);
     const t = String(text ?? '').slice(0, 12_000);
     if (t.trim().length < 10) return { ok: false, code: 'refused', message: 'Paste the adjuster\'s email or the claim notice first.' };
     const rules = parseClaimText(t, insurers.slice(0, 200));

@@ -84,6 +84,22 @@ revoke all on insurer_invoice_versions from public, anon, authenticated;
 grant select on insurer_invoice_versions to authenticated;
 grant all on insurer_invoice_versions to service_role;
 
+-- a money action sent twice (a double click, a retry) is recorded once: its client_id is kept with what it returned
+create table if not exists insurer_money_requests (
+  client_id   text primary key check (char_length(client_id) between 8 and 120),
+  invoice_id  uuid not null references insurer_invoices (id),
+  action      text not null,
+  result      jsonb,
+  created_by  uuid references users (id),
+  created_at  timestamptz not null default now()
+);
+create index if not exists insurer_money_requests_invoice_idx on insurer_money_requests (invoice_id);
+comment on table insurer_money_requests is 'The client_id of each insurer_money call (5120): the same id again returns the first result and records nothing more.';
+alter table insurer_money_requests enable row level security;
+create policy admin_all on insurer_money_requests for all to authenticated using (app.is_admin()) with check (app.is_admin());
+revoke all on insurer_money_requests from public, anon, authenticated;
+grant all on insurer_money_requests to service_role;
+
 -- what was written off is kept (either path: the old Write off button, or insurer_money)
 create function app.insurer_invoices_write_off_amount() returns trigger language plpgsql as $$
 begin
@@ -100,6 +116,7 @@ declare d text;
 begin
   select pg_get_constraintdef(oid) into d from pg_constraint where conrelid = 'booking_events'::regclass and conname = 'booking_events_kind_check';
   if d is not null and d not like '%insurer_claim%' then
+    if position('ARRAY[' in d) = 0 then raise exception 'booking_events_kind_check is no longer an ARRAY[...] list: add insurer_claim by hand (%)', d; end if;
     execute 'alter table booking_events drop constraint booking_events_kind_check';
     execute 'alter table booking_events add constraint booking_events_kind_check ' || replace(d, 'ARRAY[', 'ARRAY[''insurer_claim''::text, ');
   end if;
@@ -209,6 +226,49 @@ language sql stable security definer set search_path = public, app, pg_temp as $
   select jsonb_build_object('lines', ii.lines, 'hst_cents', ii.hst_cents, 'notes', ii.notes, 'period_start', ii.period_start, 'period_end', ii.period_end,
            'invoice_date', ii.invoice_date, 'due_date', ii.due_date, 'bill_to', ii.bill_to, 'claim_number', ii.claim_number) || coalesce(ii.pending, '{}'::jsonb)
 $$;
+
+-- New dates (an extension, a new end of rental): only the lines the dates make are worked out again. The rental line
+-- ("Replacement rental, N day(s)") takes the days now at its own rate a day, else the rate agreed on the rental, else the
+-- booking's rental share; a line the booking makes (a charge by name) takes its amount now; every line typed by hand
+-- (a winter tire fee) stays as it is. The HST follows the taxable lines; the period ends with the rental.
+create function app.insurer_refresh_days(p_booking uuid, w jsonb) returns jsonb
+language plpgsql stable security definer set search_path = public, app, pg_temp as $$
+declare
+  b bookings;
+  s record;
+  fb jsonb := app.insurer_from_booking(p_booking);
+  l jsonb;
+  m jsonb;
+  v_out jsonb := '[]'::jsonb;
+  v_rate bigint;
+  v_rental boolean := false;
+  v_line jsonb;
+begin
+  select * into b from bookings where id = p_booking;
+  select * into s from app.booking_insurer_share(p_booking);
+  for l in select value from jsonb_array_elements(coalesce(w -> 'lines', '[]'::jsonb)) loop
+    if not v_rental and l ->> 'description' ilike 'Replacement rental%' then
+      v_rental := true;
+      v_rate := coalesce(nullif(l ->> 'rate_cents', '')::bigint, b.insurer_authorized_daily_rate_cents);
+      v_out := v_out || jsonb_build_array(jsonb_strip_nulls(jsonb_build_object('description', format('Replacement rental, %s day(s)', s.covered_days),
+        'quantity', s.covered_days, 'rate_cents', v_rate, 'amount_cents', case when v_rate is not null then v_rate * s.covered_days else s.rental_share_cents end,
+        'taxable', coalesce((l ->> 'taxable')::boolean, true))));
+    else
+      select x into m from jsonb_array_elements(fb -> 'lines') x
+       where x ->> 'description' = l ->> 'description' and x ->> 'description' not ilike 'Replacement rental%' limit 1;
+      v_out := v_out || jsonb_build_array(case when m is not null then l - 'quantity' - 'rate_cents' || jsonb_build_object('amount_cents', m -> 'amount_cents') else l end);
+    end if;
+  end loop;
+  if not v_rental then
+    v_rate := b.insurer_authorized_daily_rate_cents;
+    v_line := jsonb_strip_nulls(jsonb_build_object('description', format('Replacement rental, %s day(s)', s.covered_days), 'quantity', s.covered_days, 'rate_cents', v_rate,
+      'amount_cents', case when v_rate is not null then v_rate * s.covered_days else s.rental_share_cents end, 'taxable', true));
+    v_out := jsonb_build_array(v_line) || v_out;
+  end if;
+  return w || jsonb_build_object('lines', v_out,
+    'hst_cents', round((select coalesce(sum((e ->> 'amount_cents')::bigint), 0) from jsonb_array_elements(v_out) e where coalesce((e ->> 'taxable')::boolean, true)) * b.hst_bps / 10000.0)::bigint,
+    'period_start', coalesce(w -> 'period_start', fb -> 'period_start'), 'period_end', fb -> 'period_end');
+end $$;
 
 -- a working copy with its totals, as a version keeps it
 create function app.insurer_snapshot(ii insurer_invoices, w jsonb, p_kind text, p_version integer) returns jsonb
@@ -511,6 +571,21 @@ begin
     select * into b from bookings where id = b.id;
     if v.outside_fleet and not v_bypass then raise exception 'A car not in the fleet is always off the calendar and owner notices' using errcode = '23514'; end if;
     if v_bypass is distinct from app.insurer_bypass(b) then
+      -- back on the calendar: refused while another booking or a calendar block holds the car on these dates
+      if not v_bypass then
+        if exists (select 1 from bookings x where x.vehicle_id = b.vehicle_id and x.id <> b.id and x.status in ('confirmed', 'on_rent', 'offered', 'pending_payment')
+                     and (x.status in ('offered', 'pending_payment') or x.blocks_calendar) and x.pickup_at < b.return_at and x.return_at > b.pickup_at)
+           or exists (select 1 from vehicle_calendar_blocks k where k.vehicle_id = b.vehicle_id and k.removed_at is null
+                        and k.starts_at < b.return_at and (k.ends_at is null or k.ends_at > b.pickup_at)) then
+          raise exception 'The car is taken on these dates (%): keep this rental off the calendar, or move the other one first',
+            concat_ws(', ', (select string_agg(x.booking_number, ', ' order by x.pickup_at) from bookings x where x.vehicle_id = b.vehicle_id and x.id <> b.id
+                               and x.status in ('confirmed', 'on_rent', 'offered', 'pending_payment') and (x.status in ('offered', 'pending_payment') or x.blocks_calendar)
+                               and x.pickup_at < b.return_at and x.return_at > b.pickup_at),
+                             (select count(*) || ' calendar block(s)' from vehicle_calendar_blocks k where k.vehicle_id = b.vehicle_id and k.removed_at is null
+                               and k.starts_at < b.return_at and (k.ends_at is null or k.ends_at > b.pickup_at) having count(*) > 0))
+            using errcode = '23P01';
+        end if;
+      end if;
       perform app.set_blocks_calendar(b.id, not v_bypass, p_by, case when v_bypass then 'Insurance replacement: off the calendar and owner notices' else 'Insurance replacement: back on the calendar' end);
       v_changed := v_changed || case when v_bypass then 'off the calendar and owner notices' else 'on the calendar, shown to the owner' end;
     end if;
@@ -562,6 +637,9 @@ begin
       daily_days = coalesce((nw ->> 'daily_days')::integer, daily_days), weekend_days = coalesce((nw ->> 'weekend_days')::integer, weekend_days),
       rental_charge_cents = coalesce((nw ->> 'rental_charge_cents')::bigint, rental_charge_cents)
    where id = b.id;
+  -- the insurer authorized the new dates: the days it covers follow when they were fewer
+  update bookings set insurer_authorized_days = greatest(insurer_authorized_days, coalesce((nw ->> 'billable_days')::integer, billable_days))
+   where id = b.id and insurer_authorized_days is not null;
   -- the rental charge follows the new dates as a line of the extension, never a charge to the renter's card
   v_diff := coalesce((pv ->> 'difference_before_hst_cents')::bigint, 0);
   if v_diff <> 0 then
@@ -682,6 +760,7 @@ declare
   v_status text;
   v_event bigint;
   v_id uuid;
+  v_last insurer_invoice_versions;
 begin
   perform app.insurer_assert(p_by, true);
   if v_kind not in ('invoice', 'estimate') then raise exception 'kind: invoice or estimate' using errcode = '22023'; end if;
@@ -709,6 +788,13 @@ begin
       raise exception 'No email to send it to: type the bill-to email, the adjuster''s email, or the insurer''s billing email in Settings, Insurers' using errcode = '23514';
     end if;
   end if;
+  -- the same version sent again within 10 minutes (a retry, a double click) is not sent twice: nothing changed since
+  select * into v_last from insurer_invoice_versions where invoice_id = ii.id order by version desc limit 1;
+  if v_last.id is not null and v_last.kind = v_kind and v_last.sent_at > now() - interval '10 minutes' and v_last.emailed_to is not distinct from v_to
+     and v_last.snapshot = app.insurer_snapshot(ii, w, v_kind, v_last.version) then
+    return jsonb_build_object('invoice_id', ii.id, 'invoice_number', ii.invoice_number, 'version', v_last.version, 'kind', v_kind, 'status', ii.status, 'to', v_to,
+                              'total_cents', v_total, 'pdf_path', '/files/insurer_invoice/' || ii.id || ':v' || v_last.version, 'event_id', null, 'repeat', true);
+  end if;
   v_n := ii.version + 1;
   if v_kind = 'invoice' then
     v_status := case when ii.paid_cents >= v_total then 'paid' when ii.paid_cents > 0 then 'part_paid' else 'sent' end;
@@ -717,8 +803,11 @@ begin
            notes = w ->> 'notes', claim_number = w ->> 'claim_number', period_start = coalesce((w ->> 'period_start')::date, period_start),
            period_end = coalesce((w ->> 'period_end')::date, period_end), invoice_date = coalesce((w ->> 'invoice_date')::date, app.local_date(now())),
            due_date = (w ->> 'due_date')::date, bill_to = coalesce(w -> 'bill_to', '{}'::jsonb), pending = null, version = v_n,
-           status = v_status, sent_at = coalesce(sent_at, now()), sent_by = coalesce(sent_by, p_by),
-           paid_at = case when v_status = 'paid' then coalesce(paid_at, now()) end
+           status = v_status, sent_at = now(), sent_by = p_by,
+           paid_at = case when v_status = 'paid' then coalesce(paid_at, now()) end,
+           -- a new invoice is a new question to the adjuster: the approval and the negotiation were about the one before
+           approved_cents = case when ii.status = 'draft' then approved_cents end, approved_at = case when ii.status = 'draft' then approved_at end,
+           approved_by = case when ii.status = 'draft' then approved_by end, negotiating_at = case when ii.status = 'draft' then negotiating_at end
      where id = ii.id;
     select * into ii from insurer_invoices where id = ii.id;
     w := app.insurer_working(ii);
@@ -753,6 +842,9 @@ declare
   v_method text;
   v_note text := nullif(btrim(coalesce(p ->> 'note', p ->> 'reason', '')), '');
   v_status text;
+  v_client text := nullif(btrim(coalesce(p ->> 'client_id', '')), '');
+  v_n integer;
+  v_out jsonb;
 begin
   perform app.insurer_assert(p_by, true);
   if nullif(p ->> 'invoice', '') is not null then
@@ -763,6 +855,17 @@ begin
   end if;
   if ii.id is null then raise exception 'There is no invoice yet: send one first' using errcode = 'P0002'; end if;
   select * into b from bookings where id = ii.booking_id;
+  -- client_id: the same request again (a double click, a retry) waits for the first and returns what it did
+  if v_client is not null then
+    if char_length(v_client) not between 8 and 120 then raise exception 'client_id: 8 to 120 characters' using errcode = '22023'; end if;
+    insert into insurer_money_requests (client_id, invoice_id, action, created_by) values (v_client, ii.id, v_action, p_by) on conflict (client_id) do nothing;
+    get diagnostics v_n = row_count;
+    if v_n = 0 then
+      select r.result into v_out from insurer_money_requests r where r.client_id = v_client and r.invoice_id = ii.id;
+      if v_out is null then raise exception 'client_id: already used for another request' using errcode = '23505'; end if;
+      return v_out || jsonb_build_object('repeat', true);
+    end if;
+  end if;
   if char_length(coalesce(v_note, '')) > 2000 then raise exception 'The note: at most 2000 characters' using errcode = '22023'; end if;
   case v_action
   when 'payment' then
@@ -795,8 +898,10 @@ begin
     raise exception 'action: payment, approved, negotiating or write_off' using errcode = '22023';
   end case;
   select * into ii from insurer_invoices where id = ii.id;
-  return jsonb_build_object('invoice_number', ii.invoice_number, 'status', ii.status, 'paid_cents', ii.paid_cents, 'balance_cents', ii.balance_cents,
-                            'approved_cents', ii.approved_cents, 'written_off_cents', ii.written_off_cents, 'stage', app.insurer_stage(b, ii));
+  v_out := jsonb_build_object('invoice_number', ii.invoice_number, 'status', ii.status, 'paid_cents', ii.paid_cents, 'balance_cents', ii.balance_cents,
+                              'approved_cents', ii.approved_cents, 'written_off_cents', ii.written_off_cents, 'stage', app.insurer_stage(b, ii));
+  if v_client is not null then update insurer_money_requests set result = v_out where client_id = v_client; end if;
+  return v_out;
 end $$;
 
 -- ================================================================ 5. the invoice of 0016, the PDF, the emails
@@ -807,17 +912,22 @@ create function app.draft_insurer_invoice(p_booking uuid, p_by uuid default null
 language plpgsql security definer set search_path = public, app, pg_temp as $$
 declare
   ii insurer_invoices := app.insurer_live_invoice(p_booking);
+  w jsonb;
 begin
   if ii.id is null or ii.status = 'written_off' then return app.draft_insurer_invoice_pre5120(p_booking, p_by); end if;
   if ii.status = 'draft' then
-    -- a draft edited by hand keeps its lines (version 0 and edited lines: the Insurance replacements page); else redrafted
+    -- a draft edited by hand (the Insurance replacements page) keeps its lines typed by hand; the days follow the booking
     if ii.bill_to <> '{}'::jsonb or ii.invoice_date is not null or exists (select 1 from jsonb_array_elements(ii.lines) e where e ? 'quantity') then
-      update insurer_invoices set pending = null where id = ii.id;
+      w := app.insurer_refresh_days(p_booking, app.insurer_working(ii));
+      update insurer_invoices set lines = w -> 'lines', amount_cents = app.insurer_lines_sum(w -> 'lines'), hst_cents = (w ->> 'hst_cents')::bigint,
+             period_start = coalesce((w ->> 'period_start')::date, period_start), period_end = coalesce((w ->> 'period_end')::date, period_end), pending = null
+       where id = ii.id;
       return ii.id;
     end if;
     return app.draft_insurer_invoice_pre5120(p_booking, p_by);
   end if;
-  update insurer_invoices set pending = app.insurer_working(ii) || app.insurer_from_booking(p_booking) where id = ii.id;
+  -- a sent one: the next version, with the days now and every line typed by hand kept (the winter tire fee)
+  update insurer_invoices set pending = app.insurer_refresh_days(p_booking, app.insurer_working(ii)) where id = ii.id;
   return ii.id;
 end $$;
 select pg_temp.copy_grants('app.draft_insurer_invoice(uuid, uuid)'::regprocedure, 'app.draft_insurer_invoice_pre5120(uuid, uuid)'::regprocedure);
@@ -939,18 +1049,24 @@ language sql stable security definer set search_path = public, app, pg_temp as $
              else app.draft_missing(d.kind, d.data) end)) order by d.updated_at desc), '[]'::jsonb)
     from rental_drafts d
    where app.may_draft(p_by) and d.status = 'open' and (nullif(p ->> 'kind', '') is null or d.kind = p ->> 'kind')
+     -- an insurance replacement draft (the renter's contact, the claim) is for those who work them only (never Field or Sales)
+     and (coalesce(d.data ->> 'form', '') <> 'insurer' or app.insurer_rentals_may(p_by))
      and (d.created_by = p_by or not coalesce((p ->> 'mine')::boolean, false))
 $$;
 
 -- a draft says what became of it: added (the booking), or discarded (who and when), so the page can say so
 alter function app.draft_get(uuid, jsonb) rename to draft_get_pre5120;
 create function app.draft_get(p_by uuid, p jsonb) returns jsonb
-language sql stable security definer set search_path = public, app, pg_temp as $$
-  select app.draft_get_pre5120(p_by, p) || jsonb_build_object('finished_at', d.finished_at,
+language plpgsql stable security definer set search_path = public, app, pg_temp as $$
+begin
+  if exists (select 1 from rental_drafts d where d.id = (p ->> 'id')::uuid and d.data ->> 'form' = 'insurer') and not app.insurer_rentals_may(p_by) then
+    raise exception 'This unfinished rental is an insurance replacement: for Admins, Finance and customer service' using errcode = '42501';
+  end if;
+  return (select app.draft_get_pre5120(p_by, p) || jsonb_build_object('finished_at', d.finished_at,
            'booking_number', (select b.booking_number from bookings b where b.id = d.booking_id),
            'closed_by', (select coalesce(u.full_name, u.email) from users u where u.id = d.updated_by), 'form', d.data ->> 'form')
-    from rental_drafts d where d.id = (p ->> 'id')::uuid and app.may_draft(p_by)
-$$;
+    from rental_drafts d where d.id = (p ->> 'id')::uuid and app.may_draft(p_by));
+end $$;
 select pg_temp.copy_grants('app.draft_get(uuid, jsonb)'::regprocedure, 'app.draft_get_pre5120(uuid, jsonb)'::regprocedure);
 
 -- a discarded draft comes back (an added one does not: its booking exists)
@@ -961,6 +1077,7 @@ begin
   if not app.may_draft(p_by) then raise exception 'Not permitted' using errcode = '42501'; end if;
   select * into d from rental_drafts where id = (p ->> 'id')::uuid for update;
   if d.id is null then raise exception 'That draft is not there' using errcode = 'P0002'; end if;
+  if d.data ->> 'form' = 'insurer' and not app.insurer_rentals_may(p_by) then raise exception 'Not permitted' using errcode = '42501'; end if;
   if d.status = 'done' then raise exception 'That draft was added as a rental: open the booking' using errcode = '23514'; end if;
   if d.status = 'discarded' then
     update rental_drafts set status = 'open', finished_at = null, updated_by = p_by where id = d.id;
@@ -973,6 +1090,12 @@ alter function app.door(uuid, text, text, text, jsonb) rename to door_pre5120;
 create function app.door(p_user uuid, p_aal text, p_call text, p_name text, p jsonb default '{}'::jsonb) returns jsonb
 language plpgsql security definer set search_path = public, app, pg_temp as $$
 begin
+  if p_call = 'ops_read' and p_name = 'insurer_may' then
+    -- Paste text asks first (the AI read is for those who work insurance replacements only)
+    perform app.door_begin(p_user, p_aal);
+    perform app.insurer_assert(p_user);
+    return jsonb_build_object('ok', true);
+  end if;
   if p_call = 'ops_read' and p_name in ('insurer_rentals', 'insurer_rental') then
     perform app.door_begin(p_user, p_aal);
     if p_name = 'insurer_rental' then return app.insurer_rental_json(p_user, coalesce(p, '{}'::jsonb)); end if;
@@ -999,6 +1122,18 @@ select pg_temp.copy_grants('app.door(uuid, text, text, text, jsonb)'::regprocedu
 -- running it and undoing it (the preview shows exactly what the screens would do, or their refusal), then confirmed
 -- with the same arguments and the preview_id. The key's person must work Insurance replacements (an Admin, Finance or
 -- customer service); money needs Finance or an Admin.
+-- the renter's email and phone never sit in the connector's logs and previews: masked as the e-sign pages mask them
+create function app.insurer_mask_renter(j jsonb) returns jsonb
+language sql immutable set search_path = public, app, pg_temp as $$
+  select case when jsonb_typeof(j) <> 'object' then j else
+    j || jsonb_strip_nulls(jsonb_build_object(
+      'renter_email', case when j ? 'renter_email' then to_jsonb(coalesce(app.esign_mask_email(j ->> 'renter_email'), '')) end,
+      'renter_phone', case when j ? 'renter_phone' then to_jsonb(coalesce(app.esign_mask_phone(j ->> 'renter_phone'), '')) end,
+      'renter', case when jsonb_typeof(j -> 'renter') = 'object' then (j -> 'renter') || jsonb_build_object(
+                  'email', app.esign_mask_email(j #>> '{renter,email}'), 'phone', app.esign_mask_phone(j #>> '{renter,phone}'))
+                  - case when (j -> 'renter') ? 'email' then '' else 'email' end - case when (j -> 'renter') ? 'phone' then '' else 'phone' end end)) end
+$$;
+
 create function app.insurer_tool_run(p_user uuid, p_tool text, a jsonb) returns jsonb
 language plpgsql security definer set search_path = public, app, pg_temp as $$
 begin
@@ -1066,7 +1201,7 @@ begin
       exception when others then
         if sqlerrm <> 'cc_preview_undo' then raise; end if;
       end;
-      insert into api_previews (key_id, user_id, tool, args, before, after) values (k.id, k.user_id, p_tool, v_args, v_before, v_after) returning * into pv;
+      insert into api_previews (key_id, user_id, tool, args, before, after) values (k.id, k.user_id, p_tool, v_args, app.insurer_mask_renter(v_before), app.insurer_mask_renter(v_after)) returning * into pv;
       v_result := jsonb_build_object('preview', true, 'preview_id', pv.id, 'tool', p_tool, 'expires_at', pv.created_at + interval '10 minutes',
         'before', v_before, 'after', v_after,
         'will_do', case p_tool
@@ -1090,11 +1225,12 @@ begin
         'admin_path', '/admin/insurance-replacements/' || coalesce(v_after ->> 'booking_number', a ->> 'booking', ''));
     end if;
   exception when others then
-    insert into api_calls (key_id, user_id, tool, target, args, ok, error, client) values (k.id, k.user_id, p_tool, v_target, v_args, false, left(sqlerrm, 500), left(p_client, 64));
+    insert into api_calls (key_id, user_id, tool, target, args, ok, error, client) values (k.id, k.user_id, p_tool, v_target, app.insurer_mask_renter(v_args), false, left(sqlerrm, 500), left(p_client, 64));
     return jsonb_build_object('ok', false, 'status', case sqlstate when 'P0002' then 404 when '42501' then 403 else 400 end, 'error', regexp_replace(sqlerrm, '^.*?ERROR:\s*', ''));
   end;
   insert into api_calls (key_id, user_id, tool, target, args, before, after, ok, client)
-  values (k.id, k.user_id, case when v_confirm then p_tool else p_tool || ':preview' end, v_target, v_args, v_before, v_after, true, left(p_client, 64));
+  values (k.id, k.user_id, case when v_confirm then p_tool else p_tool || ':preview' end, v_target, app.insurer_mask_renter(v_args), app.insurer_mask_renter(v_before),
+          app.insurer_mask_renter(v_after), true, left(p_client, 64));
   return jsonb_build_object('ok', true, 'result', v_result);
 end $$;
 select pg_temp.copy_grants('app.api_call(text, text, jsonb, text)'::regprocedure, 'app.api_call_pre5120(text, text, jsonb, text)'::regprocedure);
@@ -1131,7 +1267,7 @@ begin
                     'insurer_rental_json', 'insurer_pick', 'insurer_rental_create', 'insurer_rental_update', 'insurer_rental_extend', 'insurer_invoice_save', 'insurer_invoice_send',
                     'insurer_money', 'insurer_tool_run', 'draft_restore', 'drafts_list', 'draft_insurer_invoice_pre5120', 'pdf_facts_pre5120', 'notification_payload_pre5120',
                     'notification_recipients_pre5120', 'outbox_file_refs_pre5120', 'draft_get_pre5120', 'door_pre5120', 'api_call_pre5120',
-                    'insurer_invoices_write_off_amount', 'insurer_invoice_versions_frozen', 'ai_tier_pre5120', 'ai_feature_label_pre5120'])
+                    'insurer_invoices_write_off_amount', 'insurer_invoice_versions_frozen', 'insurer_refresh_days', 'insurer_mask_renter', 'ai_tier_pre5120', 'ai_feature_label_pre5120'])
   loop
     execute format('revoke all on function %s from public, anon, authenticated', f.sig);
     execute format('grant execute on function %s to service_role', f.sig);

@@ -122,7 +122,7 @@ export function NewInsuranceRental({ cars, insurers, base, draft }: { cars: Car[
         <div className="ins-paste">
           <label className="ins-field"><span>The adjuster&apos;s email or the claim notice</span>
             <textarea className="input" value={text} onChange={(e) => setText(e.target.value)} data-testid="ins-paste" placeholder="Paste it here: the fields fill themselves after you check them." /></label>
-          <div className="ins-actions"><button className="btn btn--ghost btn--sm" type="button" onClick={read} disabled={pending || text.trim().length < 10} data-testid="ins-read">Read it</button></div>
+          <div className="ins-actions"><button className="btn btn--ghost btn--sm" type="button" onClick={read} disabled={pending || text.trim().length < 10} title={text.trim().length < 10 ? 'Paste the adjuster\'s email or the claim notice first' : undefined} data-testid="ins-read">Read it</button></div>
           {found && (
             <div className="ins-found" role="status" data-testid="ins-found">
               {Object.keys(found.found).length ? <>

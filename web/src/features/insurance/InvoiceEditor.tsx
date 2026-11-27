@@ -97,7 +97,7 @@ export function InvoiceEditor({ booking, working, current, hstBps, status, sentV
             <label className="ins-field"><span>Rate ($)</span><input className="input" inputMode="decimal" value={r.rate} onChange={edit(i, 'rate')} data-testid="inv-rate" /></label>
             <label className="ins-field"><span>Amount ($)</span><input className="input" inputMode="decimal" value={r.amount} onChange={edit(i, 'amount')} data-testid="inv-amount" /></label>
             <label className="ins-line__tax"><input type="checkbox" checked={r.taxable} onChange={edit(i, 'taxable')} /> HST</label>
-            <button className="btn btn--quiet btn--sm" type="button" aria-label={`Remove line ${i + 1}`} onClick={() => { setDirty(true); setRows((x) => x.filter((_, j) => j !== i)); }} disabled={rows.length < 2}>Remove</button>
+            <button className="btn btn--quiet btn--sm" type="button" aria-label={`Remove line ${i + 1}`} onClick={() => { setDirty(true); setRows((x) => x.filter((_, j) => j !== i)); }} disabled={rows.length < 2} title={rows.length < 2 ? 'An invoice keeps at least one line: add another line first' : undefined}>Remove</button>
           </div>))}
         <div className="ins-actions">
           <button className="btn btn--ghost btn--sm" type="button" onClick={() => { setDirty(true); setRows((x) => [...x, { description: '', quantity: '', rate: '', amount: '', taxable: true }]); }} data-testid="inv-add-line">Add a line</button>
