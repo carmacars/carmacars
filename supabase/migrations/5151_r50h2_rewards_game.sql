@@ -180,3 +180,6 @@ begin
     execute format('grant execute on function %s to service_role', f.sig);
   end loop;
 end $$;
+-- the check on program_settings.rewards_game_prizes runs as whoever writes the row (an Admin from the portal): the
+-- validator is plain SQL with no privileges of its own, granted like app.game_prizes_ok (0171) and occupancy_season_ok (3081)
+grant execute on function app.rewards_game_prizes_ok(jsonb) to authenticated;

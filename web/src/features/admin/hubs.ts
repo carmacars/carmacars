@@ -116,6 +116,8 @@ export const STAFF_HUBS: Hub[] = [
   { key: 'checks', label: 'Checks', tabs: [{ href: '/staff/checks', label: 'Daily checks', fns: 'fleet' }, { href: '/staff/reviews', label: 'Photo reviews', fns: 'fleet' }, { href: '/staff/deposit-reviews?view=fleet', label: 'Deposit reviews', fns: 'fleet' },
     // r50 (4000): the monthly check-in visits of long rentals
     { href: '/staff/check-ins', label: 'Check-in visits', fns: 'fleet' }] },
+  // r50 hotfix 2: the Academy and the demo portals are one Me item (a Me section has at most five items)
+  { key: 'learn', label: 'Academy', tabs: [{ href: '/staff/academy', label: 'Academy', fns: 'cs fleet finance sales field' }, { href: '/staff/demo', label: 'Demo portals', fns: 'cs fleet finance sales field' }] },
   { key: 'numbers', label: 'My numbers', tabs: [{ href: '/staff/scorecard', label: 'Scorecard', fns: 'cs fleet finance sales' }, { href: '/staff/my-sales', label: 'My sales', fns: 'cs fleet finance sales' },
     // r48 (3261): the staff member's own rewards
     { href: '/staff/rewards', label: 'My rewards', fns: 'cs fleet finance sales' },
@@ -204,7 +206,7 @@ export const STAFF_SECTIONS: Section[] = [
   { key: 'finance', label: 'Finance', items: ['money', 'owner-money', { href: '/staff/tolls', label: 'Tolls and tickets', fns: 'finance' }, { href: '/staff/turo', label: 'Turo trips', fns: 'finance' }, 'car-costs'] },
   { key: 'bookings', label: 'Bookings', items: [{ href: '/staff/bookings', label: 'Bookings', fns: OFFICE }, { href: '/staff/calendar', label: 'Calendar', fns: OFFICE }, { href: '/staff/cars', label: 'Find a car', fns: OFFICE },
     { href: '/staff/renters', label: 'Find a renter', fns: 'cs fleet finance' }, { href: '/staff/card-coverage', label: 'Card coverage', fns: OFFICE }] },
-  { key: 'me', label: 'Me', items: ['numbers', 'hours', { href: '/staff/townhall', label: 'Townhall', fns: `${OFFICE} field` }, { href: '/staff/demo', label: 'Demo portals', fns: `${OFFICE} field` }, { href: '/staff/field/sales', label: 'My sales', fns: 'field' }, { href: '/staff/field/referrals', label: 'Referrals', fns: 'field' }, { href: '/staff/field/profile', label: 'Profile', fns: 'field' }, { href: '/staff/academy', label: 'Academy', fns: `${OFFICE} field` }, { href: '/staff/bug-reports', label: 'My bug reports', fns: OFFICE }] }
+  { key: 'me', label: 'Me', items: ['numbers', 'hours', { href: '/staff/townhall', label: 'Townhall', fns: `${OFFICE} field` }, 'learn', { href: '/staff/field/sales', label: 'My sales', fns: 'field' }, { href: '/staff/field/referrals', label: 'Referrals', fns: 'field' }, { href: '/staff/field/profile', label: 'Profile', fns: 'field' }, { href: '/staff/bug-reports', label: 'My bug reports', fns: OFFICE }] }
 ];
 
 /** Actions that are buttons on a page, not menu items (r27 consolidation): each with its parent page. They stay one search away. */

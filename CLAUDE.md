@@ -26,3 +26,6 @@ CI runs only on the integration branch (main, r50-hotfix2, release/**); helpers 
 8. **Say the next action.** Every status update ends with the one next action being taken, so the owner can redirect early.
 9. **Plain, short, active.** Brief reports in plain active English (Simplified Technical English); no filler, no "load-bearing", no narration of steps. No em dash characters in code, comments, commit messages or site copy; use a colon, a comma or two sentences.
 10. **Be honest, not agreeable.** Challenge a plan or an assumption when the evidence says it is wrong, say the cost of a shortcut, and never soften a result (a failed check is reported as failed).
+11. **Every helper uses its own scratch directory and database name prefix.**
+12. **Never write account, card or ID numbers in the repo.**
+13. **DB tests always run on a database built fresh from migrations.**

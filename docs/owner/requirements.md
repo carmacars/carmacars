@@ -73,8 +73,8 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 
 ### REQ-007 Send the offer works
 - Status: in progress
-- Proof: branch r50-hotfix2-infra (not on main)
-- Test: to be added with the work
+- Proof: merge 38c7572a (r50-hotfix2-infra); web/src/components/Effects.tsx; web/src/features/admin/BookingReview.tsx
+- Test: GAP (no test sends an offer and checks the page moves on)
 - Asked: Nov 25 21:52 (repeated three times)
 - Owner: "Send the offer button isn't working ... says sent but nothing sent, stays on the page"
 - Rule: sending an offer sends it, shows a clear confirmation and moves on.
@@ -82,8 +82,8 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 
 ### REQ-008 Ended and returned bookings never block the calendar
 - Status: in progress
-- Proof: branch r50-hotfix2-infra (not on main)
-- Test: to be added with the work
+- Proof: merge 38c7572a (r50-hotfix2-infra); supabase/migrations/5111_r50h2_ended_never_blocks.sql; Done when needs the live site after the combined deploy (CC-10597 and the named booking closed)
+- Test: supabase/tests/99_r50h2_hotfix.sql
 - Asked: Nov 25 22:02, Nov 27 01:11
 - Owner: "ended is blocking the calendar ... returned bookings stay open"
 - Rule: an ended or returned booking releases its dates and closes itself.
@@ -91,8 +91,8 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 
 ### REQ-009 Button flow
 - Status: in progress
-- Proof: branch r50-hotfix2-infra (not on main)
-- Test: to be added with the work
+- Proof: merge 38c7572a (r50-hotfix2-infra); web/src/components/Effects.tsx
+- Test: GAP (no site-wide button flow test)
 - Asked: Nov 25 21:52
 - Owner: "when I click a button it shows working then shows the button again ... bad flow and ugly"
 - Rule: after a click show a clear confirmation and move on; never flip back to the same button. Site-wide, every page.
@@ -100,8 +100,8 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 
 ### REQ-010 Report-a-bug pill on phones
 - Status: in progress
-- Proof: branch r50-hotfix2-infra (not on main)
-- Test: to be added with the work
+- Proof: merge 38c7572a (r50-hotfix2-infra); web/src/features/bug-report/bug-report.css; Done when needs the live site after the combined deploy (every portal at phone width)
+- Test: web/tests/e2e/bug-report-over-popup.spec.ts
 - Asked: Nov 25 22:02
 - Owner: "Report a bug button occupies the entire width"
 - Rule: the pill is small and never covers the sheet width on phones.
@@ -109,60 +109,60 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 
 ### REQ-011 Renter booking page wording and picture
 - Status: in progress
-- Proof: branch r50-hotfix2-infra (not on main)
-- Test: to be added with the work
+- Proof: merge 38c7572a (r50-hotfix2-infra); web/src/features/portal/next-action.ts (wording); the broken picture is not proven
+- Test: web/src/features/portal/next-action.test.ts
 - Asked: Nov 25 22:08
 - Owner: "wtf is add it and why is there a broken picture"
 - Rule: clear wording instead of "Next: Add it"; no broken picture.
 - Done when: the booking page has plain wording and a working picture for every car.
 
 ### REQ-012 Instant booking
-- Status: in progress
-- Proof: branch r50-hotfix2-infra (not on main)
-- Test: to be added with the work
+- Status: done
+- Proof: merge 38c7572a (r50-hotfix2-infra); supabase/migrations/5113_r50h2_instant_complete_profile.sql
+- Test: supabase/tests/99_r50h2_hotfix.sql; supabase/tests/99_r35a_request_offers.sql
 - Asked: Nov 25 22:08, Nov 27 06:37
 - Owner: "Filter by instant booking, not on sample or 01 Motors cars, shown for complete profiles regardless of tier"
 - Rule: an instant booking filter; never on sample or 01 Motors cars; shown to renters with complete profiles whatever their tier.
 - Done when: the filter works, and a complete-profile renter of any tier sees Book instantly.
 
 ### REQ-013 Renter notes and referrer on a request
-- Status: in progress
-- Proof: branch r50-hotfix2-sales (not on main)
-- Test: to be added with the work
+- Status: done
+- Proof: merge c6c2d8e3 (r50-hotfix2-sales); supabase/migrations/5132_r50s_request_note_referrer.sql
+- Test: supabase/tests/99_r50s_sales.sql; web/tests/e2e/r50s-sales.spec.ts
 - Asked: Nov 27 01:11, 01:13
 - Owner: "Renters should be able to add notes on each booking when making a request"
 - Rule: renters can add a note on each request and enter "who referred you".
 - Done when: both fields show on the request and in Admin and Sales views.
 
 ### REQ-014 Staff list on accept
-- Status: in progress
-- Proof: branch r50-hotfix2-sales (not on main)
-- Test: to be added with the work
+- Status: done
+- Proof: merge c6c2d8e3 (r50-hotfix2-sales); supabase/migrations/5133_r50s_sales_people_extension_credit.sql
+- Test: supabase/tests/99_r50s_sales.sql
 - Asked: Nov 27 01:11
 - Rule: every eligible staff member (Jamal was missing) appears in the list when accepting a request.
 - Done when: the list matches the active staff roster.
 
 ### REQ-015 Sample car data fix
-- Status: not started
-- Proof: none yet
-- Test: to be added with the work
+- Status: in progress
+- Proof: merge c63e8525 (r50-hotfix2-insurance); supabase/migrations/5123_r50i_cc10067_off_calendar.sql; Done when needs the live site after the combined deploy (the migration acts on the live CC-10067 and says why when it does not)
+- Test: supabase/tests/99_r50i_insurance_replacements.sql
 - Asked: Nov 27 07:07
 - Owner: "Cybele A10 CC-10067 should not block the calendar and should not inform the owner"
 - Done when: CC-10067 blocks nothing and sends no owner notice.
 
 ### REQ-016 Notify on every new request
-- Status: in progress
-- Proof: branch r50-hotfix2-errors (not on main)
-- Test: to be added with the work
+- Status: done
+- Proof: merge 450cd017 (r50-hotfix2-errors); supabase/migrations/5102_r50h2_todo_noise.sql
+- Test: supabase/tests/99_r50h2_errors_alerts.sql; supabase/tests/99_r50h2_errors.sql
 - Asked: Nov 26 17:38
 - Owner: "Why am I not getting notified for requests, only when expiring"
 - Rule: notify on every new request, not only when it is about to expire.
 - Done when: a new request notifies the right roles at once.
 
 ### REQ-017 Sample car inquiries become requests
-- Status: in progress
-- Proof: branch r50-hotfix2-sales (not on main)
-- Test: to be added with the work
+- Status: done
+- Proof: merge c6c2d8e3 (r50-hotfix2-sales); supabase/migrations/5130_r50s_sample_requests.sql
+- Test: supabase/tests/99_r50s_sales.sql; web/tests/e2e/r50s-sales.spec.ts
 - Asked: Nov 26 22:46
 - Rule: an inquiry on a sample car (DOST) becomes a request.
 - Done when: a sample car inquiry shows in Requests.
@@ -185,25 +185,25 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 - Done when: an owner books a car with status onboarding.
 
 ### REQ-020 Return due alert on time
-- Status: in progress
-- Proof: branch r50-hotfix2-errors (not on main)
-- Test: to be added with the work
+- Status: done
+- Proof: merge 450cd017 (r50-hotfix2-errors); supabase/migrations/5102_r50h2_todo_noise.sql
+- Test: supabase/tests/99_r50h2_errors_alerts.sql
 - Asked: Nov 26 17:06
 - Rule: the return due notice goes out at the return time, not two hours later.
 - Done when: the notice time equals the return time.
 
 ### REQ-021 Check-in visit email wording
-- Status: in progress
-- Proof: branch r50-hotfix2-errors (not on main)
-- Test: to be added with the work
+- Status: done
+- Proof: merge 450cd017 (r50-hotfix2-errors); supabase/migrations/5103_r50h2_push_checkin_copy.sql
+- Test: supabase/tests/99_r50h2_errors_alerts.sql
 - Asked: Nov 26 17:33
 - Rule: the check-in visit email does not read like a pickup check-in.
 - Done when: the email says what the visit is.
 
 ### REQ-022 Unfinished rentals section
-- Status: in progress
-- Proof: branch r50-hotfix2-insurance (not on main)
-- Test: to be added with the work
+- Status: done
+- Proof: merge c63e8525 (r50-hotfix2-insurance); supabase/migrations/5120_r50i_insurance_replacements.sql
+- Test: supabase/tests/99_r50i_insurance_replacements.sql; web/tests/e2e/insurance-replacements.spec.ts
 - Asked: Nov 16 to 20
 - Rule: the unfinished rentals section sits where it makes sense; an unfinished rental is never lost ("already saved or discarded").
 - Done when: an unfinished rental can always be reopened.
@@ -211,61 +211,61 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 ## 3. Insurance replacement rentals and invoices
 
 ### REQ-023 Insurance replacement page
-- Status: in progress
-- Proof: branch r50-hotfix2-insurance (not on main)
-- Test: to be added with the work
+- Status: done
+- Proof: merge c63e8525 (r50-hotfix2-insurance); supabase/migrations/5120_r50i_insurance_replacements.sql
+- Test: supabase/tests/99_r50i_insurance_replacements.sql; web/tests/e2e/insurance-replacements.spec.ts
 - Asked: Nov 26 22:57 (re-asked Nov 27 07:14)
 - Owner: "I don't see you mentioning the insurance portal"
 - Rule: a staff page, not a portal: invoices, edit every field, send estimate or invoice, bypass calendar and owner notices, visible to Finance not Field, in the design kit.
 - Done when: Finance creates, edits and sends an insurer rental end to end; Field cannot see it.
 
 ### REQ-024 Re-send invoices as often as needed
-- Status: in progress
-- Proof: branch r50-hotfix2-insurance (not on main)
-- Test: to be added with the work
+- Status: done
+- Proof: merge c63e8525 (r50-hotfix2-insurance); supabase/migrations/5120_r50i_insurance_replacements.sql
+- Test: supabase/tests/99_r50i_insurance_replacements.sql; web/tests/e2e/insurance-replacements.spec.ts
 - Asked: Nov 27 00:33
 - Owner: "nothing left to invoice"
 - Rule: updated invoices can be re-sent to the insurer or adjuster any number of times, including end of rental and extensions.
 - Done when: a re-send works after every change.
 
 ### REQ-025 Manual car entry, optional phone and email
-- Status: in progress
-- Proof: branch r50-hotfix2-insurance (not on main)
-- Test: to be added with the work
+- Status: done
+- Proof: merge c63e8525 (r50-hotfix2-insurance); supabase/migrations/5120_r50i_insurance_replacements.sql
+- Test: supabase/tests/99_r50i_insurance_replacements.sql
 - Asked: Nov 26 20:57, 21:15
 - Owner: "I thought we agreed" (phone and email optional)
 - Rule: a car not in the fleet can be typed in; phone and email are optional.
 - Done when: a rental saves with a manual car and no phone or email.
 
 ### REQ-026 Winter tire fee editable
-- Status: in progress
-- Proof: branch r50-hotfix2-insurance (not on main)
-- Test: to be added with the work
+- Status: done
+- Proof: merge 4df06de9 (r50-hotfix2-ops); supabase/migrations/5142_r50h2_winter_tire_fee.sql
+- Test: supabase/tests/99_r50h2_winter_tire.sql
 - Asked: Nov 25 18:35
 - Done when: the fee can be edited on an insurer-billed rental.
 
 ### REQ-027 Paste a block of text
-- Status: in progress
-- Proof: branch r50-hotfix2-insurance (not on main)
-- Test: to be added with the work
+- Status: done
+- Proof: merge c63e8525 (r50-hotfix2-insurance); web/src/features/insurance/model.ts
+- Test: web/src/features/insurance/model.test.ts; web/tests/e2e/insurance-replacements.spec.ts
 - Asked: Nov 25 20:42
 - Rule: pasting a block of text creates a rental with fields sorted.
 - Done when: a pasted claim text fills the rental fields.
 
 ### REQ-028 Partner API key
 - Status: in progress
-- Proof: branch r50-hotfix2-insurance (not on main)
-- Test: to be added with the work
+- Proof: merge c63e8525 (r50-hotfix2-insurance); supabase/migrations/5120_r50i_insurance_replacements.sql (insurer_rental_create through the connector); Done when needs the live site after the combined deploy (a rental made with that partner key)
+- Test: supabase/tests/99_r50i_insurance_replacements.sql
 - Asked: Nov 27 00:17
 - Rule: Mahad's API key creates insurer rentals end to end.
 - Done when: a rental created by that key appears with its invoice.
 
 ### REQ-029 Direct deposit on invoices
 - Status: in progress
-- Proof: branch r50-hotfix2-infra (not on main)
-- Test: to be added with the work
+- Proof: merge 38c7572a (r50-hotfix2-infra); supabase/migrations/5110_r50h2_pay_offline.sql (the details come from Program settings); Done when needs the live site after the combined deploy (an issued invoice)
+- Test: supabase/tests/99_r50h2_hotfix.sql
 - Asked: Nov 25 18:35
-- Rule: invoices show direct deposit (account 1046242, transit 00085, institution 003) next to e-Transfer.
+- Rule: invoices show direct deposit (the account, transit and institution an Admin enters in Program settings; never written in the repository) next to e-Transfer.
 - Done when: the issued invoice shows both.
 
 ### REQ-030 Late fee on unpaid owner insurance
@@ -279,18 +279,18 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 ## 4. Payments, money
 
 ### REQ-031 Cards off while there is no processor
-- Status: in progress
-- Proof: branch r50-hotfix2-infra (not on main)
-- Test: to be added with the work
+- Status: done
+- Proof: merge 38c7572a (r50-hotfix2-infra); supabase/migrations/5110_r50h2_pay_offline.sql; web/src/features/money/card-pay.ts
+- Test: supabase/tests/99_r50h2_hotfix.sql; web/src/features/money/card-pay.test.ts
 - Asked: Nov 25 22:38 (repeated Nov 26 18:18, Nov 27 07:07)
 - Owner: "people still try to pay via credit card"
 - Rule: while there is no card processor, checkout and pay links offer e-Transfer and cash only; the Admin setting is off.
 - Done when: checkout and links show no card option.
 
 ### REQ-032 Commission only on what the salesperson initiated
-- Status: in progress
-- Proof: branch r50-hotfix2-sales (not on main)
-- Test: to be added with the work
+- Status: done
+- Proof: merge c6c2d8e3 (r50-hotfix2-sales); supabase/migrations/5133_r50s_sales_people_extension_credit.sql
+- Test: supabase/tests/99_r50s_sales.sql
 - Asked: Nov 25 22:13
 - Rule: no commission on an extension or next payment the salesperson did not start (Tibirica case); commission follows whoever did the extension.
 - Done when: the Tibirica case pays no commission.
@@ -355,17 +355,17 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 ## 5. Tolls and expenses
 
 ### REQ-040 Tolls and tickets reader
-- Status: in progress
-- Proof: branch r50-hotfix2-ops (not on main)
-- Test: to be added with the work
+- Status: done
+- Proof: merge 4df06de9 (r50-hotfix2-ops); supabase/migrations/5140_r50h2_tolls_407.sql; supabase/migrations/5147_r50h2_toll_hold.sql
+- Test: supabase/tests/99_r50h2_tolls_407.sql; web/src/features/tolls/parse.test.ts
 - Asked: Nov 25 20:42 (repeated)
 - Owner: "never fixed the tolls and tickets reader ... super broken, especially 407, urgent"
 - Done when: a 407 statement is read and matched to bookings.
 
 ### REQ-041 Expenses
-- Status: in progress
-- Proof: branch r50-hotfix2-ops (not on main)
-- Test: to be added with the work
+- Status: done
+- Proof: merge 4df06de9 (r50-hotfix2-ops); supabase/migrations/5143_r50h2_expense_receipts.sql
+- Test: supabase/tests/99_r50h2_expense_receipts.sql; web/src/features/expenses/receipt-read.test.ts; web/tests/e2e/r50h2-ops-uploads.spec.ts
 - Asked: Nov 25 23:39
 - Rule: several receipt pictures per expense; auto read amount, category and car; posts to the owner statement.
 - Done when: a receipt photo creates a posted expense.
@@ -414,9 +414,9 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 - Done when: a sales call connects, mutes, switches mic and hangs up.
 
 ### REQ-047 Restrict numbers and risky words
-- Status: in progress
-- Proof: branch r50-hotfix2-comms (not on main)
-- Test: to be added with the work
+- Status: done
+- Proof: merge c6c2d8e3 (r50-hotfix2-sales); supabase/migrations/5137_r50s_call_text_guard.sql (the only migration with it)
+- Test: supabase/tests/99_r50s_sales.sql
 - Asked: Nov 26 18:07
 - Rule: salespeople cannot text phone numbers on the main line; flag phone numbers, swearing and risky words said on calls.
 - Done when: both flags raise an Admin item.
@@ -425,8 +425,8 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 
 ### REQ-048 Alerts and To do's do not pile up
 - Status: in progress
-- Proof: branch r50-hotfix2-errors (not on main)
-- Test: to be added with the work
+- Proof: merge 450cd017 (r50-hotfix2-errors); supabase/migrations/5102_r50h2_todo_noise.sql; supabase/migrations/5104_r50h2_heal_bug_reports.sql; Done when needs the live site after the combined deploy (the open alert count stays at real items)
+- Test: supabase/tests/99_r50h2_errors.sql; supabase/tests/99_r50h2_errors_alerts.sql
 - Asked: Nov 16 to 20, Nov 26 06:31 (repeated)
 - Owner: "permanent fix, I keep having to tell you"
 - Rule: the site heals itself from a built-in database of fixes; resolved items close; no "jobs locked and left behind" noise; deduplicate.
@@ -491,9 +491,9 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 - Done when: a past booking accepts bulk photos.
 
 ### REQ-056 Shift claims need approval
-- Status: in progress
-- Proof: branch r50-hotfix2-sales (not on main)
-- Test: to be added with the work
+- Status: done
+- Proof: merge c6c2d8e3 (r50-hotfix2-sales); supabase/migrations/5136_r50s_shift_claim_approval.sql
+- Test: supabase/tests/99_r50s_sales.sql
 - Asked: Nov 26 18:26
 - Rule: shift claims for sales need Admin approval.
 - Done when: a claim waits for Admin.
@@ -509,17 +509,17 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 ## 9. Sales, leads, hiring
 
 ### REQ-058 Lead-generator portal
-- Status: in progress
-- Proof: branch r50-hotfix2-sales (not on main)
-- Test: to be added with the work
+- Status: done
+- Proof: merge c6c2d8e3 (r50-hotfix2-sales); supabase/migrations/5134_r50s_lead_generators.sql
+- Test: supabase/tests/99_r50s_sales.sql; web/tests/e2e/r50s-sales.spec.ts
 - Asked: Nov 25 19:24
 - Rule: a portal for Eric: enter owner leads, hand to closers, $100 flat per closed owner lead.
 - Done when: a closed lead pays $100.
 
 ### REQ-059 Recruit invite links
-- Status: in progress
-- Proof: branch r50-hotfix2-sales (not on main)
-- Test: to be added with the work
+- Status: done
+- Proof: merge c6c2d8e3 (r50-hotfix2-sales); supabase/migrations/5135_r50s_recruit_links.sql
+- Test: supabase/tests/99_r50s_sales.sql
 - Asked: Nov 26 01:02
 - Rule: in-person salespeople refer recruits by invite link; interview required; tracked under the referrer.
 - Done when: a recruit is tracked to the referrer.
@@ -549,8 +549,8 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 
 ### REQ-063 Applicants and referrals
 - Status: in progress
-- Proof: branch r50-hotfix2-sales (not on main)
-- Test: to be added with the work
+- Proof: merge 52ff1ccb (r50-hotfix2-seo); supabase/migrations/5161_r50h2_interview_reminders.sql (applicants who skip the interview are chased); Done when needs the live site after the combined deploy (drop-off falls)
+- Test: supabase/tests/99_r50h2_seo_hiring_traction.sql
 - Asked: Nov 20, Nov 26 06:23
 - Rule: a referral to Sales is one click and pre-filled; applicants who skip the interview are chased; hiring answers pay questions from the known role pay.
 - Done when: drop-off falls and referrals pre-fill.
@@ -573,9 +573,9 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 - Done when: no screen, email or guide labels in-person staff as VA.
 
 ### REQ-066 Demo portals
-- Status: in progress
-- Proof: branch r50-hotfix2-ux (not on main)
-- Test: to be added with the work
+- Status: done
+- Proof: merge 32e867b2 (r50-hotfix2-ux); web/src/features/demo/DemoPortals.tsx
+- Test: web/src/features/demo/model.test.ts; web/tests/e2e/r50h2-ux.spec.ts
 - Asked: Nov 25 20:41
 - Rule: staff can open a demo renter and a demo owner portal.
 - Done when: both open from a staff portal.
@@ -616,9 +616,9 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 - Done when: both work.
 
 ### REQ-071 Weekly Admin call
-- Status: in progress
-- Proof: branch r50-hotfix2-ux (not on main)
-- Test: to be added with the work
+- Status: done
+- Proof: merge 32e867b2 (r50-hotfix2-ux); supabase/migrations/5150_r50h2_admin_call.sql
+- Test: supabase/tests/99_r50h2ux_admin_call.sql; web/src/features/admin-call/model.test.ts; web/tests/e2e/r50h2-ux.spec.ts
 - Asked: Nov 26 18:26, 18:43, Nov 27 07:13
 - Rule: Abbas and Mahad weekly call, auto deck with approve and deny buttons: shifts, hours and pay, academy, hiring, social, numbers, owners, deposits, insurance billing, claims, tolls, fleet.
 - Done when: the deck builds each week with working buttons.
@@ -626,26 +626,26 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 ## 12. Owners and calculator
 
 ### REQ-072 Calculator realism
-- Status: in progress
-- Proof: branch r50-hotfix2-ops (not on main)
-- Test: to be added with the work
+- Status: done
+- Proof: merge 4df06de9 (r50-hotfix2-ops); supabase/migrations/5141_r50h2_owner_calc.sql; web/src/features/owner/EarningsCalculator.tsx
+- Test: supabase/tests/99_r50h2_owner_calc.sql; web/src/features/owner/earnings.test.ts
 - Asked: Nov 25 19:23
 - Owner: "2015 RDX beats a 2025 CR-V"
 - Rule: 80% occupancy about $1,200 a month, floor $800, higher for better cars; rough-estimate disclaimer.
 - Done when: a 2015 RDX never beats a 2025 CR-V.
 
 ### REQ-073 Ownership documents
-- Status: in progress
-- Proof: branch r50-hotfix2-ops (not on main)
-- Test: to be added with the work
+- Status: done
+- Proof: merge 4df06de9 (r50-hotfix2-ops); supabase/migrations/5144_r50h2_ownership_documents.sql
+- Test: supabase/tests/99_r50h2_ownership_documents.sql; web/tests/e2e/r50h2-ops-uploads.spec.ts
 - Asked: Nov 26 01:53
 - Rule: every ownership document uploaded; VIN and plate read and attached to the car and owner portal.
 - Done when: an upload fills VIN and plate.
 
 ### REQ-074 Owner and renter rewards
-- Status: in progress
-- Proof: branch r50-hotfix2-ux (not on main)
-- Test: to be added with the work
+- Status: done
+- Proof: merge 32e867b2 (r50-hotfix2-ux); supabase/migrations/5151_r50h2_rewards_game.sql (renter, owner and staff Rewards pages)
+- Test: supabase/tests/99_r50h2ux_rewards_game.sql; web/src/features/rewards/game-model.test.ts
 - Asked: Nov 20
 - Rule: rewards per docs/blueprint and areas already built; discount games with points for every user type.
 - Done when: each user type has a rewards page.
@@ -662,8 +662,8 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 
 ### REQ-076 Every offer on every page
 - Status: in progress
-- Proof: branch r50-hotfix2-seo (not on main)
-- Test: to be added with the work
+- Proof: merge 52ff1ccb (r50-hotfix2-seo); web/src/features/seo (offers module); Done when needs the live site after the combined deploy (every SEO page)
+- Test: web/src/features/seo/families-offers.test.ts
 - Asked: Nov 16 to 20, Nov 26 06:37, repeated Nov 27
 - Owner: "I don't think you built them"
 - Rule: SEO pages carry every offer: rental, long-term, insurance replacement, chauffeur, GPS trackers and kill switch, owner program, body shop, detailing. They show in list bars and on every page, as designed modules not walls of text.
@@ -687,8 +687,8 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 
 ### REQ-079 Search Console
 - Status: in progress
-- Proof: branch r50-hotfix2-seo (not on main)
-- Test: to be added with the work
+- Proof: merge 52ff1ccb (r50-hotfix2-seo); supabase/migrations/5160_r50h2_search_console.sql; Done when needs the live site after the combined deploy (an auto-fix with proof and a keyword report)
+- Test: supabase/tests/99_r50h2_seo_hiring_traction.sql
 - Asked: Nov 26 06:37, Nov 27 04:01
 - Owner: "Sure you implemented auto-correct of Search Console errors?"
 - Rule: errors auto-fix with proof; full keyword research from Search Console.
@@ -703,9 +703,9 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 - Done when: pages match these prices.
 
 ### REQ-081 White-label page
-- Status: in progress
-- Proof: branch r50-hotfix2-seo (not on main)
-- Test: to be added with the work
+- Status: done
+- Proof: merge 52ff1ccb (r50-hotfix2-seo); web/src/app/rental-software/page.tsx (in no menu)
+- Test: web/src/features/software/content.test.ts
 - Asked: Nov 26 06:36
 - Rule: descriptive but vague, no pricing, hidden from navigation.
 - Done when: the page exists and is not in navigation.
@@ -721,9 +721,9 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 ## 14. Renter experience
 
 ### REQ-083 Countdown and progress
-- Status: in progress
-- Proof: branch r50-hotfix2-ux (not on main)
-- Test: to be added with the work
+- Status: done
+- Proof: merge 32e867b2 (r50-hotfix2-ux); web/src/features/portal/PickupCountdown.tsx; web/src/features/portal/AddToCalendar.tsx; web/src/components/portal-ui/Milestones.tsx
+- Test: web/tests/e2e/r50h2-ux.spec.ts; web/src/features/portal/booking-ics.test.ts
 - Asked: Nov 26 07:00
 - Rule: renter countdown to pickup, add to calendar, celebratory progress; progress trackers for booking, owner application, staff closing, loyalty.
 - Done when: each shows for its user.
@@ -737,9 +737,9 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 - Done when: widgets and app ship to the stores.
 
 ### REQ-085 Investor view
-- Status: not started
-- Proof: none yet
-- Test: to be added with the work
+- Status: in progress
+- Proof: merge 52ff1ccb (r50-hotfix2-seo); supabase/migrations/5162_r50h2_traction.sql (monthly active users and days rented on the deck and investor Home); "units" is not defined: confirm with the owner
+- Test: supabase/tests/99_r50h2_seo_hiring_traction.sql; web/src/features/deck/traction.test.ts
 - Asked: Nov 26 15:42
 - Rule: investor deck and portal show monthly active users and units.
 - Done when: both numbers show.
@@ -756,16 +756,16 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 
 ### REQ-087 api.carmacars.ca certificate and server switch
 - Status: in progress
-- Proof: branch r50-hotfix2-infra (not on main)
-- Test: to be added with the work
+- Proof: merge 38c7572a (r50-hotfix2-infra); scripts/deploy/cf-site.sh; Done when needs the live site after the combined deploy (certificate and /api/health)
+- Test: scripts/deploy/cf-site.test.mjs
 - Asked: Nov 20, Nov 25 20:13
 - Owner: "server switch still not done, insane"
 - Done when: api.carmacars.ca has a valid certificate and /api/health returns 200 on the new server.
 
 ### REQ-088 Build and deploy off the OVH server
 - Status: in progress
-- Proof: branch r50-hotfix2-infra (not on main)
-- Test: to be added with the work
+- Proof: merge 38c7572a (r50-hotfix2-infra); .github/workflows/deploy-vps.yml; Done when needs the live site after the combined deploy (builds on GitHub runners)
+- Test: GAP
 - Asked: Nov 25 21:58
 - Done when: tests and builds run on GitHub runners.
 

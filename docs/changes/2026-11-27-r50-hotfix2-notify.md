@@ -29,3 +29,7 @@ New-request and return-time alerts (5102), check-in visit copy (5103) and the jo
 CC-10067 and insurer rentals off owner notices (5120, 5123) on r50-hotfix2-insurance; SES, the email meter and auto
 replies (5090, 5091) on r50-hotfix2-comms. Insurer emails still send from an address on carmacars.ca: they need a Blind
 Spot mailbox on its own domain.
+
+## Guides
+
+No guide change: the alerts and emails it adds are listed in Settings > Alerts and the email catalogue, and no screen or button changed.

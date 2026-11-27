@@ -80,8 +80,8 @@
     "owner_quote": "\"Send the offer button isn't working ... says sent but nothing sent, stays on the page\"",
     "rule": "sending an offer sends it, shows a clear confirmation and moves on.",
     "done_when": "an offer sent from Admin reaches the renter (email and site) and the page moves on.",
-    "proof": "branch r50-hotfix2-infra (not on main)",
-    "test": "to be added with the work"
+    "proof": "merge 38c7572a (r50-hotfix2-infra); web/src/components/Effects.tsx; web/src/features/admin/BookingReview.tsx",
+    "test": "GAP (no test sends an offer and checks the page moves on)"
   },
   {
     "id": "REQ-008",
@@ -92,8 +92,8 @@
     "owner_quote": "\"ended is blocking the calendar ... returned bookings stay open\"",
     "rule": "an ended or returned booking releases its dates and closes itself.",
     "done_when": "no ended or returned booking competes for dates (CC-10597 and the Yusuf Abbas booking closed).",
-    "proof": "branch r50-hotfix2-infra (not on main)",
-    "test": "to be added with the work"
+    "proof": "merge 38c7572a (r50-hotfix2-infra); supabase/migrations/5111_r50h2_ended_never_blocks.sql; Done when needs the live site after the combined deploy (CC-10597 and the named booking closed)",
+    "test": "supabase/tests/99_r50h2_hotfix.sql"
   },
   {
     "id": "REQ-009",
@@ -104,8 +104,8 @@
     "owner_quote": "\"when I click a button it shows working then shows the button again ... bad flow and ugly\"",
     "rule": "after a click show a clear confirmation and move on; never flip back to the same button. Site-wide, every page.",
     "done_when": "every action button on every portal shows working, then done, then moves on.",
-    "proof": "branch r50-hotfix2-infra (not on main)",
-    "test": "to be added with the work"
+    "proof": "merge 38c7572a (r50-hotfix2-infra); web/src/components/Effects.tsx",
+    "test": "GAP (no site-wide button flow test)"
   },
   {
     "id": "REQ-010",
@@ -116,8 +116,8 @@
     "owner_quote": "\"Report a bug button occupies the entire width\"",
     "rule": "the pill is small and never covers the sheet width on phones.",
     "done_when": "checked at phone width on every portal.",
-    "proof": "branch r50-hotfix2-infra (not on main)",
-    "test": "to be added with the work"
+    "proof": "merge 38c7572a (r50-hotfix2-infra); web/src/features/bug-report/bug-report.css; Done when needs the live site after the combined deploy (every portal at phone width)",
+    "test": "web/tests/e2e/bug-report-over-popup.spec.ts"
   },
   {
     "id": "REQ-011",
@@ -128,80 +128,80 @@
     "owner_quote": "\"wtf is add it and why is there a broken picture\"",
     "rule": "clear wording instead of \"Next: Add it\"; no broken picture.",
     "done_when": "the booking page has plain wording and a working picture for every car.",
-    "proof": "branch r50-hotfix2-infra (not on main)",
-    "test": "to be added with the work"
+    "proof": "merge 38c7572a (r50-hotfix2-infra); web/src/features/portal/next-action.ts (wording); the broken picture is not proven",
+    "test": "web/src/features/portal/next-action.test.ts"
   },
   {
     "id": "REQ-012",
     "title": "Instant booking",
     "area": "2. Bookings, offers, calendar",
-    "status": "in progress",
+    "status": "done",
     "asked": "Nov 25 22:08, Nov 27 06:37",
     "owner_quote": "\"Filter by instant booking, not on sample or 01 Motors cars, shown for complete profiles regardless of tier\"",
     "rule": "an instant booking filter; never on sample or 01 Motors cars; shown to renters with complete profiles whatever their tier.",
     "done_when": "the filter works, and a complete-profile renter of any tier sees Book instantly.",
-    "proof": "branch r50-hotfix2-infra (not on main)",
-    "test": "to be added with the work"
+    "proof": "merge 38c7572a (r50-hotfix2-infra); supabase/migrations/5113_r50h2_instant_complete_profile.sql",
+    "test": "supabase/tests/99_r50h2_hotfix.sql; supabase/tests/99_r35a_request_offers.sql"
   },
   {
     "id": "REQ-013",
     "title": "Renter notes and referrer on a request",
     "area": "2. Bookings, offers, calendar",
-    "status": "in progress",
+    "status": "done",
     "asked": "Nov 27 01:11, 01:13",
     "owner_quote": "\"Renters should be able to add notes on each booking when making a request\"",
     "rule": "renters can add a note on each request and enter \"who referred you\".",
     "done_when": "both fields show on the request and in Admin and Sales views.",
-    "proof": "branch r50-hotfix2-sales (not on main)",
-    "test": "to be added with the work"
+    "proof": "merge c6c2d8e3 (r50-hotfix2-sales); supabase/migrations/5132_r50s_request_note_referrer.sql",
+    "test": "supabase/tests/99_r50s_sales.sql; web/tests/e2e/r50s-sales.spec.ts"
   },
   {
     "id": "REQ-014",
     "title": "Staff list on accept",
     "area": "2. Bookings, offers, calendar",
-    "status": "in progress",
+    "status": "done",
     "asked": "Nov 27 01:11",
     "owner_quote": null,
     "rule": "every eligible staff member (Jamal was missing) appears in the list when accepting a request.",
     "done_when": "the list matches the active staff roster.",
-    "proof": "branch r50-hotfix2-sales (not on main)",
-    "test": "to be added with the work"
+    "proof": "merge c6c2d8e3 (r50-hotfix2-sales); supabase/migrations/5133_r50s_sales_people_extension_credit.sql",
+    "test": "supabase/tests/99_r50s_sales.sql"
   },
   {
     "id": "REQ-015",
     "title": "Sample car data fix",
     "area": "2. Bookings, offers, calendar",
-    "status": "not started",
+    "status": "in progress",
     "asked": "Nov 27 07:07",
     "owner_quote": "\"Cybele A10 CC-10067 should not block the calendar and should not inform the owner\"",
     "rule": null,
     "done_when": "CC-10067 blocks nothing and sends no owner notice.",
-    "proof": "none yet",
-    "test": "to be added with the work"
+    "proof": "merge c63e8525 (r50-hotfix2-insurance); supabase/migrations/5123_r50i_cc10067_off_calendar.sql; Done when needs the live site after the combined deploy (the migration acts on the live CC-10067 and says why when it does not)",
+    "test": "supabase/tests/99_r50i_insurance_replacements.sql"
   },
   {
     "id": "REQ-016",
     "title": "Notify on every new request",
     "area": "2. Bookings, offers, calendar",
-    "status": "in progress",
+    "status": "done",
     "asked": "Nov 26 17:38",
     "owner_quote": "\"Why am I not getting notified for requests, only when expiring\"",
     "rule": "notify on every new request, not only when it is about to expire.",
     "done_when": "a new request notifies the right roles at once.",
-    "proof": "branch r50-hotfix2-errors (not on main)",
-    "test": "to be added with the work"
+    "proof": "merge 450cd017 (r50-hotfix2-errors); supabase/migrations/5102_r50h2_todo_noise.sql",
+    "test": "supabase/tests/99_r50h2_errors_alerts.sql; supabase/tests/99_r50h2_errors.sql"
   },
   {
     "id": "REQ-017",
     "title": "Sample car inquiries become requests",
     "area": "2. Bookings, offers, calendar",
-    "status": "in progress",
+    "status": "done",
     "asked": "Nov 26 22:46",
     "owner_quote": null,
     "rule": "an inquiry on a sample car (DOST) becomes a request.",
     "done_when": "a sample car inquiry shows in Requests.",
-    "proof": "branch r50-hotfix2-sales (not on main)",
-    "test": "to be added with the work"
+    "proof": "merge c6c2d8e3 (r50-hotfix2-sales); supabase/migrations/5130_r50s_sample_requests.sql",
+    "test": "supabase/tests/99_r50s_sales.sql; web/tests/e2e/r50s-sales.spec.ts"
   },
   {
     "id": "REQ-018",
@@ -231,97 +231,97 @@
     "id": "REQ-020",
     "title": "Return due alert on time",
     "area": "2. Bookings, offers, calendar",
-    "status": "in progress",
+    "status": "done",
     "asked": "Nov 26 17:06",
     "owner_quote": null,
     "rule": "the return due notice goes out at the return time, not two hours later.",
     "done_when": "the notice time equals the return time.",
-    "proof": "branch r50-hotfix2-errors (not on main)",
-    "test": "to be added with the work"
+    "proof": "merge 450cd017 (r50-hotfix2-errors); supabase/migrations/5102_r50h2_todo_noise.sql",
+    "test": "supabase/tests/99_r50h2_errors_alerts.sql"
   },
   {
     "id": "REQ-021",
     "title": "Check-in visit email wording",
     "area": "2. Bookings, offers, calendar",
-    "status": "in progress",
+    "status": "done",
     "asked": "Nov 26 17:33",
     "owner_quote": null,
     "rule": "the check-in visit email does not read like a pickup check-in.",
     "done_when": "the email says what the visit is.",
-    "proof": "branch r50-hotfix2-errors (not on main)",
-    "test": "to be added with the work"
+    "proof": "merge 450cd017 (r50-hotfix2-errors); supabase/migrations/5103_r50h2_push_checkin_copy.sql",
+    "test": "supabase/tests/99_r50h2_errors_alerts.sql"
   },
   {
     "id": "REQ-022",
     "title": "Unfinished rentals section",
     "area": "2. Bookings, offers, calendar",
-    "status": "in progress",
+    "status": "done",
     "asked": "Nov 16 to 20",
     "owner_quote": null,
     "rule": "the unfinished rentals section sits where it makes sense; an unfinished rental is never lost (\"already saved or discarded\").",
     "done_when": "an unfinished rental can always be reopened.",
-    "proof": "branch r50-hotfix2-insurance (not on main)",
-    "test": "to be added with the work"
+    "proof": "merge c63e8525 (r50-hotfix2-insurance); supabase/migrations/5120_r50i_insurance_replacements.sql",
+    "test": "supabase/tests/99_r50i_insurance_replacements.sql; web/tests/e2e/insurance-replacements.spec.ts"
   },
   {
     "id": "REQ-023",
     "title": "Insurance replacement page",
     "area": "3. Insurance replacement rentals and invoices",
-    "status": "in progress",
+    "status": "done",
     "asked": "Nov 26 22:57 (re-asked Nov 27 07:14)",
     "owner_quote": "\"I don't see you mentioning the insurance portal\"",
     "rule": "a staff page, not a portal: invoices, edit every field, send estimate or invoice, bypass calendar and owner notices, visible to Finance not Field, in the design kit.",
     "done_when": "Finance creates, edits and sends an insurer rental end to end; Field cannot see it.",
-    "proof": "branch r50-hotfix2-insurance (not on main)",
-    "test": "to be added with the work"
+    "proof": "merge c63e8525 (r50-hotfix2-insurance); supabase/migrations/5120_r50i_insurance_replacements.sql",
+    "test": "supabase/tests/99_r50i_insurance_replacements.sql; web/tests/e2e/insurance-replacements.spec.ts"
   },
   {
     "id": "REQ-024",
     "title": "Re-send invoices as often as needed",
     "area": "3. Insurance replacement rentals and invoices",
-    "status": "in progress",
+    "status": "done",
     "asked": "Nov 27 00:33",
     "owner_quote": "\"nothing left to invoice\"",
     "rule": "updated invoices can be re-sent to the insurer or adjuster any number of times, including end of rental and extensions.",
     "done_when": "a re-send works after every change.",
-    "proof": "branch r50-hotfix2-insurance (not on main)",
-    "test": "to be added with the work"
+    "proof": "merge c63e8525 (r50-hotfix2-insurance); supabase/migrations/5120_r50i_insurance_replacements.sql",
+    "test": "supabase/tests/99_r50i_insurance_replacements.sql; web/tests/e2e/insurance-replacements.spec.ts"
   },
   {
     "id": "REQ-025",
     "title": "Manual car entry, optional phone and email",
     "area": "3. Insurance replacement rentals and invoices",
-    "status": "in progress",
+    "status": "done",
     "asked": "Nov 26 20:57, 21:15",
     "owner_quote": "\"I thought we agreed\" (phone and email optional)",
     "rule": "a car not in the fleet can be typed in; phone and email are optional.",
     "done_when": "a rental saves with a manual car and no phone or email.",
-    "proof": "branch r50-hotfix2-insurance (not on main)",
-    "test": "to be added with the work"
+    "proof": "merge c63e8525 (r50-hotfix2-insurance); supabase/migrations/5120_r50i_insurance_replacements.sql",
+    "test": "supabase/tests/99_r50i_insurance_replacements.sql"
   },
   {
     "id": "REQ-026",
     "title": "Winter tire fee editable",
     "area": "3. Insurance replacement rentals and invoices",
-    "status": "in progress",
+    "status": "done",
     "asked": "Nov 25 18:35",
     "owner_quote": null,
     "rule": null,
     "done_when": "the fee can be edited on an insurer-billed rental.",
-    "proof": "branch r50-hotfix2-insurance (not on main)",
-    "test": "to be added with the work"
+    "proof": "merge 4df06de9 (r50-hotfix2-ops); supabase/migrations/5142_r50h2_winter_tire_fee.sql",
+    "test": "supabase/tests/99_r50h2_winter_tire.sql"
   },
   {
     "id": "REQ-027",
     "title": "Paste a block of text",
     "area": "3. Insurance replacement rentals and invoices",
-    "status": "in progress",
+    "status": "done",
     "asked": "Nov 25 20:42",
     "owner_quote": null,
     "rule": "pasting a block of text creates a rental with fields sorted.",
     "done_when": "a pasted claim text fills the rental fields.",
-    "proof": "branch r50-hotfix2-insurance (not on main)",
-    "test": "to be added with the work"
+    "proof": "merge c63e8525 (r50-hotfix2-insurance); web/src/features/insurance/model.ts",
+    "test": "web/src/features/insurance/model.test.ts; web/tests/e2e/insurance-replacements.spec.ts"
   },
   {
     "id": "REQ-028",
@@ -332,8 +332,8 @@
     "owner_quote": null,
     "rule": "Mahad's API key creates insurer rentals end to end.",
     "done_when": "a rental created by that key appears with its invoice.",
-    "proof": "branch r50-hotfix2-insurance (not on main)",
-    "test": "to be added with the work"
+    "proof": "merge c63e8525 (r50-hotfix2-insurance); supabase/migrations/5120_r50i_insurance_replacements.sql (insurer_rental_create through the connector); Done when needs the live site after the combined deploy (a rental made with that partner key)",
+    "test": "supabase/tests/99_r50i_insurance_replacements.sql"
   },
   {
     "id": "REQ-029",
@@ -342,10 +342,10 @@
     "status": "in progress",
     "asked": "Nov 25 18:35",
     "owner_quote": null,
-    "rule": "invoices show direct deposit (account 1046242, transit 00085, institution 003) next to e-Transfer.",
+    "rule": "invoices show direct deposit (the account, transit and institution an Admin enters in Program settings; never written in the repository) next to e-Transfer.",
     "done_when": "the issued invoice shows both.",
-    "proof": "branch r50-hotfix2-infra (not on main)",
-    "test": "to be added with the work"
+    "proof": "merge 38c7572a (r50-hotfix2-infra); supabase/migrations/5110_r50h2_pay_offline.sql (the details come from Program settings); Done when needs the live site after the combined deploy (an issued invoice)",
+    "test": "supabase/tests/99_r50h2_hotfix.sql"
   },
   {
     "id": "REQ-030",
@@ -363,25 +363,25 @@
     "id": "REQ-031",
     "title": "Cards off while there is no processor",
     "area": "4. Payments, money",
-    "status": "in progress",
+    "status": "done",
     "asked": "Nov 25 22:38 (repeated Nov 26 18:18, Nov 27 07:07)",
     "owner_quote": "\"people still try to pay via credit card\"",
     "rule": "while there is no card processor, checkout and pay links offer e-Transfer and cash only; the Admin setting is off.",
     "done_when": "checkout and links show no card option.",
-    "proof": "branch r50-hotfix2-infra (not on main)",
-    "test": "to be added with the work"
+    "proof": "merge 38c7572a (r50-hotfix2-infra); supabase/migrations/5110_r50h2_pay_offline.sql; web/src/features/money/card-pay.ts",
+    "test": "supabase/tests/99_r50h2_hotfix.sql; web/src/features/money/card-pay.test.ts"
   },
   {
     "id": "REQ-032",
     "title": "Commission only on what the salesperson initiated",
     "area": "4. Payments, money",
-    "status": "in progress",
+    "status": "done",
     "asked": "Nov 25 22:13",
     "owner_quote": null,
     "rule": "no commission on an extension or next payment the salesperson did not start (Tibirica case); commission follows whoever did the extension.",
     "done_when": "the Tibirica case pays no commission.",
-    "proof": "branch r50-hotfix2-sales (not on main)",
-    "test": "to be added with the work"
+    "proof": "merge c6c2d8e3 (r50-hotfix2-sales); supabase/migrations/5133_r50s_sales_people_extension_credit.sql",
+    "test": "supabase/tests/99_r50s_sales.sql"
   },
   {
     "id": "REQ-033",
@@ -471,25 +471,25 @@
     "id": "REQ-040",
     "title": "Tolls and tickets reader",
     "area": "5. Tolls and expenses",
-    "status": "in progress",
+    "status": "done",
     "asked": "Nov 25 20:42 (repeated)",
     "owner_quote": "\"never fixed the tolls and tickets reader ... super broken, especially 407, urgent\"",
     "rule": null,
     "done_when": "a 407 statement is read and matched to bookings.",
-    "proof": "branch r50-hotfix2-ops (not on main)",
-    "test": "to be added with the work"
+    "proof": "merge 4df06de9 (r50-hotfix2-ops); supabase/migrations/5140_r50h2_tolls_407.sql; supabase/migrations/5147_r50h2_toll_hold.sql",
+    "test": "supabase/tests/99_r50h2_tolls_407.sql; web/src/features/tolls/parse.test.ts"
   },
   {
     "id": "REQ-041",
     "title": "Expenses",
     "area": "5. Tolls and expenses",
-    "status": "in progress",
+    "status": "done",
     "asked": "Nov 25 23:39",
     "owner_quote": null,
     "rule": "several receipt pictures per expense; auto read amount, category and car; posts to the owner statement.",
     "done_when": "a receipt photo creates a posted expense.",
-    "proof": "branch r50-hotfix2-ops (not on main)",
-    "test": "to be added with the work"
+    "proof": "merge 4df06de9 (r50-hotfix2-ops); supabase/migrations/5143_r50h2_expense_receipts.sql",
+    "test": "supabase/tests/99_r50h2_expense_receipts.sql; web/src/features/expenses/receipt-read.test.ts; web/tests/e2e/r50h2-ops-uploads.spec.ts"
   },
   {
     "id": "REQ-042",
@@ -555,13 +555,13 @@
     "id": "REQ-047",
     "title": "Restrict numbers and risky words",
     "area": "6. Comms",
-    "status": "in progress",
+    "status": "done",
     "asked": "Nov 26 18:07",
     "owner_quote": null,
     "rule": "salespeople cannot text phone numbers on the main line; flag phone numbers, swearing and risky words said on calls.",
     "done_when": "both flags raise an Admin item.",
-    "proof": "branch r50-hotfix2-comms (not on main)",
-    "test": "to be added with the work"
+    "proof": "merge c6c2d8e3 (r50-hotfix2-sales); supabase/migrations/5137_r50s_call_text_guard.sql (the only migration with it)",
+    "test": "supabase/tests/99_r50s_sales.sql"
   },
   {
     "id": "REQ-048",
@@ -572,8 +572,8 @@
     "owner_quote": "\"permanent fix, I keep having to tell you\"",
     "rule": "the site heals itself from a built-in database of fixes; resolved items close; no \"jobs locked and left behind\" noise; deduplicate.",
     "done_when": "the open alert count falls to real items only and stays there.",
-    "proof": "branch r50-hotfix2-errors (not on main)",
-    "test": "to be added with the work"
+    "proof": "merge 450cd017 (r50-hotfix2-errors); supabase/migrations/5102_r50h2_todo_noise.sql; supabase/migrations/5104_r50h2_heal_bug_reports.sql; Done when needs the live site after the combined deploy (the open alert count stays at real items)",
+    "test": "supabase/tests/99_r50h2_errors.sql; supabase/tests/99_r50h2_errors_alerts.sql"
   },
   {
     "id": "REQ-049",
@@ -663,13 +663,13 @@
     "id": "REQ-056",
     "title": "Shift claims need approval",
     "area": "8. Field staff",
-    "status": "in progress",
+    "status": "done",
     "asked": "Nov 26 18:26",
     "owner_quote": null,
     "rule": "shift claims for sales need Admin approval.",
     "done_when": "a claim waits for Admin.",
-    "proof": "branch r50-hotfix2-sales (not on main)",
-    "test": "to be added with the work"
+    "proof": "merge c6c2d8e3 (r50-hotfix2-sales); supabase/migrations/5136_r50s_shift_claim_approval.sql",
+    "test": "supabase/tests/99_r50s_sales.sql"
   },
   {
     "id": "REQ-057",
@@ -687,25 +687,25 @@
     "id": "REQ-058",
     "title": "Lead-generator portal",
     "area": "9. Sales, leads, hiring",
-    "status": "in progress",
+    "status": "done",
     "asked": "Nov 25 19:24",
     "owner_quote": null,
     "rule": "a portal for Eric: enter owner leads, hand to closers, $100 flat per closed owner lead.",
     "done_when": "a closed lead pays $100.",
-    "proof": "branch r50-hotfix2-sales (not on main)",
-    "test": "to be added with the work"
+    "proof": "merge c6c2d8e3 (r50-hotfix2-sales); supabase/migrations/5134_r50s_lead_generators.sql",
+    "test": "supabase/tests/99_r50s_sales.sql; web/tests/e2e/r50s-sales.spec.ts"
   },
   {
     "id": "REQ-059",
     "title": "Recruit invite links",
     "area": "9. Sales, leads, hiring",
-    "status": "in progress",
+    "status": "done",
     "asked": "Nov 26 01:02",
     "owner_quote": null,
     "rule": "in-person salespeople refer recruits by invite link; interview required; tracked under the referrer.",
     "done_when": "a recruit is tracked to the referrer.",
-    "proof": "branch r50-hotfix2-sales (not on main)",
-    "test": "to be added with the work"
+    "proof": "merge c6c2d8e3 (r50-hotfix2-sales); supabase/migrations/5135_r50s_recruit_links.sql",
+    "test": "supabase/tests/99_r50s_sales.sql"
   },
   {
     "id": "REQ-060",
@@ -752,8 +752,8 @@
     "owner_quote": null,
     "rule": "a referral to Sales is one click and pre-filled; applicants who skip the interview are chased; hiring answers pay questions from the known role pay.",
     "done_when": "drop-off falls and referrals pre-fill.",
-    "proof": "branch r50-hotfix2-sales (not on main)",
-    "test": "to be added with the work"
+    "proof": "merge 52ff1ccb (r50-hotfix2-seo); supabase/migrations/5161_r50h2_interview_reminders.sql (applicants who skip the interview are chased); Done when needs the live site after the combined deploy (drop-off falls)",
+    "test": "supabase/tests/99_r50h2_seo_hiring_traction.sql"
   },
   {
     "id": "REQ-064",
@@ -783,13 +783,13 @@
     "id": "REQ-066",
     "title": "Demo portals",
     "area": "10. Staff portals and academy",
-    "status": "in progress",
+    "status": "done",
     "asked": "Nov 25 20:41",
     "owner_quote": null,
     "rule": "staff can open a demo renter and a demo owner portal.",
     "done_when": "both open from a staff portal.",
-    "proof": "branch r50-hotfix2-ux (not on main)",
-    "test": "to be added with the work"
+    "proof": "merge 32e867b2 (r50-hotfix2-ux); web/src/features/demo/DemoPortals.tsx",
+    "test": "web/src/features/demo/model.test.ts; web/tests/e2e/r50h2-ux.spec.ts"
   },
   {
     "id": "REQ-067",
@@ -843,49 +843,49 @@
     "id": "REQ-071",
     "title": "Weekly Admin call",
     "area": "11. Townhall and weekly Admin call",
-    "status": "in progress",
+    "status": "done",
     "asked": "Nov 26 18:26, 18:43, Nov 27 07:13",
     "owner_quote": null,
     "rule": "Abbas and Mahad weekly call, auto deck with approve and deny buttons: shifts, hours and pay, academy, hiring, social, numbers, owners, deposits, insurance billing, claims, tolls, fleet.",
     "done_when": "the deck builds each week with working buttons.",
-    "proof": "branch r50-hotfix2-ux (not on main)",
-    "test": "to be added with the work"
+    "proof": "merge 32e867b2 (r50-hotfix2-ux); supabase/migrations/5150_r50h2_admin_call.sql",
+    "test": "supabase/tests/99_r50h2ux_admin_call.sql; web/src/features/admin-call/model.test.ts; web/tests/e2e/r50h2-ux.spec.ts"
   },
   {
     "id": "REQ-072",
     "title": "Calculator realism",
     "area": "12. Owners and calculator",
-    "status": "in progress",
+    "status": "done",
     "asked": "Nov 25 19:23",
     "owner_quote": "\"2015 RDX beats a 2025 CR-V\"",
     "rule": "80% occupancy about $1,200 a month, floor $800, higher for better cars; rough-estimate disclaimer.",
     "done_when": "a 2015 RDX never beats a 2025 CR-V.",
-    "proof": "branch r50-hotfix2-ops (not on main)",
-    "test": "to be added with the work"
+    "proof": "merge 4df06de9 (r50-hotfix2-ops); supabase/migrations/5141_r50h2_owner_calc.sql; web/src/features/owner/EarningsCalculator.tsx",
+    "test": "supabase/tests/99_r50h2_owner_calc.sql; web/src/features/owner/earnings.test.ts"
   },
   {
     "id": "REQ-073",
     "title": "Ownership documents",
     "area": "12. Owners and calculator",
-    "status": "in progress",
+    "status": "done",
     "asked": "Nov 26 01:53",
     "owner_quote": null,
     "rule": "every ownership document uploaded; VIN and plate read and attached to the car and owner portal.",
     "done_when": "an upload fills VIN and plate.",
-    "proof": "branch r50-hotfix2-ops (not on main)",
-    "test": "to be added with the work"
+    "proof": "merge 4df06de9 (r50-hotfix2-ops); supabase/migrations/5144_r50h2_ownership_documents.sql",
+    "test": "supabase/tests/99_r50h2_ownership_documents.sql; web/tests/e2e/r50h2-ops-uploads.spec.ts"
   },
   {
     "id": "REQ-074",
     "title": "Owner and renter rewards",
     "area": "12. Owners and calculator",
-    "status": "in progress",
+    "status": "done",
     "asked": "Nov 20",
     "owner_quote": null,
     "rule": "rewards per docs/blueprint and areas already built; discount games with points for every user type.",
     "done_when": "each user type has a rewards page.",
-    "proof": "branch r50-hotfix2-ux (not on main)",
-    "test": "to be added with the work"
+    "proof": "merge 32e867b2 (r50-hotfix2-ux); supabase/migrations/5151_r50h2_rewards_game.sql (renter, owner and staff Rewards pages)",
+    "test": "supabase/tests/99_r50h2ux_rewards_game.sql; web/src/features/rewards/game-model.test.ts"
   },
   {
     "id": "REQ-075",
@@ -908,8 +908,8 @@
     "owner_quote": "\"I don't think you built them\"",
     "rule": "SEO pages carry every offer: rental, long-term, insurance replacement, chauffeur, GPS trackers and kill switch, owner program, body shop, detailing. They show in list bars and on every page, as designed modules not walls of text.",
     "done_when": "each offer shows in the list bars and on every SEO page, verified on the live site.",
-    "proof": "branch r50-hotfix2-seo (not on main)",
-    "test": "to be added with the work"
+    "proof": "merge 52ff1ccb (r50-hotfix2-seo); web/src/features/seo (offers module); Done when needs the live site after the combined deploy (every SEO page)",
+    "test": "web/src/features/seo/families-offers.test.ts"
   },
   {
     "id": "REQ-077",
@@ -944,8 +944,8 @@
     "owner_quote": "\"Sure you implemented auto-correct of Search Console errors?\"",
     "rule": "errors auto-fix with proof; full keyword research from Search Console.",
     "done_when": "proof of an auto-fix and a keyword report exist.",
-    "proof": "branch r50-hotfix2-seo (not on main)",
-    "test": "to be added with the work"
+    "proof": "merge 52ff1ccb (r50-hotfix2-seo); supabase/migrations/5160_r50h2_search_console.sql; Done when needs the live site after the combined deploy (an auto-fix with proof and a keyword report)",
+    "test": "supabase/tests/99_r50h2_seo_hiring_traction.sql"
   },
   {
     "id": "REQ-080",
@@ -963,13 +963,13 @@
     "id": "REQ-081",
     "title": "White-label page",
     "area": "13. SEO and growth",
-    "status": "in progress",
+    "status": "done",
     "asked": "Nov 26 06:36",
     "owner_quote": null,
     "rule": "descriptive but vague, no pricing, hidden from navigation.",
     "done_when": "the page exists and is not in navigation.",
-    "proof": "branch r50-hotfix2-seo (not on main)",
-    "test": "to be added with the work"
+    "proof": "merge 52ff1ccb (r50-hotfix2-seo); web/src/app/rental-software/page.tsx (in no menu)",
+    "test": "web/src/features/software/content.test.ts"
   },
   {
     "id": "REQ-082",
@@ -987,13 +987,13 @@
     "id": "REQ-083",
     "title": "Countdown and progress",
     "area": "14. Renter experience",
-    "status": "in progress",
+    "status": "done",
     "asked": "Nov 26 07:00",
     "owner_quote": null,
     "rule": "renter countdown to pickup, add to calendar, celebratory progress; progress trackers for booking, owner application, staff closing, loyalty.",
     "done_when": "each shows for its user.",
-    "proof": "branch r50-hotfix2-ux (not on main)",
-    "test": "to be added with the work"
+    "proof": "merge 32e867b2 (r50-hotfix2-ux); web/src/features/portal/PickupCountdown.tsx; web/src/features/portal/AddToCalendar.tsx; web/src/components/portal-ui/Milestones.tsx",
+    "test": "web/tests/e2e/r50h2-ux.spec.ts; web/src/features/portal/booking-ics.test.ts"
   },
   {
     "id": "REQ-084",
@@ -1011,13 +1011,13 @@
     "id": "REQ-085",
     "title": "Investor view",
     "area": "14. Renter experience",
-    "status": "not started",
+    "status": "in progress",
     "asked": "Nov 26 15:42",
     "owner_quote": null,
     "rule": "investor deck and portal show monthly active users and units.",
     "done_when": "both numbers show.",
-    "proof": "none yet",
-    "test": "to be added with the work"
+    "proof": "merge 52ff1ccb (r50-hotfix2-seo); supabase/migrations/5162_r50h2_traction.sql (monthly active users and days rented on the deck and investor Home); \"units\" is not defined: confirm with the owner",
+    "test": "supabase/tests/99_r50h2_seo_hiring_traction.sql; web/src/features/deck/traction.test.ts"
   },
   {
     "id": "REQ-086",
@@ -1040,8 +1040,8 @@
     "owner_quote": "\"server switch still not done, insane\"",
     "rule": null,
     "done_when": "api.carmacars.ca has a valid certificate and /api/health returns 200 on the new server.",
-    "proof": "branch r50-hotfix2-infra (not on main)",
-    "test": "to be added with the work"
+    "proof": "merge 38c7572a (r50-hotfix2-infra); scripts/deploy/cf-site.sh; Done when needs the live site after the combined deploy (certificate and /api/health)",
+    "test": "scripts/deploy/cf-site.test.mjs"
   },
   {
     "id": "REQ-088",
@@ -1052,8 +1052,8 @@
     "owner_quote": null,
     "rule": null,
     "done_when": "tests and builds run on GitHub runners.",
-    "proof": "branch r50-hotfix2-infra (not on main)",
-    "test": "to be added with the work"
+    "proof": "merge 38c7572a (r50-hotfix2-infra); .github/workflows/deploy-vps.yml; Done when needs the live site after the combined deploy (builds on GitHub runners)",
+    "test": "GAP"
   },
   {
     "id": "REQ-089",

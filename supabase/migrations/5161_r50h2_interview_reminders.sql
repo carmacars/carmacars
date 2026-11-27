@@ -57,6 +57,8 @@ on conflict (code) do update set
   in_catalogue = true, updated_at = now();
 select app.notification_catalogue_refresh();
 -- CATALOGUE 5161 END
+update notification_catalogue set emitted_by = 'app.hiring_ai_nudge (5161, from the hiring job): an invited applicant has not sent the AI interview in'
+ where code = 'applicant_ai_interview_reminder';
 
 -- ================================================================ 1. reminders
 -- when the next reminder of an interview is due (null: none left); the link's start is its expiry less its days

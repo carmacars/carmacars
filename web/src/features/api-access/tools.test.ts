@@ -373,6 +373,8 @@ test('5115: add_rental, change_coverage, confirm_pay_later and start_rental_pay_
     assert.ok(schema.properties.confirm && schema.properties.preview_id, n);
     assert.match(sql, new RegExp(`when '${n}'\\s+then '\\{"call":"(ops|admin)_do","name":"${door}"`), n);
   }
+});
+
 // r50 hotfix 2 (5160): the searches, read only
 const SQL5160 = readFileSync(new URL('../../../../supabase/migrations/5160_r50h2_search_console.sql', import.meta.url), 'utf8');
 test('r50 hotfix 2: search_console_queries is read only (admin:read) and runs in the database', async () => {

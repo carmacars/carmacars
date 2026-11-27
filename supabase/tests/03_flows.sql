@@ -539,7 +539,13 @@ select test.eq('A every table that holds money, pricing or status is audited',
                             'pickup_identity_checks',
                             -- live map positions (3350): each person's latest position while it qualifies and the points of a job, written
                             -- by the location doors and deleted by the jobs; no money, pricing or status (location_prefs is audited)
-                            'person_locations', 'location_job_points')
+                            'person_locations', 'location_job_points',
+                            -- traction (5162): the measures a business shows and their monthly counts, refreshed hourly by a job from
+                            -- the visits and the bookings; no money, pricing or status
+                            'traction_metrics', 'traction_monthly',
+                            -- the client ids of insurer money calls (5120): an idempotency record; the payment, approval and write-off
+                            -- rows it guards are audited
+                            'insurer_money_requests')
       and not exists (select 1 from pg_trigger g where g.tgrelid = c.oid and g.tgname = 'audit_' || c.relname)), null::text);
 select test.eq('A a new rate card is logged',
   (select count(*) > 0 from audit_log where entity_table = 'rate_cards' and action = 'INSERT' and after ->> 'daily_rate_cents' = '10000'), true);
