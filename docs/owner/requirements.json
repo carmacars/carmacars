@@ -342,7 +342,7 @@
     "status": "in progress",
     "asked": "Nov 25 18:35",
     "owner_quote": null,
-    "rule": "invoices show direct deposit (account 1046242, transit 00085, institution 003) next to e-Transfer.",
+    "rule": "invoices show direct deposit (account, transit and institution numbers from Admin > Settings, never written in the repo) next to e-Transfer.",
     "done_when": "the issued invoice shows both.",
     "proof": "branch r50-hotfix2-infra (not on main)",
     "test": "to be added with the work"

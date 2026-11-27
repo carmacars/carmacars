@@ -265,7 +265,7 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 - Proof: branch r50-hotfix2-infra (not on main)
 - Test: to be added with the work
 - Asked: Nov 25 18:35
-- Rule: invoices show direct deposit (account 1046242, transit 00085, institution 003) next to e-Transfer.
+- Rule: invoices show direct deposit (account, transit and institution numbers from Admin > Settings, never written in the repo) next to e-Transfer.
 - Done when: the issued invoice shows both.
 
 ### REQ-030 Late fee on unpaid owner insurance
