@@ -11,10 +11,12 @@
 
 alter table owners add column if not exists instant_book_off boolean not null default false;
 comment on column owners.instant_book_off is 'Instant booking off for this owner''s cars (5113): renters always send a request. 01 Motors from the start.';
+-- data: 01 Motors (its owner or partner record, by its exact name) starts with the flag on; afterwards the flag is the only
+-- rule, changed by an Admin under Admin > Owners > the owner (owner_instant_book_set below)
 update owners o set instant_book_off = true
  where o.instant_book_off = false
-   and (btrim(coalesce(o.corporation_name, '')) ~* '^0?1 motors\M' or btrim(coalesce(o.legal_name, '')) ~* '^0?1 motors\M'
-        or exists (select 1 from partners p where p.owner_id = o.id and (btrim(coalesce(p.business_name, '')) ~* '^0?1 motors\M' or btrim(coalesce(p.legal_name, '')) ~* '^0?1 motors\M')));
+   and (lower(btrim(coalesce(o.corporation_name, ''))) in ('01 motors', '01 motors inc.') or lower(btrim(coalesce(o.legal_name, ''))) in ('01 motors', '01 motors inc.')
+        or exists (select 1 from partners p where p.owner_id = o.id and (lower(btrim(coalesce(p.business_name, ''))) in ('01 motors', '01 motors inc.') or lower(btrim(coalesce(p.legal_name, ''))) in ('01 motors', '01 motors inc.'))));
 
 create function app.renter_profile_complete(p_renter uuid) returns boolean
 language sql stable security definer set search_path = public, app, pg_temp as $$
@@ -87,11 +89,45 @@ language sql stable security definer set search_path = public, app, pg_temp as $
     from jsonb_array_elements(app.booking_cars_pre5113()) with ordinality t(x, n)
 $$;
 
+-- Admin > Owners > the owner: Instant booking on or off for all of the owner's cars, with the reason in the audit log
+create function app.owner_instant_book_set(p_by uuid, p jsonb) returns jsonb
+language plpgsql security definer set search_path = public, app, pg_temp as $$
+declare
+  o owners;
+  v_off boolean := coalesce((p ->> 'off')::boolean, true);
+  v_reason text := nullif(btrim(coalesce(p ->> 'reason', '')), '');
+begin
+  if not app.user_is_admin(p_by) then raise exception 'Only an Admin turns instant booking on or off for an owner' using errcode = '42501'; end if;
+  if v_reason is null then raise exception 'Say why' using errcode = '22023'; end if;
+  select * into o from owners where id::text = coalesce(p ->> 'owner_id', p ->> 'owner') for update;
+  if o.id is null then raise exception 'Owner not found' using errcode = 'P0002'; end if;
+  update owners set instant_book_off = v_off where id = o.id;
+  insert into audit_log (actor_user_id, action, entity_table, entity_id, before, after)
+  values (p_by, 'owner_instant_book_set', 'owners', o.id::text, jsonb_build_object('instant_book_off', o.instant_book_off), jsonb_build_object('instant_book_off', v_off, 'reason', v_reason));
+  return jsonb_build_object('owner_id', o.id, 'instant_book_off', v_off);
+end $$;
+
+alter function app.door(uuid, text, text, text, jsonb) rename to door_pre5113;
+create function app.door(p_user uuid, p_aal text, p_call text, p_name text, p jsonb default '{}'::jsonb) returns jsonb
+language plpgsql security definer set search_path = public, app, pg_temp as $$
+begin
+  if p_call = 'admin_do' and p_name = 'owner_instant_book_set' then
+    perform app.door_begin(p_user, p_aal);
+    return app.owner_instant_book_set(p_user, p);
+  end if;
+  if p_call = 'admin_read' and p_name = 'owner_instant_book' then
+    perform app.door_begin(p_user, p_aal);
+    if not app.user_is_admin(p_user) then raise exception 'Not permitted' using errcode = '42501'; end if;
+    return (select jsonb_build_object('owner_id', o.id, 'instant_book_off', o.instant_book_off) from owners o where o.id::text = coalesce(p ->> 'owner_id', p ->> 'owner'));
+  end if;
+  return app.door_pre5113(p_user, p_aal, p_call, p_name, p);
+end $$;
+
 do $$
 declare f record; g text;
 begin
   -- the renamed ones keep their grants; the new ones get the same
-  for f in select * from (values ('public.server_instant_book(text, uuid)', 'public.server_instant_book_pre5113(text, uuid)'),
+  for f in select * from (values ('public.server_instant_book(text, uuid)', 'public.server_instant_book_pre5113(text, uuid)'), ('app.door(uuid, text, text, text, jsonb)', 'app.door_pre5113(uuid, text, text, text, jsonb)'),
                                  ('app.public_fleet_trending(jsonb)', 'app.public_fleet_trending_pre5113(jsonb)'),
                                  ('app.booking_cars()', 'app.booking_cars_pre5113()')) v(n, o) loop
     execute format('revoke all on function %s from public, anon, authenticated', f.n);
@@ -101,6 +137,6 @@ begin
   end loop;
   -- the old server_instant_book is reached through the new one only
   revoke all on function public.server_instant_book_pre5113(text, uuid) from public, anon, authenticated;
-  revoke all on function app.renter_profile_complete(uuid), app.vehicle_instant_ok(uuid) from public, anon, authenticated;
-  grant execute on function app.renter_profile_complete(uuid), app.vehicle_instant_ok(uuid) to service_role;
+  revoke all on function app.renter_profile_complete(uuid), app.vehicle_instant_ok(uuid), app.owner_instant_book_set(uuid, jsonb) from public, anon, authenticated;
+  grant execute on function app.renter_profile_complete(uuid), app.vehicle_instant_ok(uuid), app.owner_instant_book_set(uuid, jsonb) to service_role;
 end $$;

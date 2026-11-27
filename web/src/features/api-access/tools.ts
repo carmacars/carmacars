@@ -478,8 +478,8 @@ export function normalizeToolArgs(args: unknown): unknown {
 
 // r50 hotfix2 (5112): one Program or Site setting by its key, as Admin > Settings saves it; secrets and bank details refused
 export const SETTING_TOOLS: Tool[] = [
-  write('set_setting', 'Change one setting', 'Change one Program setting or Site setting by its key (get_settings lists the keys and values), validated exactly as Admin > Settings saves it; a Program setting changes from today as a dated row. Secret-like keys (API keys, tokens, secrets, verify tokens, bank details) are refused: change those in Admin > Settings.', ['key', 'value'],
-    { key: str('The setting\'s key, for example card_payments or e_transfer_email'), value: { description: 'The new value: text, a number, true or false, or null' } })
+  write('set_setting', 'Change one setting', 'Change one of the Program settings the connector may change: offer_expiry_hours, instant_book_repeat_enabled, manual_rental_past_max_days (5112), validated exactly as Admin > Settings saves it; it changes from today as a dated row. Every other setting is refused, and the payment settings (e_transfer_email, direct deposit, card_*, card_provider) and secrets always: an Admin changes those in Admin > Settings.', ['key', 'value'],
+    { key: str('The setting\'s key: offer_expiry_hours, instant_book_repeat_enabled or manual_rental_past_max_days'), value: { description: 'The new value: text, a number, true or false, or null' } })
 ];
 TOOLS.push(...SETTING_TOOLS);
 

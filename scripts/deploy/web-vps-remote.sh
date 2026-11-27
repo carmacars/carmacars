@@ -158,18 +158,24 @@ caddy_site() {
 # and manages the Let's Encrypt certificates of the other hosts again (kept in its data volume).
 served() { echo | timeout 10 openssl s_client -connect 127.0.0.1:443 -servername "$1" 2>/dev/null | openssl x509 -noout "${@:2}" 2>/dev/null; }
 caddy_cert_sync() {
-  local O="$S/caddy/sites/origin/cert.pem" web api h why="" i
+  # review (r50 hotfix2): a restart only when a served certificate differs from the expected one (the web host: the file's
+  # fingerprint; a DNS-only host: anything but a Cloudflare Origin CA certificate); a host that answers nothing is not a
+  # reason; no API_HOSTNAME means no API wait; a failed restart warns and leaves the running deploy as it is
+  local O="$S/caddy/sites/origin/cert.pem" web api h why="" i fp want
   web=$(sed -n 's/ {$//p' "$S/caddy/sites/web.caddy" 2>/dev/null | grep -v '^[[:space:]#]' | head -1 | cut -d, -f1 | tr -d ' ')
-  api=$(grep -m1 '^API_HOSTNAME=' "$S/defaults.env" | cut -d= -f2)
-  if [ -n "$web" ] && [ -s "$O" ] && grep -q 'sites/origin/cert.pem' "$S/caddy/sites/web.caddy" \
-     && [ "$(served "$web" -fingerprint -sha256)" != "$(openssl x509 -in "$O" -noout -fingerprint -sha256)" ]; then why="$web is not served the certificate on disk"; fi
+  api=$(grep -m1 '^API_HOSTNAME=' "$S/defaults.env" 2>/dev/null | cut -d= -f2)
+  if [ -n "$web" ] && [ -s "$O" ] && grep -q 'sites/origin/cert.pem' "$S/caddy/sites/web.caddy"; then
+    want=$(openssl x509 -in "$O" -noout -fingerprint -sha256 2>/dev/null); fp=$(served "$web" -fingerprint -sha256)
+    [ -n "$fp" ] && [ -n "$want" ] && [ "$fp" != "$want" ] && why="$web is not served the certificate on disk"
+  fi
   for h in "$api" $(sed -n 's/ {$//p' "$S/caddy/sites/meet.caddy" 2>/dev/null | grep -v '^[[:space:]#]' | head -1); do
     [ -n "$h" ] && served "$h" -issuer | grep -qi 'CloudFlare Origin' && why="${why:+$why; }$h is served a Cloudflare Origin CA certificate" || true
   done
   [ -n "$why" ] || return 0
   say "Caddy restarted: $why"
-  docker restart supabase-caddy > /dev/null
+  if ! docker restart supabase-caddy > /dev/null 2>&1; then say "WARNING: Caddy could not be restarted ($why); it keeps serving what it served"; return 0; fi
   for i in $(seq 1 30); do docker exec supabase-caddy wget -qO /dev/null http://localhost:2019/config/ 2>/dev/null && break; sleep 2; done
+  [ -n "$api" ] || return 0
   # Let's Encrypt for the DNS-only hosts: up to 3 minutes (HTTP-01 or TLS-ALPN-01, straight to Caddy)
   for i in $(seq 1 36); do
     served "$api" -issuer | grep -qi 'CloudFlare Origin' || break

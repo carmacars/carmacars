@@ -2,9 +2,13 @@
 -- by its key, previewed then confirmed (preview_id) like every connector write. It runs the same database action as
 -- Admin > Settings (app.door admin_save: the same columns allowed, the same checks, a Program setting as a dated row from
 -- today), so it is refused exactly where the Settings page refuses. The preview runs it and rolls it back, so the value
--- the database would store is shown. api_calls keeps the before and the after. Secret-like keys are refused: API keys,
--- tokens, secrets, passwords, signing and webhook values, verify tokens and bank details (cc_pay_*, account, transit,
--- institution numbers, every cc_pay_ and bs_pay_ setting): those are changed in Admin > Settings only.
+-- the database would store is shown. api_calls keeps the before and the after.
+-- Review (r50 hotfix2): an allowlist, not a denylist. The connector changes only the settings in app.setting_connector_keys()
+-- (the ones an Admin asked Claude to change in operations): offer_expiry_hours, instant_book_repeat_enabled and
+-- manual_rental_past_max_days. Everything else is refused, and these are refused by name as well, whatever the list says:
+-- e_transfer_email, the direct deposit details (cc_pay_*, bs_pay_*), card_* and card_provider, and every secret-like key
+-- (keys, tokens, secrets, passwords, signing and webhook values, bank details): those stay on Admin > Settings. A refused
+-- secret-like or payment key is logged by its key only (args {"key": ...}), never with the value.
 --   args: key (the column), value (any JSON: text, number, true or false, null), confirm, preview_id
 
 create function pg_temp.copy_grants(p_new regprocedure, p_old regprocedure) returns void
@@ -20,6 +24,17 @@ end $$;
 create function app.setting_key_secret(p_key text) returns boolean
 language sql immutable set search_path = public, app, pg_temp as $$
   select coalesce(p_key, '') ~* '(key|token|secret|password|passwd|signing|webhook|verify|private|credential|bank|account_no|transit|institution|iban|routing|^cc_pay_|^bs_pay_)'
+$$;
+
+-- the settings the connector may change; app.setting_key_secret always wins over this list
+create function app.setting_connector_keys() returns text[]
+language sql immutable set search_path = public, app, pg_temp as $$
+  select array['offer_expiry_hours', 'instant_book_repeat_enabled', 'manual_rental_past_max_days']
+$$;
+-- never through the connector, whatever the list: the payment settings stay on the screen for an Admin
+create function app.setting_screen_only(p_key text) returns boolean
+language sql immutable set search_path = public, app, pg_temp as $$
+  select app.setting_key_secret(p_key) or coalesce(p_key, '') ~* '^(e_transfer_email|card_.*|cc_pay_.*|bs_pay_.*|direct_deposit.*)$'
 $$;
 
 -- the table a setting key belongs to: program_settings first, then site_settings; null when neither has it
@@ -61,7 +76,10 @@ begin
   begin
     if not app.user_is_admin(k.user_id) then raise exception 'Only an Admin changes settings' using errcode = '42501'; end if;
     if v_key = '' or not (v_args ? 'value') then raise exception 'key and value: the setting''s key (get_settings lists them) and its new value' using errcode = '22023'; end if;
-    if app.setting_key_secret(v_key) then raise exception '% is a secret or bank detail: change it in Admin > Settings', v_key using errcode = '42501'; end if;
+    if app.setting_screen_only(v_key) then raise exception '% is a secret or payment setting: an Admin changes it in Admin > Settings', v_key using errcode = '42501'; end if;
+    if not (v_key = any (app.setting_connector_keys())) then
+      raise exception '% is not one the connector changes (%): change it in Admin > Settings', v_key, array_to_string(app.setting_connector_keys(), ', ') using errcode = '42501';
+    end if;
     v_table := app.setting_table(v_key);
     if v_table is null then raise exception 'Not a setting: %', v_key using errcode = '22023'; end if;
     v_before := case when v_table = 'program_settings' then to_jsonb(app.settings()) -> v_key else (select to_jsonb(s) -> v_key from site_settings s limit 1) end;
@@ -91,7 +109,9 @@ begin
       v_result := jsonb_build_object('done', true, 'tool', p_tool, 'table', v_table, 'key', v_key, 'before', v_before, 'after', v_after, 'admin_path', '/admin/settings');
     end if;
   exception when others then
-    insert into api_calls (key_id, user_id, tool, target, args, ok, error, client) values (k.id, k.user_id, p_tool, left(coalesce(nullif(v_key, ''), p_tool), 200), v_args, false, left(sqlerrm, 500), left(p_client, 64));
+    -- a secret or payment key: its key only, never the value
+    insert into api_calls (key_id, user_id, tool, target, args, ok, error, client) values (k.id, k.user_id, p_tool, left(coalesce(nullif(v_key, ''), p_tool), 200),
+      case when app.setting_screen_only(v_key) then jsonb_build_object('key', v_key) else v_args end, false, left(sqlerrm, 500), left(p_client, 64));
     return jsonb_build_object('ok', false, 'status', case sqlstate when 'P0002' then 404 when '42501' then 403 else 400 end, 'error', regexp_replace(sqlerrm, '^.*?ERROR:\s*', ''));
   end;
   insert into api_calls (key_id, user_id, tool, target, args, before, after, ok, client)
@@ -101,5 +121,5 @@ begin
 end $$;
 
 select pg_temp.copy_grants('app.api_call(text, text, jsonb, text)'::regprocedure, 'app.api_call_pre5112(text, text, jsonb, text)'::regprocedure);
-revoke all on function app.api_call_pre5112(text, text, jsonb, text), app.setting_key_secret(text), app.setting_table(text) from public, anon, authenticated;
-grant execute on function app.api_call_pre5112(text, text, jsonb, text), app.setting_key_secret(text), app.setting_table(text) to service_role;
+revoke all on function app.api_call_pre5112(text, text, jsonb, text), app.setting_key_secret(text), app.setting_table(text), app.setting_connector_keys(), app.setting_screen_only(text) from public, anon, authenticated;
+grant execute on function app.api_call_pre5112(text, text, jsonb, text), app.setting_key_secret(text), app.setting_table(text), app.setting_connector_keys(), app.setting_screen_only(text) to service_role;

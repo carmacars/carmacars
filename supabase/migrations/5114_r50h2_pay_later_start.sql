@@ -14,6 +14,23 @@ alter table bookings add column if not exists pay_later_by uuid references users
 alter table bookings add column if not exists pay_later_reason text check (pay_later_reason is null or char_length(pay_later_reason) between 10 and 500);
 comment on column bookings.pay_later_at is 'Confirmed pay later (5114): an Admin confirmed it with the rental and the deposit owed; pay_later_reason says why.';
 
+-- the Finance To do to collect what is open on a booking confirmed pay later (both paths; one per booking)
+create function app.pay_later_todo(p_booking uuid, p_by uuid, p_reason text) returns bigint
+language plpgsql security definer set search_path = public, app, pg_temp as $$
+declare
+  b bookings;
+  v_open bigint;
+begin
+  select * into b from bookings where id = p_booking;
+  v_open := app.booking_balance_open(b.id);
+  perform app.raise_task(p_type => 'collect_pay_later', p_queue => 'finance', p_priority => 'high', p_booking => b.id, p_vehicle => b.vehicle_id, p_renter => b.renter_id,
+    p_title => left(format('Collect the payment: %s (confirmed pay later)', b.booking_number), 200),
+    p_detail => left(format('An Admin confirmed %s before payment: %s. Collect %s and the deposit of %s by e-Transfer or cash, then record them on the booking.',
+                            b.booking_number, p_reason, app.fmt_money(greatest(v_open, 0)), app.fmt_money(coalesce(b.deposit_cents, 0))), 2000),
+    p_dedupe => 'collect_pay_later:' || b.id, p_created_by => p_by);
+  return v_open;
+end $$;
+
 create function app.booking_pay_later(p_by uuid, p jsonb) returns jsonb
 language plpgsql security definer set search_path = public, app, pg_temp as $$
 declare
@@ -36,11 +53,7 @@ begin
   perform app.log_booking_event(b.id, 'confirmed', 'pending_payment', 'confirmed', b.offer_approved_version,
     format('Confirmed pay later by an Admin: %s. Owed: %s and the deposit %s', v_reason, app.fmt_money(greatest(v_open, 0)), app.fmt_money(coalesce(b.deposit_cents, 0))),
     p_by, 'staff', jsonb_build_object('mode', 'pay_later', 'reason', v_reason, 'open_cents', v_open, 'deposit_cents', b.deposit_cents));
-  perform app.raise_task(p_type => 'collect_pay_later', p_queue => 'finance', p_priority => 'high', p_booking => b.id, p_vehicle => b.vehicle_id, p_renter => b.renter_id,
-    p_title => left(format('Collect the payment: %s (confirmed pay later)', b.booking_number), 200),
-    p_detail => left(format('An Admin confirmed %s before payment: %s. Collect %s and the deposit of %s by e-Transfer or cash, then record them on the booking.',
-                            b.booking_number, v_reason, app.fmt_money(greatest(v_open, 0)), app.fmt_money(coalesce(b.deposit_cents, 0))), 2000),
-    p_dedupe => 'collect_pay_later:' || b.id, p_created_by => p_by);
+  perform app.pay_later_todo(b.id, p_by, v_reason);
   perform app.resolve_tasks(array['confirm_offline_booking'], b.id, p_by, 'Confirmed pay later');
   return jsonb_build_object('ok', true, 'status', 'confirmed', 'booking_number', b.booking_number, 'open_cents', v_open, 'deposit_cents', b.deposit_cents);
 end $$;
@@ -57,13 +70,21 @@ begin
   if v_at is null then raise exception 'Give the real pickup time' using errcode = '22023'; end if;
   if v_at > now() + interval '5 minutes' then raise exception 'The pickup time is in the future: confirm pay later now and record the pickup when the car goes' using errcode = '22023'; end if;
   if v_reason is null or char_length(v_reason) < 10 then raise exception 'Say why it is paid later (10 characters or more)' using errcode = '22023'; end if;
-  select * into b from bookings where id::text = p ->> 'booking' or booking_number = upper(btrim(coalesce(p ->> 'booking', '')));
+  -- review: the same locks and calendar check as booking_pay_later, on every path (an offer, waiting for payment, confirmed)
+  perform 1 from vehicles where id = (select vehicle_id from bookings where id::text = p ->> 'booking' or booking_number = upper(btrim(coalesce(p ->> 'booking', '')))) for no key update;
+  select * into b from bookings where id::text = p ->> 'booking' or booking_number = upper(btrim(coalesce(p ->> 'booking', ''))) for update;
   if b.id is null then raise exception 'Booking not found' using errcode = 'P0002'; end if;
+  if b.blocks_calendar and not app.vehicle_is_available(b.vehicle_id, b.pickup_at, b.return_at, b.id) then raise exception 'The car is not free for these dates' using errcode = '23514'; end if;
   if b.status = 'offered' then perform app.offer_book_now(p_by, b.id, v_reason); end if;
   if (select status from bookings where id = b.id) = 'pending_payment' then perform app.booking_pay_later(p_by, jsonb_build_object('booking', b.id, 'reason', v_reason)); end if;
   if (select status from bookings where id = b.id) <> 'confirmed' then
     raise exception 'Booking % is %: only an offer, a booking waiting for payment or a confirmed one starts here', b.booking_number, replace((select status from bookings where id = b.id)::text, '_', ' ') using errcode = '23514';
   end if;
+  -- a booking that was already confirmed: marked pay later too, with the Finance To do to collect what is open
+  if (select pay_later_at from bookings where id = b.id) is null then
+    update bookings set pay_later_at = now(), pay_later_by = p_by, pay_later_reason = v_reason where id = b.id;
+  end if;
+  perform app.pay_later_todo(b.id, p_by, v_reason);
   v_pick := app.handover_override(p_by, jsonb_build_object('booking', b.id, 'kind', 'pickup', 'at', v_at, 'reason', 'Started before payment: ' || v_reason)
                                         || jsonb_strip_nulls(jsonb_build_object('odometer_km', p -> 'odometer_km', 'fuel_pct', p -> 'fuel_pct')));
   return jsonb_build_object('ok', true, 'booking_number', b.booking_number, 'status', (select status from bookings where id = b.id), 'pickup', v_pick);
@@ -88,8 +109,8 @@ begin
   foreach g in array array['anon', 'authenticated', 'service_role'] loop
     if has_function_privilege(g, 'app.door_pre5114(uuid, text, text, text, jsonb)'::regprocedure, 'execute') then execute format('grant execute on function app.door(uuid, text, text, text, jsonb) to %I', g); end if;
   end loop;
-  revoke all on function app.booking_pay_later(uuid, jsonb), app.booking_start_pay_later(uuid, jsonb) from public, anon, authenticated;
-  grant execute on function app.booking_pay_later(uuid, jsonb), app.booking_start_pay_later(uuid, jsonb) to service_role;
+  revoke all on function app.booking_pay_later(uuid, jsonb), app.booking_start_pay_later(uuid, jsonb), app.pay_later_todo(uuid, uuid, text) from public, anon, authenticated;
+  grant execute on function app.booking_pay_later(uuid, jsonb), app.booking_start_pay_later(uuid, jsonb), app.pay_later_todo(uuid, uuid, text) to service_role;
 end $$;
 create index if not exists bookings_pay_later_by_idx on bookings (pay_later_by) where pay_later_by is not null;
 
