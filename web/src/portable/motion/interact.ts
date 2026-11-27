@@ -150,7 +150,11 @@ export function startFeedback(hooks: FeedbackHooks = {}): () => void {
 
   // ---------------------------------------------------------------- server requests: busy, then the answer
   let active = 0;
-  let run: { el: HTMLElement; before: Set<string>; busy: boolean } | null = null;
+  let run: { el: HTMLElement; before: Set<string>; busy: boolean; at: number } | null = null;
+  // a field changed after the press and before its answer: the answer is about the old form, so no "Done" is held on the button
+  let editedAt = 0;
+  const edited = (e: Event) => { const t = e.target; if (t instanceof Element && !t.closest(BTN)) editedAt = Date.now(); };
+  on(document, 'input', edited, true); on(document, 'change', edited, true);
   on(window, 'mo:action', (e) => {
     const phase = (e as CustomEvent<{ phase?: string }>).detail?.phase;
     if (phase === 'start') {
@@ -160,7 +164,7 @@ export function startFeedback(hooks: FeedbackHooks = {}): () => void {
       if (el.closest('[data-mo-explicit]')) return;
       const busy = !el.hasAttribute('aria-busy');
       if (busy) { el.setAttribute('aria-busy', 'true'); el.setAttribute('data-bl-busy', ''); el.setAttribute('data-mo-busy', ''); }
-      run = { el, before: errorsNow(), busy };
+      run = { el, before: errorsNow(), busy, at: Date.now() };
     } else if (phase === 'end') {
       active = Math.max(0, active - 1);
       if (active || !run) return;
@@ -172,6 +176,7 @@ export function startFeedback(hooks: FeedbackHooks = {}): () => void {
         const now = errorsNow();
         const failed = [...now].some((k) => !r.before.has(k)) || (r.el.isConnected && errorIn(r.el));
         if (failed) { moResult(r.el, false); const code = r.el.closest('form, [role="dialog"], dialog')?.querySelector('input[autocomplete="one-time-code"]'); if (code) nudge(code); return; }
+        if (editedAt > r.at) return;
         const w = doneWord(labelOf(r.el));
         if (!w) return;
         moResult(r.el, true, w);
