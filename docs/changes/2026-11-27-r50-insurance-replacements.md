@@ -1,4 +1,4 @@
-# Insurance replacements, one page for every insurer rental (R50 hotfix 2: 5120 to 5122)
+# Insurance replacements, one page for every insurer rental (R50 hotfix 2: 5120 to 5123)
 
 The owner, November 27: one list of insurer rentals with progress at a glance; a short entry form (a fleet car or one typed
 in, Paste text filled by AI after a check); off the calendar and owner notices on a switch (CC-10067); every field of the
@@ -8,7 +8,8 @@ Two bugs: "Nothing is left to invoice to the insurer on booking X" after one inv
 that vanished with "already added or discarded".
 
 Migrations `5120_r50i_insurance_replacements.sql` (tables, functions, door, connector), `5121_r50i_insurance_notices.sql`
-(emails), `5122_r50i_insurance_guides.sql` (guides). DB test `supabase/tests/99_r50i_insurance_replacements.sql`; unit tests
+(emails), `5122_r50i_insurance_guides.sql` (guides), `5123_r50i_cc10067_off_calendar.sql` (CC-10067 off the calendar and owner
+notices, REQ-015: a Hyundai Palisade of the fleet billed to Definity, so the switch is set on the booking, not by a typed-in car). DB test `supabase/tests/99_r50i_insurance_replacements.sql`; unit tests
 `web/src/features/insurance/model.test.ts`, `web/src/features/documents/invoice-blocks.test.ts`; e2e
 `web/tests/e2e/insurance-replacements.spec.ts`.
 
