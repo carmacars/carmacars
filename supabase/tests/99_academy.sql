@@ -54,6 +54,9 @@ create temp table acd_q as select q.id, q.answer, q.sort, jsonb_array_length(q.o
 select test.eq('all wrong fails',
   (public.door(test.id('acd_cs'), 'aal2', 'ops_do', 'academy_quiz_submit', jsonb_build_object('section', 'prices-and-deposits',
      'answers', (select jsonb_object_agg(id::text, (answer + 1) % n) from acd_q))) ->> 'passed')::boolean, false);
+-- 5070: that first check is held for its one fix; the same answers again are the graded try
+select public.door(test.id('acd_cs'), 'aal2', 'ops_do', 'academy_quiz_submit', jsonb_build_object('section', 'prices-and-deposits',
+  'answers', (select jsonb_object_agg(id::text, (answer + 1) % n) from acd_q)));
 select pg_temp.start('acd_cs');
 select test.throws('every question answered',
   format($s$select public.door(%L, 'aal2', 'ops_do', 'academy_quiz_submit', '{"section": "prices-and-deposits", "answers": {}}')$s$, test.id('acd_cs')), 'Answer every question');
@@ -63,12 +66,12 @@ select test.eq('4 of 6 is under 90%',
   (public.door(test.id('acd_cs'), 'aal2', 'ops_do', 'academy_quiz_submit', jsonb_build_object('section', 'prices-and-deposits',
      'answers', (select jsonb_object_agg(id::text, case when sort <= 4 then answer else (answer + 1) % n end) from acd_q))) ->> 'score_bps')::int, 6666);
 select test.eq('still closed after a fail', app.academy_open(test.id('acd_cs'), 'cs', (select id from academy_sections where slug = 'coverage-and-drivers')), false);
--- all right on a retry
+-- all right on the fix (5070: the 4 of 6 was held for its one fix; reopening the quiz brings it back)
 select pg_temp.start('acd_cs');
-select test.eq('a retry, all right, passes',
+select test.eq('the fix, all right, passes',
   (public.door(test.id('acd_cs'), 'aal2', 'ops_do', 'academy_quiz_submit', jsonb_build_object('section', 'prices-and-deposits',
      'answers', (select jsonb_object_agg(id::text, answer) from acd_q))) ->> 'passed')::boolean, true);
-select test.eq('three attempts kept', (select count(*)::int from academy_attempts where user_id = test.id('acd_cs')), 3);
+select test.eq('two attempts kept (5070: a first check below the mark is not an attempt)', (select count(*)::int from academy_attempts where user_id = test.id('acd_cs')), 2);
 select test.eq('the next section opens', app.academy_open(test.id('acd_cs'), 'cs', (select id from academy_sections where slug = 'coverage-and-drivers')), true);
 select test.eq('passed once counts on every path with that section (Admin path too)', app.academy_passed(test.id('acd_cs'), (select id from academy_sections where slug = 'prices-and-deposits')), true);
 

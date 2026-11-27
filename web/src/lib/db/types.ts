@@ -269,16 +269,25 @@ export type Database = {
           user_id: string;
           section_id: string;
           started_at: string;
+          fix_wrong: string[] | null;
+          fix_answers: Json | null;
+          fix_at: string | null;
         };
         Insert: {
           user_id: string;
           section_id: string;
           started_at?: string;
+          fix_wrong?: string[] | null;
+          fix_answers?: Json | null;
+          fix_at?: string | null;
         };
         Update: {
           user_id?: string;
           section_id?: string;
           started_at?: string;
+          fix_wrong?: string[] | null;
+          fix_answers?: Json | null;
+          fix_at?: string | null;
         };
         Relationships: [];
       };

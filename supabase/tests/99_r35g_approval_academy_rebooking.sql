@@ -65,9 +65,15 @@ select test.eq('academy: 30 minutes after a failed try, 3 tries a day, flagged u
   (select academy_fail_cooldown_minutes || '/' || academy_attempts_per_day || '/' || academy_rapid_seconds from program_settings where id = (app.settings()).id), '30/3/3');
 create temp table gap_q as select q.id, q.answer, q.sort, jsonb_array_length(q.options) n, q.options from academy_questions q join academy_sections s on s.id = q.section_id where s.slug = 'prices-and-deposits';
 create function pg_temp.start() returns jsonb language sql as $$ select pg_temp.dr('gap_cs', 'ops_do', 'academy_quiz_start', '{"section": "prices-and-deposits"}') $$;
-create function pg_temp.submit(p_right boolean) returns jsonb language sql as $$
-  select pg_temp.dr('gap_cs', 'ops_do', 'academy_quiz_submit', jsonb_build_object('section', 'prices-and-deposits',
-    'answers', (select jsonb_object_agg(id::text, case when p_right then answer else (answer + 1) % n end) from gap_q))) $$;
+-- 5070: a first check below the mark is held for its one fix; the same answers again are the graded try
+create function pg_temp.submit(p_right boolean) returns jsonb language plpgsql as $$
+declare
+  a jsonb := jsonb_build_object('section', 'prices-and-deposits', 'answers', (select jsonb_object_agg(id::text, case when p_right then answer else (answer + 1) % n end) from gap_q));
+  r jsonb := pg_temp.dr('gap_cs', 'ops_do', 'academy_quiz_submit', a);
+begin
+  if coalesce((r ->> 'fix')::boolean, false) then r := pg_temp.dr('gap_cs', 'ops_do', 'academy_quiz_submit', a); end if;
+  return r;
+end $$;
 select test.ok('reading: the section has a reading time', app.academy_read_seconds((select id from academy_sections where slug = 'prices-and-deposits')) > 0);
 select test.ok('reading: no questions in the section read', jsonb_array_length(pg_temp.dr('gap_cs', 'ops_read', 'academy_section', '{"path": "cs", "section": "prices-and-deposits"}') -> 'questions') = 0);
 select test.throws('reading: the quiz waits until the section is opened and read', $$select pg_temp.start()$$, 'Read the section first');

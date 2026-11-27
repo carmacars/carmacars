@@ -96,8 +96,12 @@ jobs:
           # outside
           probe() { # name expected curl-args... ; records the time
             local name="$1" want="$2"; shift 2
-            local out; out=$(curl -sS -o /dev/null -w '%{http_code} %{time_total}' --max-time 15 "$@" 2>/dev/null || echo "000 15")
-            if [ "${out%% *}" = "$want" ]; then echo "::notice title=outside::$name ${out%% *} in ${out##* } s"; else problems+=("$name answered ${out%% *} (expected $want)"); fi
+            # Nov 22 to 27: every outside probe "answered 000" for five days while the server was healthy: the server sent its
+            # Cloudflare Origin CA certificate to clients that do not go through Cloudflare (fixed in f4df37d3). A 000 now
+            # names curl's own reason (certificate, DNS, timeout), so the cause is in the alert, not only in the logs.
+            local out err; out=$(curl -sS -o /dev/null -w '%{http_code} %{time_total}' --max-time 15 "$@" 2>"$RUNNER_TEMP/curl.err" || echo "000 15")
+            err=$(head -c 200 "$RUNNER_TEMP/curl.err" | tr '\n' ' ')
+            if [ "${out%% *}" = "$want" ]; then echo "::notice title=outside::$name ${out%% *} in ${out##* } s"; else problems+=("$name answered ${out%% *} (expected $want)${err:+: $err}"); fi
           }
           if [ -n "${ANON:-}" ]; then
             probe "auth" 200 "$API/auth/v1/health" -H "apikey: $ANON"

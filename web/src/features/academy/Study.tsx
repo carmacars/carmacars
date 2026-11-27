@@ -5,12 +5,14 @@ import { useRouter } from 'next/navigation';
 import { opsAct } from '@/server/actions/ops';
 import { ScenePlayer } from './ScenePlayer';
 import { LessonVideo } from './LessonVideo';
-import { ownJokeQuip, pct, waitLeft, type QuizResult, type QuizStart, type QuizWait, type SectionView } from './model';
+import { ownJokeQuip, pct, waitLeft, type QuizFix, type QuizFixResult, type QuizResult, type QuizStart, type QuizWait, type SectionView } from './model';
 
 // A section to study (Release 21b, item 9): its lessons, each a scene player, then its quiz. The quiz is graded in the database;
 // the pass mark opens the next section of the path. 1154: opening the section starts its reading clock; the quiz opens after the
-// section's reading time, is handed out in a random order (questions and options), waits 30 minutes after a failed try and
-// allows 3 tries a day (all set in Program settings); a failed try shows which answers were wrong, not the right ones.
+// section's reading time, is handed out in a random order (questions and options), waits after a failed try (2 minutes since 5070) and
+// allows a number of tries a day (10 since 5070) (all set in Program settings); a failed try shows which answers were wrong, not the right ones.
+// R50 hotfix 2 (5070): a first check below the pass mark is not a try yet: the questions marked wrong (only those) can be
+// changed once, and the second check is graded. The database keeps the fix, so reopening the quiz brings it back.
 export function Study({ s, base }: { s: SectionView; base: string }) {
   const router = useRouter();
   const [viewed, setViewed] = useState<Record<string, boolean>>(Object.fromEntries(s.lessons.map((l) => [l.id, !!l.viewed])));
@@ -39,6 +41,7 @@ function Quiz({ s, base, wait, setWait, onPassed }: { s: SectionView; base: stri
   const [quiz, setQuiz] = useState<QuizStart | null>(null);
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [res, setRes] = useState<QuizResult | null>(null);
+  const [fix, setFix] = useState<QuizFix | null>(null);
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
   const [now, setNow] = useState(() => Date.now());
@@ -54,20 +57,24 @@ function Quiz({ s, base, wait, setWait, onPassed }: { s: SectionView; base: stri
     const r = await opsAct<QuizStart>('academy_quiz_start', { section: s.id });
     setBusy(false);
     if (!r.ok) { setErr(r.message); return; }
-    setQuiz(r.data); setAnswers({}); setRes(null);
+    setQuiz(r.data); setRes(null);
+    setFix(r.data.fix ?? null); setAnswers(r.data.fix?.given ?? {});
   };
   const qs = quiz?.questions ?? [];
   const all = qs.length > 0 && qs.every((q) => answers[q.id] !== undefined);
   const submit = async () => {
     if (!all) { setErr('Answer every question first.'); return; }
     setBusy(true); setErr('');
-    const r = await opsAct<QuizResult>('academy_quiz_submit', { section: s.id, answers });
+    const r = await opsAct<QuizResult | QuizFixResult>('academy_quiz_submit', { section: s.id, answers });
     setBusy(false);
     if (!r.ok) { setErr(r.message); return; }
-    setRes(r.data); setWait(r.data.quiz); setNow(Date.now());
-    if (r.data.passed) onPassed();
+    if ('fix' in r.data && r.data.fix) { setFix({ wrong: r.data.wrong, given: answers }); return; }
+    const g = r.data as QuizResult;
+    setFix(null); setRes(g); setWait(g.quiz); setNow(Date.now());
+    if (g.passed) onPassed();
   };
   const by = new Map(res?.results.map((x) => [x.id, x]) ?? []);
+  const toFix = new Set(fix?.wrong ?? []);
   const count = s.question_count ?? s.questions.length;
   return (
     <section className="pt-card stack ac-quiz" aria-labelledby="ac-quiz" data-testid="quiz">
@@ -76,17 +83,25 @@ function Quiz({ s, base, wait, setWait, onPassed }: { s: SectionView; base: stri
       {!quiz && (ready
         ? <div><button type="button" className="btn btn--primary" onClick={() => void start()} disabled={busy} data-testid="quiz-start">{busy ? 'Starting' : 'Start the quiz'}</button></div>
         : <p className="alert alert--warn" role="status" data-testid="quiz-wait"><span>{wait?.message}</span>{left ? <span> Opens in {left}.</span> : null}</p>)}
+      {quiz && fix && !res && (
+        <div className="alert alert--warn" role="status" data-testid="quiz-fix">
+          <span className="alert__title">Fix the ones marked wrong</span>
+          <span>{fix.wrong.length} of {qs.length} {fix.wrong.length === 1 ? 'answer is' : 'answers are'} wrong. You can change only those, once. The next check counts.</span>
+        </div>)}
       {quiz && <form className="stack" noValidate onSubmit={(e) => { e.preventDefault(); void submit(); }}>
         {qs.map((q, qi) => {
           const r = by.get(q.id);
           return (
-            <fieldset key={q.id} data-testid={`q-${qi}`}>
+            <fieldset key={q.id} data-testid={`q-${qi}`} className={!res && fix ? (toFix.has(q.id) ? 'ac-fix' : 'ac-fix-ok') : undefined} data-fix={!res && fix ? (toFix.has(q.id) ? 'wrong' : 'right') : undefined}>
               <legend>{qi + 1}. {q.prompt}</legend>
+              {!res && fix && (toFix.has(q.id)
+                ? <p className="small is-wrong" data-testid={`q-${qi}-fix`}>Marked wrong: choose again.</p>
+                : <p className="small muted">Right. Kept as you answered.</p>)}
               {q.options.map((o, oi) => {
                 const k = q.keys[oi] ?? oi;
                 return (
                   <label key={oi} className={`check${r && r.answer !== null && k === r.answer ? ' is-right' : r && k === r.given && !r.right ? ' is-wrong' : ''}`}>
-                    <input type="radio" name={`q-${q.id}`} checked={answers[q.id] === k} disabled={!!res} onChange={() => setAnswers((a) => ({ ...a, [q.id]: k }))} data-testid={`q-${qi}-${oi}`} />
+                    <input type="radio" name={`q-${q.id}`} checked={answers[q.id] === k} disabled={!!res || (!!fix && !toFix.has(q.id))} onChange={() => setAnswers((a) => ({ ...a, [q.id]: k }))} data-testid={`q-${qi}-${oi}`} />
                     <span>{o}{r && r.answer !== null && k === r.answer ? ' (right answer)' : ''}</span>
                   </label>
                 );
@@ -100,7 +115,7 @@ function Quiz({ s, base, wait, setWait, onPassed }: { s: SectionView; base: stri
             </fieldset>
           );
         })}
-        {!res && <button className="btn btn--primary" type="submit" disabled={busy} data-testid="quiz-submit">{busy ? 'Checking' : 'Check my answers'}</button>}
+        {!res && <button className="btn btn--primary" type="submit" disabled={busy} data-testid="quiz-submit">{busy ? 'Checking' : fix ? 'Check my fixes' : 'Check my answers'}</button>}
       </form>}
       {err && <p className="error" role="alert">{err}</p>}
       {res && (
@@ -108,7 +123,7 @@ function Quiz({ s, base, wait, setWait, onPassed }: { s: SectionView; base: stri
           <span className="alert__title">{res.passed ? 'Passed' : 'Not passed yet'}: {res.correct} of {res.total} ({pct(res.score_bps)})</span>
           <span>{res.passed ? (s.next ? 'The next section is open.' : 'You finished this path.') : `You need ${pct(res.pass_bps)}. Go over the lessons again. ${res.quiz?.message ?? ''}`}</span>
           <span className="row" style={{ gap: 'var(--s-2)', flexWrap: 'wrap' }}>
-            {!res.passed && <button type="button" className="btn btn--sm btn--primary" onClick={() => { setRes(null); setQuiz(null); setAnswers({}); }} data-testid="quiz-retry">Try again later</button>}
+            {!res.passed && <button type="button" className="btn btn--sm btn--primary" onClick={() => { setRes(null); setQuiz(null); setFix(null); setAnswers({}); }} data-testid="quiz-retry">Try again later</button>}
             {res.passed && s.next && <Link prefetch={false} className="btn btn--sm btn--primary" href={`${base}/${s.path}/${s.next}`} data-testid="quiz-next">Next section</Link>}
             <Link prefetch={false} className="btn btn--sm btn--quiet" href={base}>Back to my paths</Link>
           </span>

@@ -152,8 +152,8 @@ select app.check_listing_similarity(test.id('vehicle:A3T1'), 'vehicle');
 select test.eq('a flag that still holds stays', (select count(*) from listing_similarity_flags where vehicle_id = test.id('vehicle:A3T1') and kind = 'specs' and status = 'open'), 1::bigint);
 
 -- ---------------------------------------------------------------- 11. the import caps follow the database plan
-select test.eq('Pro by default: both caps 6,144 MB', (select format('%s %s %s', db_plan, vpage_import_db_cap_mb, place_db_cap_mb) from program_settings where id = (app.settings()).id), 'pro 6144 6144');
-select test.eq('the database allowance on Pro: 8 GB', (select included from usage_services where service = 'supabase_db'), 8589934592::numeric);
+select test.eq('the standard cap by default: both caps 16,384 MB (5075: our own server, not the Supabase plan)', (select format('%s %s %s', db_plan, vpage_import_db_cap_mb, place_db_cap_mb) from program_settings where id = (app.settings()).id), 'pro 16384 16384');
+select test.eq('the database allowance: the 8 GB an Admin set in 60_usage_guard_assistant (5075 moves only the old default)', (select included from usage_services where service = 'supabase_db'), 8589934592::numeric);
 update program_settings set db_plan = 'free' where id = (app.settings()).id;
 select test.eq('Free: both caps 450 MB, the database allowance stays (0194: it is the Admin''s, our server''s disk)',
   (select format('%s %s', vpage_import_db_cap_mb, place_db_cap_mb) from program_settings where id = (app.settings()).id) || ' ' || (select included from usage_services where service = 'supabase_db'),
@@ -161,7 +161,7 @@ select test.eq('Free: both caps 450 MB, the database allowance stays (0194: it i
 update program_settings set place_db_cap_mb = 5000 where id = (app.settings()).id;
 select test.eq('a cap is never above the plan''s', (select place_db_cap_mb from program_settings where id = (app.settings()).id), 450);
 update program_settings set db_plan = 'pro' where id = (app.settings()).id;
-select test.eq('back to Pro', (select format('%s %s', vpage_import_db_cap_mb, place_db_cap_mb) from program_settings where id = (app.settings()).id), '6144 6144');
+select test.eq('back to the standard cap', (select format('%s %s', vpage_import_db_cap_mb, place_db_cap_mb) from program_settings where id = (app.settings()).id), '16384 16384');
 
 -- ---------------------------------------------------------------- tidy
 update vehicle_listings set status = 'unpublished', is_featured = false where vehicle_id in (test.id('vehicle:A3T1'), test.id('vehicle:A3T2'), test.id('vehicle:A3B'));

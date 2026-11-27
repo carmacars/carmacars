@@ -110,8 +110,8 @@ select test.ok('after eight waits in a row it counts as a try (never stuck)',
   ((test.rs30_row('rs30_b', 'front_left')).r45 ->> 'tries')::int = 1 and ((test.rs30_row('rs30_b', 'front_left')).r45 ->> 'waits')::int = 0);
 
 -- ---------------------------------------------------------------- 4. one source of truth for the public photos
-select test.ok('before the studio cover passes, the Photos coming soon photo shows (3701: never the car''s own photos)',
-  (app.public_listing_photos(test.id('vehicle:rs30_a')) #>> '{0,placeholder}')::boolean);
+select test.ok('before the studio cover passes, the car''s own photos show (5064 / REQ-004: no live render, the car shows its own photos or the sample set as before release 50)',
+  exists (select 1 from jsonb_array_elements(app.public_listing_photos(test.id('vehicle:rs30_a'))) e where e ->> 'shot' = 'rear'));
 select test.rs30_answer((test.rs30_row('rs30_a', 'front_left')).id, test.rs30_made('vehicles/rs30/a-fl-r48.jpg'));
 select app.job_photo_r48();
 select test.rs30_answer((test.rs30_row('rs30_a', 'rear')).id, test.rs30_made('vehicles/rs30/a-rear-r48.jpg'));
