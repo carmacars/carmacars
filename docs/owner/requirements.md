@@ -803,6 +803,42 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 - Rule: CI runs only on the integration branch; helpers test locally; never push onto a red base. A helper branch runs the suites it touches locally (scripts/test.sh, or the db file alone on a copy of the base database; npm run test:unit; the node checks) and pushes with [skip ci]. When the integration branch is red, one CI doctor makes it green before anyone branches from it or merges into it. One push of the integration branch runs CI once for all merged helper work. A 99_ test never depends on the data or settings another 99_ test leaves.
 - Done when: no CI run starts on a helper branch, and the integration branch is green before helpers branch from it.
 
+### REQ-118 Amazon SES and the server switch
+- Status: in progress
+- Proof: branch r50-hotfix2-comms (5090 to 5092, not merged yet); branch r50-hotfix2-infra (server deploy)
+- Test: GAP
+- Asked: Nov 27 12:36
+- Owner: "Setup amazon ses and the switch to the server ASAP"
+- Rule: site emails send through Amazon SES, and carmacars.ca is served from the company server.
+- Done when: site emails send through SES (SES account ca-central-1 is out of sandbox, 50,000 a day, 0 sent so far) and carmacars.ca is served from the company server.
+
+### REQ-119 Insurer emails and phone stay as they are
+- Status: done
+- Proof: owner decision, Nov 27 12:36: the current insurer sender, invoice link and phone stay (closes the Blind Spot domain and phone question)
+- Test: GAP (an owner decision, nothing to build)
+- Asked: Nov 27 12:36
+- Owner: "The insurer emails are correct. And the phone number is fine"
+- Rule: keep the current insurer email sender, invoice link and phone number.
+- Done when: no change is made to the insurer sender, invoice link or phone.
+
+### REQ-120 Every CarmaCars change also goes into each Almash build
+- Status: in progress
+- Proof: none yet (no port since Nov 24)
+- Test: GAP
+- Asked: Nov 27 12:36
+- Owner: "Has always been built on Almash builds as well"
+- Rule: every CarmaCars change is also built into each Almash build.
+- Done when: each Almash build carries the CarmaCars changes up to the current release.
+
+### REQ-121 Uncertain e-Transfers go to the Rental Desk
+- Status: done
+- Proof: the Rental Desk page, section "E-Transfers to match": the 9 unmatched or uncertain e-Transfers (outside the repository)
+- Test: GAP (a working document, not code)
+- Asked: Nov 27 12:36
+- Owner: "The e-transfers u don't know for sure what they correlate to should go to the rental desk doc"
+- Rule: an e-Transfer that cannot be matched for sure to a booking is listed on the Rental Desk page, not guessed.
+- Done when: every unmatched or uncertain e-Transfer is listed on the Rental Desk page under "E-Transfers to match".
+
 ## 16. Earlier decisions (Oct to Nov 12, from the chat extraction)
 
 ### REQ-092 Corporation, shares and shareholder money

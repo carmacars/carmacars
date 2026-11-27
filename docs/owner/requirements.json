@@ -1104,6 +1104,54 @@
     "test": "the db-base, db and db-suite jobs of ci.yml (scripts/test-merge.sh fails when a file is not run exactly once)"
   },
   {
+    "id": "REQ-118",
+    "title": "Amazon SES and the server switch",
+    "area": "15. Infrastructure and quality",
+    "status": "in progress",
+    "asked": "Nov 27 12:36",
+    "owner_quote": "\"Setup amazon ses and the switch to the server ASAP\"",
+    "rule": "site emails send through Amazon SES, and carmacars.ca is served from the company server.",
+    "done_when": "site emails send through SES (SES account ca-central-1 is out of sandbox, 50,000 a day, 0 sent so far) and carmacars.ca is served from the company server.",
+    "proof": "branch r50-hotfix2-comms (5090 to 5092, not merged yet); branch r50-hotfix2-infra (server deploy)",
+    "test": "GAP"
+  },
+  {
+    "id": "REQ-119",
+    "title": "Insurer emails and phone stay as they are",
+    "area": "15. Infrastructure and quality",
+    "status": "done",
+    "asked": "Nov 27 12:36",
+    "owner_quote": "\"The insurer emails are correct. And the phone number is fine\"",
+    "rule": "keep the current insurer email sender, invoice link and phone number.",
+    "done_when": "no change is made to the insurer sender, invoice link or phone.",
+    "proof": "owner decision, Nov 27 12:36: the current insurer sender, invoice link and phone stay (closes the Blind Spot domain and phone question)",
+    "test": "GAP (an owner decision, nothing to build)"
+  },
+  {
+    "id": "REQ-120",
+    "title": "Every CarmaCars change also goes into each Almash build",
+    "area": "15. Infrastructure and quality",
+    "status": "in progress",
+    "asked": "Nov 27 12:36",
+    "owner_quote": "\"Has always been built on Almash builds as well\"",
+    "rule": "every CarmaCars change is also built into each Almash build.",
+    "done_when": "each Almash build carries the CarmaCars changes up to the current release.",
+    "proof": "none yet (no port since Nov 24)",
+    "test": "GAP"
+  },
+  {
+    "id": "REQ-121",
+    "title": "Uncertain e-Transfers go to the Rental Desk",
+    "area": "15. Infrastructure and quality",
+    "status": "done",
+    "asked": "Nov 27 12:36",
+    "owner_quote": "\"The e-transfers u don't know for sure what they correlate to should go to the rental desk doc\"",
+    "rule": "an e-Transfer that cannot be matched for sure to a booking is listed on the Rental Desk page, not guessed.",
+    "done_when": "every unmatched or uncertain e-Transfer is listed on the Rental Desk page under \"E-Transfers to match\".",
+    "proof": "the Rental Desk page, section \"E-Transfers to match\": the 9 unmatched or uncertain e-Transfers (outside the repository)",
+    "test": "GAP (a working document, not code)"
+  },
+  {
     "id": "REQ-092",
     "title": "Corporation, shares and shareholder money",
     "area": "16. Earlier decisions (Oct to Nov 12, from the chat extraction)",
