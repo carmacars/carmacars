@@ -10,6 +10,9 @@
 --      portal and the database role checks), the leads gate (staff_academy_cleared, 5071) and the Welcome step read, is now
 --      "every basics section of the person's paths passed". The former rule (every section) is app.academy_full_done (renamed,
 --      so nothing else changes meaning). The leads gate keeps its Sales rule on the Sales path's basics.
+--      The owner, Nov 27 15:05 (REQ-067): "Portal stays locked for field staff and customer service and finance and fleet until
+--      they finish the full academy". For those four roles (app.academy_hours_role) academy_done is the entire academy, and
+--      academy_counts counts every section as a basic; Admins and Sales open on the basics.
 --   3. Payouts. The owner (Nov 27 12:36, REQ-067): "Pay for hours should also be held until academy is passed. Field staff
 --      must finish entire academy. Same with customer service and fleet and finance." app.academy_pay_hold(uid) gives the
 --      reason ("Academy not finished: 31 of 52 sections passed ...", the entire academy, not the basics), or null for an Admin,
@@ -90,18 +93,28 @@ $$;
 select pg_temp.rename_once('academy_done', 'uuid', 'academy_full_done');
 comment on function app.academy_full_done(uuid) is 'Every section of the person''s paths passed (the academy_done of 0207 to 0931; renamed in 5170).';
 
+-- the roles that need the entire academy, for the portal and for pay (the owner, Nov 27 12:36 and 15:05: Field, customer
+-- service, Fleet, Finance). Admins and Sales open on the basics.
+create or replace function app.academy_hours_role(p_user uuid) returns boolean
+language sql stable security definer set search_path = public, app, pg_temp as $$
+  select coalesce((select sp.staff_type = 'field' or coalesce(sp.functions, '{}') && array['field', 'cs', 'fleet', 'finance']
+                          or sp.va_function in ('cs', 'fleet', 'finance') or sp.field_function is not null
+                     from staff_profiles sp where sp.user_id = p_user), false)
+$$;
+
 create or replace function app.academy_done(p_user uuid) returns boolean
 language sql stable security definer set search_path = public, app, pg_temp as $$
-  select not exists (
+  select case when app.academy_hours_role(p_user) then app.academy_full_done(p_user) else not exists (
     select 1 from academy_path_sections ps
      where ps.path_code = any (app.academy_paths_of(p_user))
        and not (ps.path_code in ('sales_in_person', 'sales_remote')
                 and exists (select 1 from staff_profiles sp where sp.user_id = p_user and sp.sales_opt_in_at is not null))
        and app.academy_is_core(ps.path_code, ps.section_id)
-       and not app.academy_passed(p_user, ps.section_id))
+       and not app.academy_passed(p_user, ps.section_id)) end
 $$;
-comment on function app.academy_done(uuid) is 'The basics passed (5170): every basics section (academy_paths.core_count) of the person''s paths. Opens the portal and work.';
+comment on function app.academy_done(uuid) is 'What opens the portal and work (5170): the basics (every basics section, academy_paths.core_count, of the person''s paths) for Admins and Sales; the entire academy for Field, customer service, Fleet and Finance (the owner, Nov 27 15:05).';
 select pg_temp.copy_grants('app.academy_done(uuid)', 'app.academy_full_done(uuid)');
+select pg_temp.copy_grants('app.academy_hours_role(uuid)', 'app.academy_full_done(uuid)');
 
 -- the counts a person sees: the basics and the whole academy, each section once
 create or replace function app.academy_counts(p_user uuid) returns jsonb
@@ -109,7 +122,8 @@ language sql stable security definer set search_path = public, app, pg_temp as $
   select jsonb_build_object(
     'core_passed', count(*) filter (where s.core and app.academy_passed(p_user, s.section_id)), 'core_total', count(*) filter (where s.core),
     'passed', count(*) filter (where app.academy_passed(p_user, s.section_id)), 'total', count(*))
-    from (select ps.section_id, bool_or(app.academy_is_core(ps.path_code, ps.section_id)) as core
+    -- for Field, customer service, Fleet and Finance every section is required to open the portal: all count as basics
+    from (select ps.section_id, bool_or(app.academy_is_core(ps.path_code, ps.section_id)) or app.academy_hours_role(p_user) as core
             from academy_path_sections ps
            where ps.path_code = any (app.academy_paths_of(p_user) || case when exists (select 1 from staff_profiles sp where sp.user_id = p_user
                                        and ('sales' = any (coalesce(sp.functions, '{}')) or sp.sales_opt_in_at is not null)) then array[app.fx_sales_path(p_user)] else '{}'::text[] end)
@@ -169,19 +183,11 @@ end $$;
 comment on function app.academy_pay_hold(uuid) is 'Why a person''s pay is held (5170): the entire academy not passed. Null when nothing is held.';
 select pg_temp.copy_grants('app.academy_pay_hold(uuid)', 'app.academy_done(uuid)');
 
--- the roles whose pay for hours waits too (the owner: Field, customer service, Fleet, Finance)
-create or replace function app.academy_hours_role(p_user uuid) returns boolean
-language sql stable security definer set search_path = public, app, pg_temp as $$
-  select coalesce((select sp.staff_type = 'field' or coalesce(sp.functions, '{}') && array['field', 'cs', 'fleet', 'finance']
-                          or sp.va_function in ('cs', 'fleet', 'finance') or sp.field_function is not null
-                     from staff_profiles sp where sp.user_id = p_user), false)
-$$;
 -- the reason a person's pay line (hours) is held, or null
 create or replace function app.academy_hours_held(p_user uuid) returns text
 language sql stable security definer set search_path = public, app, pg_temp as $$
   select case when coalesce((app.settings()).academy_hold_hours, true) and app.academy_hours_role(p_user) then app.academy_pay_hold(p_user) end
 $$;
-select pg_temp.copy_grants('app.academy_hours_role(uuid)', 'app.academy_pay_hold(uuid)');
 select pg_temp.copy_grants('app.academy_hours_held(uuid)', 'app.academy_pay_hold(uuid)');
 
 create or replace function app.academy_pay_guard() returns trigger

@@ -11,14 +11,17 @@ grant usage on schema test to service_role;
 select test.mk_user('bas_admin', 'admin');
 select test.mk_user('bas_cs', 'va', 'cs');          -- a customer service learner held by the gate
 select test.mk_user('bas_fleet', 'va', 'fleet');
+select test.mk_user('bas_sales', 'va', 'sales');      -- a salesperson: Sales opens on the basics
 select test.mk_user('bas_field', 'field');           -- the field person on today's shift (the production case)
 select test.mk_user('bas_field2', 'field');
 update staff_profiles set onboarding_exempt = false, agreement_waived_at = now(), agreement_waived_by = test.id('bas_admin'), agreement_waived_reason = 'Signed on paper',
        whatsapp_joined = array['team'], onboarding_approved_at = now(), onboarding_approved_by = test.id('bas_admin')
- where user_id in (test.id('bas_cs'), test.id('bas_fleet'));
+ where user_id in (test.id('bas_cs'), test.id('bas_fleet'), test.id('bas_sales'));
 update program_settings set academy_gate = true, staff_onboarding_gate = true, academy_read_wpm = 0, academy_fail_cooldown_minutes = 2, academy_attempts_per_day = 10
  where id = (app.settings()).id;
 insert into academy_enrollments (user_id, path_code, source, gate, lock_from) values (test.id('bas_cs'), 'cs', 'admin', true, now() - interval '1 day');
+insert into academy_enrollments (user_id, path_code, source, gate, lock_from)
+select test.id('bas_sales'), c, 'admin', true, now() - interval '1 day' from unnest(app.academy_paths_of(test.id('bas_sales'))) c on conflict do nothing;
 
 create function pg_temp.dr(p_user text, p_call text, p_name text, p jsonb default '{}'::jsonb) returns jsonb language sql as
 $$ select public.door(test.id(p_user), 'aal2', p_call, p_name, p) $$;
@@ -36,25 +39,36 @@ select test.eq('basics: the first sections of each path', (select string_agg(cod
   'admin=4,cs=5,field=5,finance=5,fleet=4,renter_side=0,sales_in_person=6,sales_remote=5');
 select test.eq('basics: the field Today is the 5th field section', (select s.slug from academy_path_sections ps join academy_sections s on s.id = ps.section_id where ps.path_code = 'field' and ps.sort = 5), 'new-r35-field-today');
 select test.eq('basics: field sorts stay 1 to N', (select count(*) = max(sort) from academy_path_sections where path_code = 'field'), true);
+-- the owner (Nov 27 15:05): Field, customer service, Finance and Fleet stay locked until the full academy; Sales and Admins open on the basics
+select test.eq('who needs the full academy for the portal: customer service, Fleet, Field yes; Sales no', app.academy_hours_role(test.id('bas_cs')) || '/' || app.academy_hours_role(test.id('bas_fleet'))
+  || '/' || app.academy_hours_role(test.id('bas_field')) || '/' || app.academy_hours_role(test.id('bas_sales')), 'true/true/true/false');
 select test.eq('held before: locked and not done', app.academy_locked(test.id('bas_cs')) || '/' || app.academy_done(test.id('bas_cs')), 'true/false');
 select test.eq('the basics of customer service, passed one by one', (select string_agg(pg_temp.pass('bas_cs', s.slug)::text, ',' order by ps.sort)
   from academy_path_sections ps join academy_sections s on s.id = ps.section_id where ps.path_code = 'cs' and ps.sort <= 5), 'true,true,true,true,true');
-select test.eq('basics passed: not locked, done, the whole academy not', app.academy_locked(test.id('bas_cs')) || '/' || app.academy_done(test.id('bas_cs')) || '/' || app.academy_full_done(test.id('bas_cs')), 'false/true/false');
+select test.eq('customer service with the basics only: still locked (the full academy opens the portal)', app.academy_locked(test.id('bas_cs')) || '/' || app.academy_done(test.id('bas_cs')), 'true/false');
 select app.staff_onboarding_refresh(test.id('bas_cs'));
-select test.eq('basics passed: fully onboarded (portal and work open), leads gate cleared', app.staff_fully_onboarded(test.id('bas_cs')) || '/' || app.staff_academy_cleared(test.id('bas_cs')), 'true/true');
-select test.eq('my_roles: the portal is open', (app.my_roles(test.id('bas_cs')) ->> 'onboarding_locked'), 'false');
+select test.eq('customer service with the basics only: not onboarded, the portal stays shut', app.staff_fully_onboarded(test.id('bas_cs')) || '/' || (app.my_roles(test.id('bas_cs')) ->> 'onboarding_locked'), 'false/true');
+select test.ok('customer service: every section counts toward the portal', (select (c ->> 'core_total')::int = (c ->> 'total')::int from (select app.academy_counts(test.id('bas_cs')) c) x));
+-- Sales: the basics open the portal and the leads
+create temp table bas_sp as select (app.academy_paths_of(test.id('bas_sales')))[1] as p;
+select test.eq('the basics of Sales, passed one by one', (select bool_and(pg_temp.pass('bas_sales', s.slug))
+  from academy_path_sections ps join academy_sections s on s.id = ps.section_id join academy_paths ap on ap.code = ps.path_code
+  where ps.path_code = (select p from bas_sp) and ps.sort <= ap.core_count), true);
+select test.eq('Sales basics passed: not locked, done, the whole academy not', app.academy_locked(test.id('bas_sales')) || '/' || app.academy_done(test.id('bas_sales')) || '/' || app.academy_full_done(test.id('bas_sales')), 'false/true/false');
+select app.staff_onboarding_refresh(test.id('bas_sales'));
+select test.eq('Sales basics passed: fully onboarded (portal and work open), leads gate cleared', app.staff_fully_onboarded(test.id('bas_sales')) || '/' || app.staff_academy_cleared(test.id('bas_sales')), 'true/true');
+select test.eq('my_roles: the portal is open', (app.my_roles(test.id('bas_sales')) ->> 'onboarding_locked'), 'false');
 select test.ok('Welcome: the academy step counts the basics and is done', (select (s ->> 'done')::boolean and (s ->> 'passed')::int = (s ->> 'sections')::int and (s ->> 'full_sections')::int > (s ->> 'sections')::int
-  from jsonb_array_elements(app.staff_welcome(test.id('bas_cs')) -> 'steps') s where s ->> 'key' = 'academy'));
-select test.ok('the academy home: the basics done, the counts and the pay hold', (select (h ->> 'basics_done')::boolean and (h -> 'counts' ->> 'core_passed')::int = 5 and h ->> 'pay_hold' like 'Academy not finished:%'
-  from (select app.academy_home(test.id('bas_cs')) h) x));
-select test.ok('a section carries core: the first five of customer service', (select bool_and((s ->> 'core')::boolean = ((s ->> 'sort')::int <= 5))
-  from jsonb_array_elements(app.academy_path_progress(test.id('bas_cs'), 'cs') -> 'sections') s));
+  from jsonb_array_elements(app.staff_welcome(test.id('bas_sales')) -> 'steps') s where s ->> 'key' = 'academy'));
+select test.ok('the academy home: the basics done, the counts and the pay hold', (select (h ->> 'basics_done')::boolean and (h -> 'counts' ->> 'core_passed')::int = (h -> 'counts' ->> 'core_total')::int and h ->> 'pay_hold' like 'Academy not finished:%'
+  from (select app.academy_home(test.id('bas_sales')) h) x));
+select test.ok('a section carries core: the first ones of the Sales path', (select bool_and((s ->> 'core')::boolean = ((s ->> 'sort')::int <= (select core_count from academy_paths where code = (select p from bas_sp))))
+  from jsonb_array_elements(app.academy_path_progress(test.id('bas_sales'), (select p from bas_sp)) -> 'sections') s));
 
 -- ================================================================ 2. pay waits for the whole academy (5170, REQ-067)
 -- The owner (Nov 27 12:36): "Pay for hours should also be held until academy is passed. Field staff must finish entire academy.
 -- Same with customer service and fleet and finance." Commission, bonuses and referral fees wait for everyone.
-select test.mk_user('bas_sales', 'va', 'sales');      -- a salesperson mid-academy with an approved commission
-update staff_profiles set onboarding_exempt = false where user_id = test.id('bas_sales');
+-- bas_sales: mid-academy (the basics only) with an approved commission
 select test.mk_owner('bas_po');
 select test.mk_vehicle('BASPAY', 'bas_po', 'managed', 45000, 2500, 3500, date '2026-08-01');
 select test.mk_renter('bas_pr');
@@ -63,7 +77,7 @@ insert into staff_commissions (booking_id, staff_id, kind, scheme, month, rental
 values (test.id('booking:BAS-P1'), test.id('bas_sales'), 'commission', 'flat', app.month_start(app.today()), 2, 20000, 1000, 2000, 'approved', now() - interval '1 day');
 select test.ok('pay hold: the reason names the sections passed (the entire academy) and the release on the next pay run',
   app.academy_pay_hold(test.id('bas_sales')) ~ '^Academy not finished: \d+ of \d+ sections passed\. Held pay .* is paid in full on the first pay run after the whole academy is passed');
-select test.eq('pay hold: the entire academy, not the basics (customer service has passed its basics)', app.academy_done(test.id('bas_cs')) || '/' || (app.academy_pay_hold(test.id('bas_cs')) is not null), 'true/true');
+select test.eq('pay hold: the entire academy, not the basics (Sales has passed its basics)', app.academy_done(test.id('bas_sales')) || '/' || (app.academy_pay_hold(test.id('bas_sales')) is not null), 'true/true');
 select test.eq('the hours part covers Field, customer service, Fleet and Finance, not Sales', app.academy_hours_role(test.id('bas_cs')) || '/' || app.academy_hours_role(test.id('bas_fleet'))
   || '/' || app.academy_hours_role(test.id('bas_field')) || '/' || app.academy_hours_role(test.id('bas_sales')), 'true/true/true/false');
 select test.eq('the setting is on by default', (select column_default from information_schema.columns where table_name = 'program_settings' and column_name = 'academy_hold_hours'), 'true');

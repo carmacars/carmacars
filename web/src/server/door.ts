@@ -8,7 +8,7 @@ import { friendlyDbError } from '@/lib/db/friendly';
 import type { Json } from '@/lib/db/types';
 import { currentUser } from '@/server/portal/data';
 import { viewAs, ViewAsReadOnly } from '@/server/view-as';
-import { ACADEMY_OPEN, ONBOARDING_OPEN, SIGN_FIRST_OPEN, requiredFor } from '@/features/academy/gate';
+import { AGREEMENT_OPEN, ONBOARDING_OPEN, SIGN_FIRST_OPEN, requiredFor } from '@/features/academy/gate';
 
 // The one door for staff and investors (migration 0031): every call carries the signed-in user and the
 // assurance level of their session (aal2 after the second factor). The database makes them the acting
@@ -91,7 +91,8 @@ export async function requireStaff(kind: 'va' | 'field', next: string): Promise<
   if (roles.inactive_locked) redirect('/sign-in?locked=inactivity');
   // r48 FE (3198): the staff agreement first, then the academy (agreement, academy, WhatsApp, approval)
   if (roles.agreement_locked) { if (!SIGN_FIRST_OPEN.test(next)) redirect('/staff/welcome'); }
-  else if (roles.academy_locked && !ACADEMY_OPEN.test(next)) redirect('/staff/welcome');
+  // the owner (Nov 27 15:05): held by the academy, the academy and the onboarding pages (agreement, documents, pay details) only
+  else if (roles.academy_locked && !AGREEMENT_OPEN.test(next)) redirect('/staff/academy');
   // 1151: then the WhatsApp groups; nothing else opens until all three are done (the database holds the same line)
   if (roles.onboarding_locked && !ONBOARDING_OPEN.test(next)) redirect('/staff/welcome');
   // 5171: stuck on a page: its academy section first, then that area opens again
