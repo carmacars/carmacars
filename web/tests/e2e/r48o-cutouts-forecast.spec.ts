@@ -64,16 +64,17 @@ test('the owner forecast: Home, a statement, and the Admin view of the owner', a
   await sql.end();
 });
 
-test('the home hero and the photo sections stay in their box: the studio renders in turn, or the studio placeholder', async ({ page }) => {
+test('the home hero and the photo sections stay in their box: real cars only as cutouts where the sample car stood, or the section photo', async ({ page }) => {
   test.setTimeout(120_000);
   const errors = watch(page);
   for (const path of ['/', '/delivery', '/list-your-car', '/cars']) {
     await page.goto(path, { waitUntil: 'networkidle' });
     await acceptCookies(page);
     await noOverflow(page);
-    // r50 (3701): the listings' own gated renders (or the neutral studio photo), never a cutout on a drawn plate
+    // 5080 (REQ-002): a real car only as its cutout over the section's own photo, never a whole studio photo
     await expect(page.locator('img[src*="/site-plates/"]')).toHaveCount(0);
-    const scenes = page.getByTestId('studio-reel');
+    await expect(page.locator('[data-testid="slot-car"]:not([src*="site/cutouts/"])')).toHaveCount(0);
+    const scenes = page.getByTestId('slot-cars');
     for (let i = 0; i < await scenes.count(); i++) {
       const s = scenes.nth(i);
       const box = await s.boundingBox();

@@ -12,8 +12,10 @@
 --   4. Gemini's cost was never counted: every call was recorded at 0 and the photo budget did not hold photo_r45 steps.
 --   5. The connector's photo_standard failed on every call (3870: one ")" too many in app.comms_listing_files).
 -- Now (standard r48.4): Gemini makes the car alone on a flat key colour from the car's listing photos, else its check-in
--- and check-out photos; the site keys it out and puts it on its own drawn dealership with the CarmaCars sign and the car's
--- name, the same place for every car of a view. The gate checks what the words ask (the key, the whole car) before the paid
+-- and check-out photos; the site keys it out and puts it on its own drawn dealership with the CarmaCars sign (one room, the
+-- same image for every view of every car: REQ-001), the same place for every car of a view. The views are exactly the sample
+-- photos' eight angles (REQ-001); where a sample car is replaced by a real one, only its cutout shows (REQ-002); a Gemini check
+-- that gives no verdict keeps its cause (REQ-005). The gate checks what the words ask (the key, the whole car) before the paid
 -- check. The views are shown in the sample photos' order, then the car's real outside photos, each cut out on the same
 -- dealership. Each Gemini call costs listing_showroom_ai_call_microusd in provider_calls (the photo budget holds the steps);
 -- a photo gets at most listing_photo_r48_daily_tries image calls a day; a refused view waits longer each time; and when the
@@ -67,6 +69,23 @@ comment on column program_settings.listing_photo_r48_pause_why is 'Listing photo
 alter table provider_calls add column if not exists vehicle_photo_id uuid references vehicle_photos (id) on delete set null;
 create index if not exists provider_calls_vehicle_photo on provider_calls (vehicle_photo_id, created_at) where vehicle_photo_id is not null;
 comment on column provider_calls.vehicle_photo_id is 'Listing photos (5080): the photo an image call was made for (the cap per photo a day, the cost guard).';
+
+-- REQ-005: the check's call keeps why it gave no verdict (0567 recorded every failure with no error and no photo, so the
+-- refusals and the timeouts of the check could not be told apart; web gemini.ts geminiCheckImages reports the cause)
+create or replace function app.photo_mark_record(p jsonb) returns jsonb
+language plpgsql security definer set search_path = public, app, pg_temp as $$
+declare v_photo uuid;
+begin
+  if coalesce(p ->> 'photo_id', '') ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then
+    select ph.id into v_photo from vehicle_photos ph where ph.id = (p ->> 'photo_id')::uuid;
+  end if;
+  insert into provider_calls (provider, purpose, ok, error, duration_ms, cost_microusd, units, unit, vehicle_id, vehicle_photo_id)
+  values (left(coalesce(p ->> 'model', 'workers-ai'), 120), 'photo_sort', coalesce((p ->> 'ok')::boolean, false),
+          case when coalesce((p ->> 'ok')::boolean, false) then null else left(nullif(p ->> 'error', ''), 300) end,
+          greatest(coalesce((p ->> 'duration_ms')::integer, 0), 0), 0, greatest(coalesce((p ->> 'neurons')::integer, 0), 0), 'neurons',
+          (select ph.vehicle_id from vehicle_photos ph where ph.id = v_photo), v_photo);
+  return jsonb_build_object('ok', true);
+end $$;
 
 -- the photo budget holds the studio steps too (2530 held only the upload steps)
 select pg_temp.patch_fn('app.worker_claim_listing_jobs(text, integer, timestamptz)'::regprocedure,

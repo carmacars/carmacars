@@ -16,7 +16,7 @@ import { GEMINI_DEFAULT_MODEL as GEMINI_VISION_DEFAULT, geminiVision } from '@/i
 import { chainDeps } from '@/integrations/ai/links';
 import { letteringName } from '@/features/car/studio';
 import { showroomPrompt, type ShowroomOut, type ShowroomProvider } from '@/features/listing/showroom';
-import { geminiCheckImages, geminiEditImage } from '@/integrations/photos/gemini';
+import { GEMINI_CHECK_MODEL, geminiCheckImages, geminiEditImage } from '@/integrations/photos/gemini';
 import { geminiRelay } from '@/server/gemini-relay';
 
 // The listing worker as the site runs it: the Cloudflare cron trigger (custom-worker.ts, every five
@@ -139,9 +139,12 @@ async function checkPhoto(i: { images: Array<{ bytes: Uint8Array; contentType: s
   const key = env().GEMINI_API_KEY;
   if (!key) return null;
   const t0 = Date.now();
-  const r = await geminiCheckImages({ apiKey: key, model: env().GEMINI_CHECK_MODEL || null, relay: geminiRelay() }, i.images, i.system, i.prompt).catch(() => null);
+  const model = env().GEMINI_CHECK_MODEL || GEMINI_CHECK_MODEL;
+  let why: string | null = null;
+  const r = await geminiCheckImages({ apiKey: key, model, relay: geminiRelay() }, i.images, i.system, i.prompt, (w) => { why = w; }).catch(() => null);
   servedGemini('photo_check', r ? { ok: true, model: r.model } : null, t0);
-  await rpc('server_photo_mark_record', { p: { model: r?.model ?? null, ok: !!r, neurons: 0, duration_ms: Date.now() - t0, photo_id: i.photoId, marks: null } }, SR).catch(() => undefined);
+  // REQ-005: a check that gave no verdict is recorded with its cause (it was recorded as a bare failure, so nobody could see why)
+  await rpc('server_photo_mark_record', { p: { model: r?.model ?? `gemini:${model}`, ok: !!r, error: r ? null : why, neurons: 0, duration_ms: Date.now() - t0, photo_id: i.photoId, marks: null } }, SR).catch(() => undefined);
   return r;
 }
 

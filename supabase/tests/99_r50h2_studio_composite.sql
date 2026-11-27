@@ -1,7 +1,8 @@
 -- 99: migration 5080 (R50 hotfix 2): the studio renders rebuilt so a paid render can pass. Standard r48.4; the views in the
 -- sample photos' order, then the car's real outside photos cut out on the same dealership; the references (listing photos,
 -- else check-in and check-out photos); the image calls capped a photo a day, costed, held by the photo budget, a refused view
--- waiting longer each time; the cost guard that pauses the studio and alerts the Admins; the connector's photo_standard.
+-- waiting longer each time; the cost guard that pauses the studio and alerts the Admins; the connector's photo_standard;
+-- REQ-001 (the sample angle set, one room), REQ-002 (cutouts only where a sample car stood), REQ-005 (the check's cause recorded).
 -- Fixtures start with "rq5h2_"; no real names or plates.
 select test.suite('99 r50 hotfix 2 studio composite (5080)');
 
@@ -34,8 +35,9 @@ create or replace function test.rq5h2_gallery(p_car text) returns text language 
 
 -- ---------------------------------------------------------------- 1. the standard and the order
 select test.eq('the standard is r48.4, as the web''s R48_SPEC', app.photo_r48_spec(), 'r48.4');
-select test.eq('the views in the sample photos'' order (studio.ts SHOTS: lead, side, rear34, front, rear, dash, seats), then rear seats and trunk',
-  app.photo_render_order(), array['front_left', 'left', 'rear_left', 'front', 'rear', 'dashboard', 'front_seats', 'rear_seats', 'trunk']);
+select test.eq('REQ-001: exactly the sample photos'' angles in their order (studio.ts SHOTS: lead, side, rear34, front, rear, dash, seats, wheel)',
+  app.photo_render_order(), array['front_left', 'left', 'rear_left', 'front', 'rear', 'dashboard', 'front_seats', 'wheel']);
+select test.ok('REQ-001: every one of them is a shot type of the site', (select count(*) = 8 from listing_shot_types st where st.code = any (app.photo_render_order()) and st.is_public));
 
 -- ---------------------------------------------------------------- 2. the references: listing photos, else check-in photos
 create temp table rq5h2_real as select test.rq5h2_photo('rq5h2_a', 'front_left', false, null, 1) as fl, test.rq5h2_photo('rq5h2_a', 'rear', false, null, 2) as rear;
@@ -127,7 +129,7 @@ select test.eq('the studio cover is the front three-quarter, as the sample cover
 select test.eq('not before the car''s standard views are all made or flagged', app.photo_r48_extra_queue(test.id('vehicle:rq5h2_a'), 10), 0);
 insert into vehicle_photos (vehicle_id, angle, shot_type, original_path, status, is_public, background_status, ai_generated, r48, sort_order, r45)
 select test.id('vehicle:rq5h2_a'), a, a, 'vehicles/original/rq5h2/f-' || a || '.jpg', 'processed', false, 'done', true, true, 0, jsonb_build_object('state', 'flagged', 'tries', 3)
-  from unnest(array['front', 'rear', 'front_seats', 'rear_seats', 'trunk']) a;
+  from unnest(array['front', 'rear', 'front_seats', 'wheel']) a;
 update program_settings set listing_photo_r48_extras = 1 where id = (select id from app.settings());
 select test.eq('then at most listing_photo_r48_extras of them (here 1), the first real photo first', app.photo_r48_extra_queue(test.id('vehicle:rq5h2_a'), 10), 1);
 create temp table rq5h2_x as select ph.* from vehicle_photos ph where ph.vehicle_id = test.id('vehicle:rq5h2_a') and ph.shot_type = 'studio_extra';
@@ -146,7 +148,7 @@ select test.ok('every public photo is a studio view once the car has its renders
   (select bool_and(coalesce((e ->> 'generated')::boolean, false)) from jsonb_array_elements(app.public_listing_photos(test.id('vehicle:rq5h2_a'))) e));
 update vehicle_photos set replaced_at = now() where id = (select fl from rq5h2_real);
 select test.eq('its real photo replaced: the extra goes too', test.rq5h2_gallery('rq5h2_a'), 'front_left*,left,rear_left,dashboard');
-select test.ok('a car''s progress counts its nine views only', (app.photo_r48_car(test.id('vehicle:rq5h2_a')) ->> 'done')::int = 4);
+select test.ok('a car''s progress counts its eight standard views only (REQ-001)', (app.photo_r48_car(test.id('vehicle:rq5h2_a')) ->> 'done')::int = 4);
 update program_settings set listing_photo_r48_extras = 6 where id = (select id from app.settings());
 
 -- ---------------------------------------------------------------- 7. the cost guard
@@ -177,6 +179,59 @@ select test.ok('calls within the ratio: not paused', not (app.photo_r48_cost_gua
 select test.ok('app.comms_listing_files gives one car''s photos with a link each (it failed to parse since 3870)',
   jsonb_array_length(app.comms_listing_files(jsonb_build_object('cars', jsonb_build_array(jsonb_build_object('vehicle_id', test.id('vehicle:rq5h2_a'))))) -> 'cars' -> 0 -> 'images') >= 1);
 select test.eq('and leaves a fleet answer as it is', app.comms_listing_files('{"cars": []}'::jsonb), '{"cars": []}'::jsonb);
+
+-- ---------------------------------------------------------------- 9. REQ-001 and REQ-002: one room, cutouts only where a sample car stood
+select test.mk_vehicle('rq5h2_c', 'rq5h2_olive');
+insert into vehicle_listings (vehicle_id, slug, headline, status, published_at) values (test.id('vehicle:rq5h2_c'), 'rq5h2-c', 'Test car C', 'published', now());
+select test.rq5h2_photo('rq5h2_c', 'front_left', false, null, 1);
+select app.photo_r48_queue(null, test.id('vehicle:rq5h2_c'), 'front_left', false);
+select app.photo_r48_queue(null, test.id('vehicle:rq5h2_c'), 'left', false);
+create or replace function test.rq5h2_made(p_photo uuid, p_shot text, p_cutout jsonb) returns jsonb language plpgsql as $$
+declare v uuid := (select j.id from listing_jobs j where j.vehicle_photo_id = p_photo and j.kind = 'photo_r45' order by j.created_at desc limit 1);
+begin
+  update listing_jobs set status = 'running', attempts = attempts + 1, locked_at = now(), locked_by = 'rq5h2', started_at = now() where id = v;
+  return app.worker_listing_result(v, jsonb_build_object('ok', true, 'provider', 'ai', 'output', jsonb_build_object(
+    'processed_path', 'vehicles/rq5h2/c-' || p_shot || '-r48.jpg', 'width', 1800, 'height', 1200, 'variants', '[]'::jsonb, 'preset_version', 'gemini_r48', 'flags', '[]'::jsonb,
+    'showroom', jsonb_build_object('provider', 'ai', 'mode', 'r48', 'spec', app.photo_r48_spec(), 'scene', 'showroom_dark', 'background', 'site/cutouts/room-r48.4.jpg', 'cutout', p_cutout),
+    'r45', jsonb_build_object('pass', true, 'spec', app.photo_r48_spec(), 'generated', true, 'plates', '[]'::jsonb, 'view', p_shot, 'reasons', '[]'::jsonb,
+      'gate', jsonb_build_object('pass', true, 'spec', app.photo_r48_spec(), 'reasons', '[]'::jsonb, 'at', now())))));
+end $$;
+select test.rq5h2_made((test.rq5h2_row('rq5h2_c', 'front_left')).id, 'front_left', jsonb_build_object('path', 'site/cutouts/' || test.id('vehicle:rq5h2_c') || '/front_left-abc123.png',
+  'width', 1800, 'height', 1200, 'kind', 'matte', 'box', jsonb_build_object('x', 0.1, 'y', 0.3, 'w', 0.8, 'h', 0.5)));
+select test.rq5h2_made((test.rq5h2_row('rq5h2_c', 'left')).id, 'left', jsonb_build_object('path', 'site/cutouts/' || test.id('vehicle:rq5h2_c') || '/left-abc124.png',
+  'width', 1400, 'height', 560, 'kind', 'cutout'));
+select test.eq('REQ-001: the passed views in the sample order, the front three-quarter the cover', test.rq5h2_gallery('rq5h2_c'), 'front_left*,left');
+select test.eq('REQ-001: every view stands on the one identical room', (select string_agg(distinct ph.showroom ->> 'background', ',') from vehicle_photos ph
+  where ph.vehicle_id = test.id('vehicle:rq5h2_c') and ph.r48 and ph.replaced_at is null), 'site/cutouts/room-r48.4.jpg');
+select test.eq('REQ-002: the cover''s cutout is kept, its plate the identical room, against the render it was cut from',
+  (select k.kind || '|' || k.source_kind || '|' || k.plate_path || '|' || (k.source_path = (test.rq5h2_row('rq5h2_c', 'front_left')).processed_path)::text
+     from site_cutouts k where k.vehicle_id = test.id('vehicle:rq5h2_c') and k.shot = 'front_left'), 'matte|studio|site/cutouts/room-r48.4.jpg|true');
+select test.eq('REQ-002: the side profile''s cutout, cropped to the car', (select k.kind || '|' || k.width || 'x' || k.height from site_cutouts k
+  where k.vehicle_id = test.id('vehicle:rq5h2_c') and k.shot = 'left'), 'cutout|1400x560');
+select test.ok('REQ-002: a card that shows a sample car gets the real car''s cutout on the room, never its full photo',
+  exists (select 1 from jsonb_array_elements(app.site_studio_covers(48)) e where (e ->> 'vehicle_id')::uuid = test.id('vehicle:rq5h2_c')
+            and e ->> 'path' like 'site/cutouts/%.png' and e ->> 'plate' = 'site/cutouts/room-r48.4.jpg')
+  and not exists (select 1 from jsonb_array_elements(app.site_studio_covers(48)) e where e ->> 'path' not like 'site/cutouts/%.png'), app.site_studio_covers(48)::text);
+select test.ok('REQ-002: the home hero and its sections get the side profile''s cutout only',
+  exists (select 1 from jsonb_array_elements(app.site_cutouts('left', 24)) e where (e ->> 'vehicle_id')::uuid = test.id('vehicle:rq5h2_c')
+            and e ->> 'path' = 'site/cutouts/' || test.id('vehicle:rq5h2_c') || '/left-abc124.png'), app.site_cutouts('left', 24)::text);
+update vehicle_photos set r45 = r45 || '{"state": "flagged"}' where id = (test.rq5h2_row('rq5h2_c', 'left')).id;
+select test.ok('REQ-002: a cutout whose render is no longer live is not shown',
+  not exists (select 1 from jsonb_array_elements(app.site_cutouts('left', 24)) e where (e ->> 'vehicle_id')::uuid = test.id('vehicle:rq5h2_c')));
+select app.photo_r48_queue(null, test.id('vehicle:rq5h2_c'), 'rear', false);
+select test.rq5h2_made((test.rq5h2_row('rq5h2_c', 'rear')).id, 'rear', jsonb_build_object('path', 'site/elsewhere/rear.png', 'width', 10, 'height', 10, 'kind', 'cutout'));
+select test.ok('a cutout outside the car''s cutout folder, or of a view the site does not cut out, is never kept',
+  not exists (select 1 from site_cutouts k where k.vehicle_id = test.id('vehicle:rq5h2_c') and k.path like '%elsewhere%'));
+
+-- ---------------------------------------------------------------- 10. REQ-005: a check without a verdict keeps its cause
+select app.photo_mark_record(jsonb_build_object('model', 'gemini:gemini-3.8-flash', 'ok', false, 'error', 'no verdict: finish MAX_TOKENS, 20 characters',
+  'photo_id', (test.rq5h2_row('rq5h2_c', 'front_left')).id, 'duration_ms', 900));
+select app.photo_mark_record(jsonb_build_object('model', 'gemini:gemini-3.8-flash', 'ok', true, 'error', 'ignored', 'photo_id', 'not-a-uuid'));
+select test.eq('the failed check is recorded with its cause, its photo and its car; a passed one with no error',
+  (select string_agg(coalesce(c.error, '-') || '|' || coalesce((c.vehicle_photo_id = (test.rq5h2_row('rq5h2_c', 'front_left')).id)::text, 'none') || '|'
+            || coalesce((c.vehicle_id = test.id('vehicle:rq5h2_c'))::text, 'none'), ',' order by c.ok)
+     from provider_calls c where c.purpose = 'photo_sort' and c.provider = 'gemini:gemini-3.8-flash' and c.created_at > now() - interval '1 minute'),
+  'no verdict: finish MAX_TOKENS, 20 characters|true|true,-|none|none');
 
 select test.ok('the new functions are for the server only', not has_function_privilege('authenticated', 'app.photo_r48_cost_guard()', 'execute')
   and not has_function_privilege('anon', 'app.photo_r48_extra_queue(uuid, integer)', 'execute') and has_function_privilege('service_role', 'app.photo_r48_cost_guard()', 'execute'));

@@ -5,7 +5,7 @@
 //   node --test --experimental-strip-types src/features/listing/r48.test.ts   (npm run test:unit)
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { HARD_REASONS, PLATE_FAMILIES, R48_ANGLES, R48_SPEC, REAL_PHOTO_RULE, feedbackLine, guidePath, imageRoles, judgePlate, judgeR48, plateEndOf, plateFamily, platePath, platePrompt,
+import { HARD_REASONS, PLATE_FAMILIES, R48_ANGLES, R48_ROOM_PATH, R48_SPEC, REAL_PHOTO_RULE, feedbackLine, guidePath, imageRoles, judgePlate, judgeR48, plateEndOf, plateFamily, platePath, platePrompt,
   plateRule, r48Angle, r48CheckPrompt, r48ExtraPrompt, r48Prompt, viewReasons } from './r48.ts';
 import { SHOTS } from '../car/studio.ts';
 import { encodeJpeg } from './showroom.ts';
@@ -202,18 +202,19 @@ test('r48.4 one identical room for every view, stored once; the cover\'s cutout 
   const cover = deps();
   const r = out(await runJob(cover.d, job(), budget));
   assert.equal(r.r45.pass, true, JSON.stringify(r.r45));
-  assert.equal(r.showroom.background, 'site/r48/room.jpg');
-  assert.ok(cover.pub.has('site/r48/room.jpg'));
+  assert.equal(r.showroom.background, R48_ROOM_PATH);
+  assert.equal(R48_ROOM_PATH, 'site/cutouts/room-r48.4.jpg', 'in the folder site_cutouts.plate_path allows');
+  assert.ok(cover.pub.has(R48_ROOM_PATH));
   assert.match(String(r.showroom.cutout?.path), /^site\/cutouts\/v1\/front_left-[a-f0-9]+\.png$/);
   assert.equal(r.showroom.cutout?.kind, 'matte');
   assert.equal(r.showroom.cutout?.width, 1800);
   const side = deps({}, [{ ...OK, view: 'left' }]);
   const r2 = out(await runJob(side.d, job({ photo: { id: 'p1', shot_type: 'left', angle: 'left', original_path: 'x', processed_path: null, rebackground: true, is_public: false, file_base: 'cla-left' } }, { shot: 'left', guide: null }), budget));
   assert.equal(r2.r45.pass, true, JSON.stringify(r2.r45));
-  assert.equal(r2.showroom.background, 'site/r48/room.jpg', 'the same room');
+  assert.equal(r2.showroom.background, R48_ROOM_PATH, 'the same room');
   assert.equal(r2.showroom.cutout?.kind, 'cutout');
   assert.ok((r2.showroom.cutout?.width ?? 1800) < 1800, 'cropped to the car');
-  assert.deepEqual(side.pub.get('site/r48/room.jpg'), cover.pub.get('site/r48/room.jpg'), 'identical across cars');
+  assert.deepEqual(side.pub.get(R48_ROOM_PATH), cover.pub.get(R48_ROOM_PATH), 'identical across cars');
   const green = deps({ angleAi: async () => ({ ok: true, bytes: encodeJpeg(keyedCar({ bg: [255, 0, 255] }), 95), contentType: 'image/jpeg', provider: 'ai', model: 'm' }) });
   const g = out(await runJob(green.d, job({}, { car: { ...CAR, colour: 'Olive Green' } }), budget));
   assert.equal(g.r45.pass, true, JSON.stringify(g.r45));
@@ -284,7 +285,7 @@ test('r48.4 check-in photos: sent to Gemini when the car has no listing photo (5
   assert.equal(r.r45.handover_refs, 2);
   assert.equal(asked[0]!.images, 4, 'both check-in photos, the guide, the stock photo: as the words number them');
   assert.match(asked[0]!.prompt, /Images 1 to 2 are real photos of THIS car/);
-  assert.ok([...pub.keys()].filter((k) => !keys.has(k)).every((k) => k.includes('-r48') || k === 'site/r48/room.jpg' || k.startsWith('site/cutouts/v1/')), 'only the made view, its sizes, the room and the cutout are stored');
+  assert.ok([...pub.keys()].filter((k) => !keys.has(k)).every((k) => k.includes('-r48') || k === R48_ROOM_PATH || k.startsWith('site/cutouts/v1/')), 'only the made view, its sizes, the room and the cutout are stored');
   const odd = deps();
   assert.equal(out(await runJob(odd.d, job({}, { refs: [{ bucket: 'identity', path: 'x.jpg' }], stock: null }), budget)).r45.pass, false, 'a bucket the worker does not know is never read');
 });

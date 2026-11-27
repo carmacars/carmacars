@@ -16,8 +16,8 @@ let car = { id: '', slug: '' };
 let wasSample = false;
 // serve.mjs serves the local public bucket from .local-storage/vehicle-public (a file added to public/ after the build is a 404)
 const PUB = path.join(process.env.LOCAL_STORAGE_DIR ?? path.join(process.cwd(), '.local-storage'), 'vehicle-public');
-// 5080: the sample photos' order, the front three-quarter the cover (its matte drives off)
-const SHOTS = ['front_left', 'left', 'rear_left', 'front', 'rear', 'dashboard', 'front_seats', 'rear_seats', 'trunk'];
+// 5080 (REQ-001): the sample photos' eight angles in their order, the front three-quarter the cover (its matte drives off)
+const SHOTS = ['front_left', 'left', 'rear_left', 'front', 'rear', 'dashboard', 'front_seats', 'wheel'];
 const BOX = { x: 0.15, y: 0.5, w: 0.7, h: 0.3 };
 // a studio render: the plate (a dark room) with a car standing in BOX, the view's name on the wall
 const svg = (label: string, withCar = true) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 200" width="1800" height="1200">
@@ -26,7 +26,7 @@ const svg = (label: string, withCar = true) => `<svg xmlns="http://www.w3.org/20
   ${withCar ? `<rect x="${BOX.x * 300}" y="${BOX.y * 200}" width="${BOX.w * 300}" height="${BOX.h * 200}" rx="12" fill="#c8c8c8"/>` : ''}</svg>`;
 
 test.beforeAll(async ({}, ti) => {
-  // a published car with no studio render of its own gets nine (3701: only renders are shown), and its cover render's matte (5080: the front three-quarter)
+  // a published car with no studio render of its own gets eight (3701: only renders are shown), and its cover render's matte (5080: the front three-quarter)
   const [c] = await sql`select v.id, l.slug, v.is_sample from vehicles v join vehicle_listings l on l.vehicle_id = v.id and l.status = 'published'
                          where not exists (select 1 from vehicle_photos p where p.vehicle_id = v.id and p.r48) order by l.slug limit 1`;
   car = { id: c!.id as string, slug: c!.slug as string }; wasSample = !!c!.is_sample;

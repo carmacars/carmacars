@@ -43,8 +43,9 @@ import { GATE_FEEDBACK, KEY, type GateReason, type KeyName } from './studio-gate
 export const R48_SPEC = 'r48.4';
 /** r48.4 (5080): the cover, the first view of app.photo_render_order() (the sample photos' lead); its cutout drives off the cards. */
 export const COVER_SHOT = 'front_left';
-/** r48.4 (5080): the one dealership room every outside view stands in, stored once (the cards' plate behind a cutout). */
-export const R48_ROOM_PATH = 'site/r48/room.jpg';
+/** r48.4 (5080): the one dealership room every outside view stands in, stored once (the cards' plate behind a cutout). Under
+ *  site/cutouts/ (site_cutouts.plate_path allows only that folder), named by the standard so a new drawing gets a new file. */
+export const R48_ROOM_PATH = `site/cutouts/room-${R48_SPEC}.jpg`;
 /** The preset recorded on a photo made to this standard. */
 export const R48_PRESET = 'gemini_r48';
 /** The car's real photos sent as references at most (each made at most R48_REF_SIDE on its long side). */
