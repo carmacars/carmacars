@@ -209,7 +209,7 @@ end $$;
 select pg_temp.copy_grants('app.heal_signals(timestamptz)'::regprocedure, 'app.heal_signals_pre5102(timestamptz)'::regprocedure);
 
 alter function app.heal_run_action(text, jsonb, heal_incidents, timestamptz) rename to heal_run_action_pre5102;
-create function app.heal_run_action(p_action text, p_params jsonb, i heal_incidents, p_now timestamptz) returns jsonb
+create function app.heal_run_action(p_action text, p_params jsonb, i heal_incidents, p_now timestamptz default now()) returns jsonb
 language plpgsql security definer set search_path = public, app, pg_temp as $$
 declare v_n integer; v_m integer; v_k integer; v_j integer;
 begin
