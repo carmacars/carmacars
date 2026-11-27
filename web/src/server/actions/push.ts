@@ -47,11 +47,12 @@ export async function subscribePush(sub: DeviceSubscription | AppSubscription): 
   } catch (e) { return refused(e); }
 }
 
-export async function unsubscribePush(which: { endpoint?: string; id?: string }): Promise<ActionResult<PushState>> {
+/** signout: the app is signing out (r50 hotfix 2), not the person turning alerts off: the phone turns them back on after the next sign-in. */
+export async function unsubscribePush(which: { endpoint?: string; id?: string; signout?: boolean }): Promise<ActionResult<PushState>> {
   const s = await signedIn();
   if (s.error) return s.error;
   try {
-    return { ok: true, data: (await rpc('server_push_unsubscribe', { p_user: s.user.id, p: { endpoint: which?.endpoint ?? null, id: which?.id ?? null } }, SR)) as unknown as PushState };
+    return { ok: true, data: (await rpc('server_push_unsubscribe', { p_user: s.user.id, p: { endpoint: which?.endpoint ?? null, id: which?.id ?? null, ...(which?.signout === true ? { signout: true } : {}) } }, SR)) as unknown as PushState };
   } catch (e) { return refused(e); }
 }
 

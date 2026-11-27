@@ -2854,9 +2854,9 @@
       "digest": false,
       "from": "CarmaCars <bookings@carmacars.ca>",
       "reply_to": "bookings@carmacars.ca",
-      "subject": "Still time for your check-in visit",
-      "preheader": "Pick a time for the {{vehicle_name}} when it suits you. Free, about 15 minutes.",
-      "sample_subject": "Still time for your check-in visit",
+      "subject": "Your free mid-rental car check: pick a time",
+      "preheader": "You keep the {{vehicle_name}}: a free 15-minute look at it while you have it. Nothing to pay.",
+      "sample_subject": "Your free mid-rental car check: pick a time",
       "variables": [
         {
           "name": "booking_number",
@@ -2936,9 +2936,9 @@
       "digest": false,
       "from": "CarmaCars <bookings@carmacars.ca>",
       "reply_to": "bookings@carmacars.ca",
-      "subject": "Your monthly check-in visit: around {{checkin_due_date}}",
-      "preheader": "A quick look at the {{vehicle_name}} to keep it in top shape. Nothing to pay. Pick a time that suits you.",
-      "sample_subject": "Your monthly check-in visit: around Monday, December 14",
+      "subject": "Your free mid-rental car check: around {{checkin_due_date}}",
+      "preheader": "You keep the {{vehicle_name}}: a free 15-minute look at it to keep it in top shape. Pick a time that suits you.",
+      "sample_subject": "Your free mid-rental car check: around Monday, December 14",
       "variables": [
         {
           "name": "booking_number",

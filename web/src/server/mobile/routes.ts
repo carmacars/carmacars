@@ -229,7 +229,7 @@ export const HANDLERS: Handlers = {
   'me.deletionAsk': async ({ body }) => (await import('@/server/actions/account-deletion')).requestAccountDeletion(body.reason ?? ''),
   'me.deletionWithdraw': async () => (await import('@/server/actions/account-deletion')).withdrawAccountDeletion(),
   'me.pushOn': async ({ body }) => (await import('@/server/actions/push')).subscribePush({ kind: 'fcm', token: body.token, platform: body.platform, portal: body.portal, device: body.device }),
-  'me.pushOff': async ({ body }) => (await import('@/server/actions/push')).unsubscribePush({ endpoint: `fcm:${body.token}` }),
+  'me.pushOff': async ({ body }) => (await import('@/server/actions/push')).unsubscribePush({ endpoint: `fcm:${body.token}`, signout: body.signout === true }),
   'me.pushTest': async () => (await import('@/server/actions/push')).sendTestPush(),
   'me.pushTopics': async ({ body }) => (await import('@/server/actions/push')).savePushTopics(body.topics),
   // r48 (3260): the same preferences as the portals' Notifications pages; the database refuses a locked kind

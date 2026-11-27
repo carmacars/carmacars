@@ -91,7 +91,7 @@ export const ROUTES = {
   'me.deletionAsk': send('POST', '/me/deletion', obj({ reason: opt(str({ max: 500 })) })),
   'me.deletionWithdraw': bare('DELETE', '/me/deletion'),
   'me.pushOn': send('POST', '/me/push', obj({ token: str({ min: 20, max: 4096, trim: false }), platform: oneOf('ios', 'android'), portal: opt(oneOf(...PORTALS)), device: opt(str({ max: 60 })) })),
-  'me.pushOff': send('POST', '/me/push/off', obj({ token: str({ min: 20, max: 4096, trim: false }) })),
+  'me.pushOff': send('POST', '/me/push/off', obj({ token: str({ min: 20, max: 4096, trim: false }), signout: opt(bool) })),
   'me.pushTest': bare('POST', '/me/push/test'),
   'me.pushTopics': send('PUT', '/me/push/topics', obj({ topics: arr(oneOf(...TOPICS), { max: 20 }) })),
   // r48 (3260): each kind of notification by channel, quiet hours, instant or a summary (?portal= one of the person's portals)
