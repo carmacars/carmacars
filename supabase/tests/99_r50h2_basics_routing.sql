@@ -109,6 +109,8 @@ select test.eq('the audit: the prep certificate answer follows the lesson', (sel
 select test.ok('repetition: the renter''s side is customer service''s only', 'renter_side' = any (app.academy_paths_of(test.id('bas_cs'))) and not ('renter_side' = any (app.academy_paths_of(test.id('bas_fleet')))));
 
 -- ================================================================ 6. field routing with shifts paused (5173)
+-- the settings 5173 leaves (other files of a CI slice set field_jobs_auto_assign to none for their own cases)
+update program_settings set field_slots_auto = false, field_jobs_auto_assign = 'least_busy' where id = (app.settings()).id;
 select test.eq('paused: no slot publishes by itself, routing on', (app.settings()).field_slots_auto || '/' || (app.settings()).field_jobs_auto_assign, 'false/least_busy');
 select test.eq('paused: the auto publisher does nothing', app.field_slots_auto_publish(now()) ->> 'off', 'true');
 -- production-like: earlier suites' shifts and open work cleared; one person on yesterday's and today's 10:00 to 17:00 shift

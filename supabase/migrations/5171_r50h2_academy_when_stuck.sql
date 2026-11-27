@@ -104,6 +104,13 @@ begin
     jsonb_build_object('assigned_to', p_by, 'path_staff', '/staff/academy/' || v_path || '/' || v_sec.slug));
   return jsonb_build_object('assigned', true, 'id', v_id, 'href', '/staff/academy/' || v_path || '/' || v_sec.slug);
 end $$;
+-- the notice opens the section (path_staff in the notice), a list kind, not one record's page (99_r48_alert_targets)
+alter function app.alert_entity_kind(text) rename to alert_entity_kind_pre5171;
+create function app.alert_entity_kind(p_entity text) returns text
+language sql immutable set search_path = public, app, pg_temp as $$
+  select case when p_entity = 'academy_assignment' then 'list' else app.alert_entity_kind_pre5171(p_entity) end
+$$;
+select pg_temp.copy_grants('app.alert_entity_kind(text)', 'app.alert_entity_kind_pre5171(text)');
 revoke all on function public.academy_assign_stuck(uuid, jsonb) from public, anon, authenticated;
 grant execute on function public.academy_assign_stuck(uuid, jsonb) to service_role;
 

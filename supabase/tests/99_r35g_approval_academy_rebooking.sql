@@ -117,7 +117,7 @@ update academy_quiz_starts set started_at = now() - interval '5 minutes' where u
 select test.eq('reset: tries again today, and a pass', (pg_temp.submit(true) ->> 'passed')::boolean, true);
 select test.eq('pass: answered at a normal pace: not flagged', (select flagged from academy_attempts where user_id = test.id('gap_cs') order by created_at desc limit 1), false);
 select test.eq('pass: the section is passed', app.academy_passed(test.id('gap_cs'), (select id from academy_sections where slug = 'prices-and-deposits')), true);
-update program_settings set academy_fail_cooldown_minutes = 30 where id = (app.settings()).id;
+update program_settings set academy_fail_cooldown_minutes = 2, academy_attempts_per_day = 10 where id = (app.settings()).id;
 
 -- ================================================================ C. rebooking: the last booking's salesperson claims the lead
 select test.mk_owner('gap_owner');

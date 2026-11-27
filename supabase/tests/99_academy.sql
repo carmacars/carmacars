@@ -112,4 +112,4 @@ select test.eq('gate on: a staff member an Admin enrolled, with paths to pass, i
 select test.eq('gate on: an Admin is never locked', app.academy_locked(test.id('acd_admin')), false);
 update program_settings set academy_gate = false where id = (app.settings()).id;
 -- 1154's settings back to their defaults for the suites after this one
-update program_settings set academy_read_wpm = 200, academy_fail_cooldown_minutes = 30 where id = (app.settings()).id;
+update program_settings set academy_read_wpm = 200, academy_fail_cooldown_minutes = 2 where id = (app.settings()).id;
