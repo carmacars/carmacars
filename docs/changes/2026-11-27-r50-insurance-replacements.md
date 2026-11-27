@@ -9,7 +9,7 @@ that vanished with "already added or discarded".
 
 Migrations `5120_r50i_insurance_replacements.sql` (tables, functions, door, connector), `5121_r50i_insurance_notices.sql`
 (emails), `5122_r50i_insurance_guides.sql` (guides), `5123_r50i_cc10067_off_calendar.sql` (CC-10067 off the calendar and owner
-notices, REQ-015: a Hyundai Palisade of the fleet billed to Definity, so the switch is set on the booking, not by a typed-in car). DB test `supabase/tests/99_r50i_insurance_replacements.sql`; unit tests
+notices, REQ-015: a Hyundai Palisade of the fleet with its claim and a Definity adjuster on the booking, so the switch is set on the booking, not by a typed-in car). DB test `supabase/tests/99_r50i_insurance_replacements.sql`; unit tests
 `web/src/features/insurance/model.test.ts`, `web/src/features/documents/invoice-blocks.test.ts`; e2e
 `web/tests/e2e/insurance-replacements.spec.ts`.
 
