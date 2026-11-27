@@ -1,7 +1,7 @@
-# Hotfix 2 R50: the causes behind the errors, Data health, To do's and alerts (5100 to 5103)
+# Hotfix 2 R50: the causes behind the errors, Data health, To do's and alerts (5100 to 5104)
 
 Migrations `5100_r50h2_connector_listing_files.sql`, `5101_r50h2_data_health_causes.sql`, `5102_r50h2_todo_noise.sql`,
-`5103_r50h2_push_checkin_copy.sql`. From the owner's "problems found" emails and the live lists of Nov 25 to 27
+`5103_r50h2_push_checkin_copy.sql`, `5104_r50h2_heal_bug_reports.sql`. From the owner's "problems found" emails and the live lists of Nov 25 to 27
 (connector: site_errors 48 h, site_health, heal_status, list_todos, bug_reports_list).
 
 ## What was wrong, and the change
@@ -37,6 +37,10 @@ Migrations `5100_r50h2_connector_listing_files.sql`, `5101_r50h2_data_health_cau
   escalated again. Verify and test accounts are never suspended for inactivity. A card hold past its expiry is recorded
   as lapsed; a toll statement read that passed every check is confirmed. Admin and Fleet hear 30 minutes before a car is
   due back and at the return time; a new request tells Admin, Sales and customer service at once.
+- **174 bug reports for one problem (5104).** Self-healing filed a report for every new incident of "Jobs locked and left
+  behind" (the retried photos above, about one every 15 minutes). Now one open report for each problem counts the times,
+  closes by itself an hour after the problem is gone, and the incident names each queue with its rows and links Admin >
+  Self-healing. The open duplicates are closed (wont_fix, "Duplicate of BR-n"), one kept for each problem, each logged.
 - **Phone alerts turning off (5103).** Signing out of the app recorded "turned off", which the site never undoes by itself;
   and the 10-device limit removed the oldest device first, the owner's phone. A sign-out is now a sign-out (the app turns
   alerts back on after the next sign-in, `apps/carmacars-native/src/push/index.ts`), and phones stay first.

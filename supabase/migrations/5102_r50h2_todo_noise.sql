@@ -192,16 +192,19 @@ returns table (source text, key text, fingerprint text, title text, detail text,
 language plpgsql stable security definer set search_path = public, app, pg_temp as $$
 begin
   return query select * from app.heal_signals_pre5102(p_now) x where not (x.source = 'queue' and x.key = 'job_locks');
+  -- the detail names each queue with its rows (5104: the bug reports said only "N rows")
   return query
     select 'queue'::text, 'job_locks'::text, 'queue:job_locks'::text, 'Jobs locked and left behind'::text,
-           format('%s rows, the oldest since %s', q.n, to_char(q.oldest at time zone 'America/Toronto', 'Mon DD HH24:MI')),
-           'stuck'::text, null::text, jsonb_build_object('count', q.n, 'oldest', q.oldest)
-      from (select count(*) n, min(t0) oldest from (
-              select started_at t0 from job_runs where status = 'running' and started_at < p_now - interval '2 hours'
-              union all select locked_at from pdf_jobs where status = 'running' and locked_at < p_now - interval '15 minutes'
-              union all select locked_at from agreement_jobs where locked_at < p_now - interval '15 minutes'
-              union all select p.started_at from photo_jobs p where app.photo_job_stuck(p, p_now)) l) q
-     where q.n > 0;
+           format('%s, the oldest since %s. Admin > Self-healing: /admin/self-healing',
+                  string_agg(format('%s: %s', q.tbl, q.n), ', ' order by q.tbl), to_char(min(q.oldest) at time zone 'America/Toronto', 'Mon DD HH24:MI')),
+           'stuck'::text, '/admin/self-healing'::text,
+           jsonb_build_object('count', sum(q.n), 'oldest', min(q.oldest), 'queues', jsonb_object_agg(q.tbl, q.n))
+      from (select l.tbl, count(*) n, min(l.t0) oldest from (
+              select 'job_runs (scheduled jobs running over 2 hours)' tbl, started_at t0 from job_runs where status = 'running' and started_at < p_now - interval '2 hours'
+              union all select 'pdf_jobs (documents)', locked_at from pdf_jobs where status = 'running' and locked_at < p_now - interval '15 minutes'
+              union all select 'agreement_jobs (rental agreements)', locked_at from agreement_jobs where locked_at < p_now - interval '15 minutes'
+              union all select 'photo_jobs (listing photos)', p.started_at from photo_jobs p where app.photo_job_stuck(p, p_now)) l group by l.tbl) q
+    having count(*) > 0;
 end $$;
 select pg_temp.copy_grants('app.heal_signals(timestamptz)'::regprocedure, 'app.heal_signals_pre5102(timestamptz)'::regprocedure);
 

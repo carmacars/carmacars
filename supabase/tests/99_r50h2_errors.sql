@@ -118,7 +118,7 @@ insert into heal_incidents (id, fingerprint, source, key, title, status, first_s
 select app.heal_escalate(test.id('heal:rq50e_b'), 'rq50e again');
 select test.eq('5102: the same problem escalated again within a day makes no second To do',
   (select count(*)::integer from tasks where task_type = 'self_heal' and related_id in (test.id('heal:rq50e_a'), test.id('heal:rq50e_b'))), 1);
-select test.ok('5102: and says which incident it is', (select escalation_reason like '%Already escalated as incident #%' from heal_incidents where id = test.id('heal:rq50e_b')));
+select test.ok('5102, 5104: and says where it was counted', (select escalation_reason ~ '(Already escalated as incident #|Counted on the open bug report BR-)' from heal_incidents where id = test.id('heal:rq50e_b')));
 
 -- ---------------------------------------------------------------- 8. told at once: a new request, a car due back (5102)
 select test.mk_booking('RQ50E-4', 'rq50e_car2', 'rq50e_rita', to_char((now() + interval '5 days') at time zone 'America/Toronto', 'YYYY-MM-DD HH24:MI'),
@@ -130,3 +130,19 @@ select test.mk_booking('RQ50E-5', 'rq50e_car2', 'rq50e_rita', to_char((now() - i
 select test.eq('5102: a car due back within 30 minutes is told once', app.return_due_alerts(now()), 1);
 select test.eq('5102: and not twice', app.return_due_alerts(now() + interval '1 minute'), 0);
 select test.eq('5102: then at the return time', app.return_due_alerts(now() + interval '21 minutes'), 1);
+
+-- ---------------------------------------------------------------- 9. one bug report per self-healing problem (5104)
+insert into heal_incidents (id, fingerprint, source, key, title, status, first_seen, last_seen) values
+  (test.id('heal:rq50e_c'), 'rq50e:once', 'queue', 'rq50e_once', 'rq50e once', 'open', now() - interval '3 days', now() - interval '3 days');
+select app.heal_escalate(test.id('heal:rq50e_c'), 'rq50e first', now() - interval '3 days');
+update heal_incidents set status = 'healed', healed_at = now() - interval '3 days', healed_by = 'itself' where id = test.id('heal:rq50e_c');
+insert into heal_incidents (id, fingerprint, source, key, title, status, first_seen, last_seen) values
+  (test.id('heal:rq50e_d'), 'rq50e:once', 'queue', 'rq50e_once', 'rq50e once', 'open', now(), now());
+select app.heal_escalate(test.id('heal:rq50e_d'), 'rq50e again');
+select test.eq('5104: the same problem days later files no second bug report',
+  (select count(distinct bug_report_id)::integer from heal_incidents where id in (test.id('heal:rq50e_c'), test.id('heal:rq50e_d'))), 1);
+select test.eq('5104: the open report counts it', (select (r.context ->> 'times')::integer from bug_reports r join heal_incidents h on h.bug_report_id = r.id where h.id = test.id('heal:rq50e_d')), 2);
+update heal_incidents set status = 'healed', healed_at = now() - interval '2 hours', healed_by = 'itself', last_seen = now() - interval '2 hours' where id = test.id('heal:rq50e_d');
+select app.heal_close_reports(now());
+select test.eq('5104: the report closes by itself once the problem has been gone an hour',
+  (select r.status from bug_reports r join heal_incidents h on h.bug_report_id = r.id where h.id = test.id('heal:rq50e_d')), 'fixed');
