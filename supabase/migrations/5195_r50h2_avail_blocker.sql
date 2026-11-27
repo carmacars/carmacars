@@ -24,7 +24,7 @@
 --      done puts a car in cleaning back to available, a handover takes a car in cleaning (it describes the car between
 --      rentals, not its dates), and cars left in cleaning with no open detail job are made available once here.
 --   5. The connector's set_car_status (admin_do vehicle_status_set): an Admin changes a car's status to one the Admin car
---      page offers (the status rules), with a reason kept in the audit log.
+--      page offers (the status rules), with a reason kept in the audit log. Never on rent or exited (a handover, the exit flow).
 -- No applied migration is edited: functions are patched in place (the patch refuses when the text is not found).
 set local check_function_bodies = off;
 
@@ -78,6 +78,15 @@ begin
                     else 'added by staff' end,
       app.fmt_at(c.starts_at), coalesce(app.fmt_at(c.ends_at), 'no end'));
   end if;
+  -- a past rental still confirmed with its pickup never recorded (3810: presumed out until it is recorded), named only
+  -- when it is what makes the car not available (5111 ends that rule; the live build before 5111 still has it)
+  if p_to > now() and not app.vehicle_is_available(p_vehicle, p_from, p_to, p_ignore_booking) then
+    b := app.vehicle_presumed_out(p_vehicle, p_ignore_booking);
+    if b.id is not null then
+      return format('booking %s (confirmed, its pickup on %s never recorded, return %s: the car counts as out until its handover, return or no-show is recorded)',
+        b.booking_number, app.fmt_at(b.pickup_at), app.fmt_at(b.return_at));
+    end if;
+  end if;
   return null;
 end $$;
 revoke all on function app.vehicle_blocker(uuid, timestamptz, timestamptz, uuid) from public, anon, authenticated;
@@ -88,8 +97,14 @@ grant execute on function app.vehicle_blocker(uuid, timestamptz, timestamptz, uu
 select pg_temp.patch_fn('app.booking_before_write()'::regprocedure,
   $o$    raise exception 'The vehicle is not available for these dates: a confirmed booking or a calendar block overlaps'
       using errcode = '23P01';$o$,
-  $n$    raise exception 'The vehicle is not available for these dates: blocked by %',
-      coalesce(app.vehicle_blocker(new.vehicle_id, new.pickup_at, new.return_at, new.id), 'a confirmed booking or a calendar block') using errcode = '23P01';$n$);
+  $n$    -- staff and the server see what is in the way; a renter or an owner keeps the old message (no other rental shown)
+    if (auth.uid() is not null and (app.user_is_admin(auth.uid()) or app.user_is_staff(auth.uid())))
+       or (auth.uid() is null and coalesce(nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'role', 'service_role') = 'service_role') then
+      raise exception 'The vehicle is not available for these dates: blocked by %',
+        coalesce(app.vehicle_blocker(new.vehicle_id, new.pickup_at, new.return_at, new.id), 'a confirmed booking or a calendar block') using errcode = '23P01';
+    end if;
+    raise exception 'The vehicle is not available for these dates: a confirmed booking or a calendar block overlaps'
+      using errcode = '23P01';$n$);
 
 -- sending an offer
 select pg_temp.patch_fn('app.send_offer_pre0148(uuid, uuid, text, timestamptz)'::regprocedure,
@@ -125,10 +140,10 @@ select pg_temp.patch_fn('app.booking_start_pay_later(uuid, jsonb)'::regprocedure
 select pg_temp.patch_fn('app.staff_offer_preview(uuid, jsonb)'::regprocedure,
   $o$'available', (select app.vehicle_is_available(b.vehicle_id, b.pickup_at, b.return_at, b.id) from bookings b where b.id = v_id),$o$,
   $n$'available', (select app.vehicle_is_available(b.vehicle_id, b.pickup_at, b.return_at, b.id) from bookings b where b.id = v_id),
-      'blocker', (select app.vehicle_blocker(b.vehicle_id, b.pickup_at, b.return_at, b.id) from bookings b where b.id = v_id),$n$);
+      'blocker', (select case when not app.vehicle_is_available(b.vehicle_id, b.pickup_at, b.return_at, b.id) then app.vehicle_blocker(b.vehicle_id, b.pickup_at, b.return_at, b.id) end from bookings b where b.id = v_id),$n$);
 select pg_temp.patch_fn('app.admin_booking_preview(uuid, uuid, jsonb)'::regprocedure,
   $o$'available', (select app.vehicle_is_available(b.vehicle_id, b.pickup_at, b.return_at, b.id) from bookings b where b.id = p_booking)$o$,
-  $n$'blocker', (select app.vehicle_blocker(b.vehicle_id, b.pickup_at, b.return_at, b.id) from bookings b where b.id = p_booking),
+  $n$'blocker', (select case when not app.vehicle_is_available(b.vehicle_id, b.pickup_at, b.return_at, b.id) then app.vehicle_blocker(b.vehicle_id, b.pickup_at, b.return_at, b.id) end from bookings b where b.id = p_booking),
                                 'available', (select app.vehicle_is_available(b.vehicle_id, b.pickup_at, b.return_at, b.id) from bookings b where b.id = p_booking)$n$);
 
 -- ================================================================ 3. revise_offer changes the car
@@ -158,8 +173,16 @@ end $$;
 
 -- ================================================================ 4. cleaning never stops a rental
 select pg_temp.patch_fn('app.booking_after_status()'::regprocedure,
-  $o$    if v_status not in ('available', 'exit_notice', 'ready_to_list') then$o$,
-  $n$    if v_status not in ('available', 'exit_notice', 'ready_to_list', 'cleaning') then$n$);
+  $o$    if v_status not in ('available', 'exit_notice', 'ready_to_list') then
+      if not app.override_skips(new.id, 'vehicle_status') then raise exception 'Vehicle is % and cannot be handed over', v_status using errcode = '23514'; end if;
+    end if;
+    update vehicles set status = 'on_rent' where id = new.vehicle_id;$o$,
+  $n$    if v_status not in ('available', 'exit_notice', 'ready_to_list', 'cleaning') then
+      if not app.override_skips(new.id, 'vehicle_status') then raise exception 'Vehicle is % and cannot be handed over', v_status using errcode = '23514'; end if;
+    end if;
+    -- the status rules have no cleaning to on_rent: the car becomes available first (as 0072 does for a rental already out)
+    if v_status = 'cleaning' then update vehicles set status = 'available' where id = new.vehicle_id and status = 'cleaning'; end if;
+    update vehicles set status = 'on_rent' where id = new.vehicle_id;$n$);
 
 select pg_temp.patch_fn('app.handover_blockers_pre0930(uuid, uuid, text, jsonb)'::regprocedure,
   $o$    if v_status not in ('available', 'exit_notice', 'ready_to_list') then v_codes := v_codes || 'vehicle_status'::text; end if;$o$,
@@ -168,7 +191,11 @@ select pg_temp.patch_fn('app.handover_blockers_pre0930(uuid, uuid, text, jsonb)'
 create function app.detail_done_car_available() returns trigger
 language plpgsql security definer set search_path = public, app, pg_temp as $$
 begin
-  if new.kind = 'detail' and new.status = 'done' and old.status is distinct from 'done' and new.vehicle_id is not null then
+  if new.kind = 'detail' and new.status = 'done' and old.status is distinct from 'done' and new.vehicle_id is not null
+     and coalesce(new.scheduled_at, new.created_at) >= coalesce((select max(h.changed_at) from status_history h
+           where h.entity = 'vehicle' and h.entity_id = new.vehicle_id and h.to_status = 'cleaning'), '-infinity')
+     and not exists (select 1 from field_jobs j where j.vehicle_id = new.vehicle_id and j.id <> new.id
+           and j.status in ('scheduled', 'acknowledged', 'in_progress')) then
     update vehicles set status = 'available' where id = new.vehicle_id and status = 'cleaning';
   end if;
   return null;
@@ -178,10 +205,11 @@ grant execute on function app.detail_done_car_available() to service_role;
 create trigger field_jobs_detail_done_available after update of status on field_jobs
   for each row execute function app.detail_done_car_available();
 
--- the cars left in cleaning with no detail job still to do (the Forte since Nov 16)
+-- the cars left in cleaning for over 24 hours with no field job of any kind still open (the Forte since Nov 16)
 update vehicles v set status = 'available'
  where v.status = 'cleaning'
-   and not exists (select 1 from field_jobs j where j.vehicle_id = v.id and j.kind = 'detail' and j.status in ('scheduled', 'acknowledged', 'in_progress'));
+   and coalesce((select max(h.changed_at) from status_history h where h.entity = 'vehicle' and h.entity_id = v.id and h.to_status = 'cleaning'), '-infinity') < now() - interval '24 hours'
+   and not exists (select 1 from field_jobs j where j.vehicle_id = v.id and j.status in ('scheduled', 'acknowledged', 'in_progress'));
 
 -- ================================================================ 5. set_car_status
 create function app.vehicle_status_set(p_by uuid, p jsonb) returns jsonb
@@ -195,6 +223,9 @@ begin
   select * into v from vehicles where id::text = coalesce(p ->> 'vehicle_id', p ->> 'vehicle') for update;
   if v.id is null then raise exception 'Car not found' using errcode = 'P0002'; end if;
   if v_reason is null or char_length(v_reason) < 3 then raise exception 'Say why the status changes' using errcode = '22023'; end if;
+  if v_to in ('on_rent', 'exited') then
+    raise exception 'A car goes on rent only through a handover, and exits only through the exit flow' using errcode = '23514';
+  end if;
   if v_to is null or v_to = v.status::text then raise exception 'The car is already %', replace(v.status::text, '_', ' ') using errcode = '22023'; end if;
   if not exists (select 1 from status_transitions t where t.entity = 'vehicle' and t.from_status = v.status::text and t.to_status = v_to) then
     raise exception 'A car goes from % to: %', replace(v.status::text, '_', ' '),
