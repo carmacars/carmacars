@@ -15,11 +15,12 @@
 --   2. Live work is never lost (app.lead_merge_auto): a lead has live work when it has a live claim or hold, a logged
 --      contact, an assigned salesperson, a pipeline stage past New, a lead generator or a first contact. The lead with live
 --      work is kept and the other folds into it (else the older one is kept). When both have live work they are not
---      merged: the lead page offers the merge. When the kept lead was already handled, the new enquiry reopens it as New,
---      with the same salesperson, who is told (lead_reopened).
+--      merged: the lead page offers the merge. When the kept lead was already handled, the new enquiry reopens it (New
+--      unless it was Contacted or Qualified), with the same salesperson, who is told (lead_reopened).
 --   3. The merge (app.lead_merge, replaced): 3230's, and it also carries the lead generator, the first contact, the
 --      pipeline stage, the assigned salesperson and who sourced it, never blanking them; a live claim or hold moves to the
---      kept lead when it has none. The audit log has each merge (lead_auto_merge).
+--      kept lead with its holder, and two live ones held by different people stop the merge; the lead generator's credit
+--      moves too. The audit log has each merge (lead_auto_merge).
 --   4. When: at the end of the transaction that made a lead or changed its name, email or phone (a constraint trigger),
 --      and every hour (app.job_lead_merge, pg_cron) over the open leads, so the leads already there merge too.
 --      Program settings lead_auto_merge still switches it off.
@@ -27,7 +28,7 @@
 set local check_function_bodies = off;
 
 -- The words of a name, for comparing variants: lower case, letters and digits only ("Lead 1" and "Lead 2" differ), one space between words.
-create function app.lead_name_words(p text) returns text[]
+create or replace function app.lead_name_words(p text) returns text[]
 language sql immutable set search_path = public, app, pg_temp as $$
   select coalesce(array_agg(w order by n), '{}') from regexp_split_to_table(btrim(regexp_replace(lower(coalesce(p, '')), '[^a-z0-9 ]+', ' ', 'g')), '\s+') with ordinality t(w, n)
    where length(w) >= 2 or w ~ '^[0-9]+$'
@@ -35,7 +36,7 @@ $$;
 
 -- Two names are variants of one name: at least two words each, and the same words in any order, or the same first and last
 -- word (a middle name given once).
-create function app.lead_names_match(a text, b text) returns boolean
+create or replace function app.lead_names_match(a text, b text) returns boolean
 language sql immutable set search_path = public, app, pg_temp as $$
   select cardinality(x) >= 2 and cardinality(y) >= 2
      and ((select array_agg(w order by w) from unnest(x) w) = (select array_agg(w order by w) from unnest(y) w)
@@ -46,20 +47,20 @@ $$;
 
 -- Index keys for the name rule (so a lead's name variants are found by an index, not by reading every open lead): the
 -- first and last word in alphabetical order, and all the words in alphabetical order. Names that match share one of them.
-create function app.lead_name_fl(p text) returns text
+create or replace function app.lead_name_fl(p text) returns text
 language sql immutable set search_path = public, app, pg_temp as $$
   select case when cardinality(w) >= 2 then least(w[1], w[cardinality(w)]) || ' ' || greatest(w[1], w[cardinality(w)]) end
     from (select app.lead_name_words(p) as w) s
 $$;
-create function app.lead_name_sorted(p text) returns text
+create or replace function app.lead_name_sorted(p text) returns text
 language sql immutable set search_path = public, app, pg_temp as $$
   select case when cardinality(w) >= 2 then (select string_agg(x, ' ' order by x) from unnest(w) x) end
     from (select app.lead_name_words(p) as w) s
 $$;
-create index leads_open_name_fl_idx on leads (app.lead_name_fl(name)) where status in ('new', 'contacted', 'qualified');
-create index leads_open_name_sorted_idx on leads (app.lead_name_sorted(name)) where status in ('new', 'contacted', 'qualified');
+create index if not exists leads_open_name_fl_idx on leads (app.lead_name_fl(name)) where status in ('new', 'contacted', 'qualified');
+create index if not exists leads_open_name_sorted_idx on leads (app.lead_name_sorted(name)) where status in ('new', 'contacted', 'qualified');
 
-create function app.lead_open_for_merge(l leads) returns boolean
+create or replace function app.lead_open_for_merge(l leads) returns boolean
 language sql immutable set search_path = public, app, pg_temp as $$
   select app.lead_mergeable(l) and l.kind <> 'sample_car' and l.status in ('new', 'contacted', 'qualified') and l.sales_outcome is null
 $$;
@@ -67,25 +68,25 @@ $$;
 
 -- Names that can be one person when the email or phone is the same: one of them has no name, or the same last name, or the
 -- same first initial.
-create function app.lead_names_fit(a text, b text) returns boolean
+create or replace function app.lead_names_fit(a text, b text) returns boolean
 language sql immutable set search_path = public, app, pg_temp as $$
   select cardinality(x) = 0 or cardinality(y) = 0 or x[cardinality(x)] = y[cardinality(y)] or left(x[1], 1) = left(y[1], 1)
     from (select app.lead_name_words(a) as x, app.lead_name_words(b) as y) s
 $$;
 
 -- The city and the car a lead asks about (lower case; null when not given).
-create function app.lead_city(l leads) returns text
+create or replace function app.lead_city(l leads) returns text
 language sql immutable set search_path = public, app, pg_temp as $$
   select nullif(lower(btrim(coalesce(l.payload ->> 'city', ''))), '')
 $$;
-create function app.lead_car(l leads) returns text
+create or replace function app.lead_car(l leads) returns text
 language sql immutable set search_path = public, app, pg_temp as $$
   select nullif(lower(btrim(coalesce(l.vehicle_text, l.payload ->> 'vehicle', l.payload ->> 'car', ''))), '')
 $$;
 
 -- Live work on a lead: a live claim or hold, a logged contact, an assigned salesperson, a stage past New, a lead generator,
 -- a first contact.
-create function app.lead_has_work(l leads) returns boolean
+create or replace function app.lead_has_work(l leads) returns boolean
 language sql stable security definer set search_path = public, app, pg_temp as $$
   select l.assigned_to is not null or l.generated_by is not null or l.first_contact_at is not null
       or coalesce(l.pipeline_stage, 'new') <> 'new'
@@ -95,7 +96,7 @@ language sql stable security definer set search_path = public, app, pg_temp as $
 $$;
 
 -- The open lead p_lead is one person with: the oldest such lead, older than it. Null: none.
-create function app.lead_merge_target(p_lead uuid) returns uuid
+create or replace function app.lead_merge_target(p_lead uuid) returns uuid
 language sql stable security definer set search_path = public, app, pg_temp as $$
   -- four indexed lookups (the email, the phone key, the two name keys of the open leads), then the rules
   select o.id
@@ -147,6 +148,13 @@ begin
   if d.won_booking_id is not null and k.won_booking_id is not null and d.won_booking_id <> k.won_booking_id then
     raise exception 'Both leads were won with different bookings: they stay apart' using errcode = '22023';
   end if;
+  -- 5131: a live claim or hold is never dropped. Two live ones held by different people: the merge waits.
+  if exists (select 1 from lead_claims a join lead_claims b on b.lead_id = d.id and b.expires_at > now()
+              where a.lead_id = k.id and a.expires_at > now() and a.claimed_by <> b.claimed_by)
+     or exists (select 1 from lead_holds a join lead_holds b on b.lead_id = d.id and b.expires_at > now()
+                 where a.lead_id = k.id and a.expires_at > now() and a.held_by <> b.held_by) then
+    raise exception 'Both leads are being worked on by different people (each has a live claim): one of them releases it first, then merge' using errcode = '23514';
+  end if;
 
   v_entry := jsonb_strip_nulls(jsonb_build_object('id', d.id, 'received_at', d.created_at, 'source', app.sl_source(d), 'kind', d.kind, 'name', d.name, 'email', d.email, 'phone', d.phone,
     'message', d.message, 'form', nullif(d.payload - 'merged', '{}'::jsonb), 'source_url', d.source_url, 'merged_at', now(), 'merged_by', p_by, 'auto', p_by is null));
@@ -184,15 +192,25 @@ begin
   update game_claims set lead_id = k.id where lead_id = d.id;
   update phone_gate_contacts set lead_id = k.id where lead_id = d.id;
   update owner_applications set lead_id = k.id where lead_id = d.id;
-  -- 5131: a live claim or hold moves to the kept lead when it has none (never deleted while live)
-  insert into lead_claims (lead_id, claimed_by, claimed_at, extended_at, expires_at, cap_at)
+  -- 5131: a live claim or hold moves to the kept lead with its holder (the same holder on both: the later end is kept);
+  -- only an expired one is cleared
+  insert into lead_claims as x (lead_id, claimed_by, claimed_at, extended_at, expires_at, cap_at)
   select k.id, c.claimed_by, c.claimed_at, c.extended_at, c.expires_at, c.cap_at from lead_claims c where c.lead_id = d.id and c.expires_at > now()
-  on conflict (lead_id) do nothing;
-  insert into lead_holds (lead_id, held_by, role, held_at, last_call_at, expires_at, prev_claimed_by)
+  on conflict (lead_id) do update set claimed_by = excluded.claimed_by, claimed_at = least(x.claimed_at, excluded.claimed_at), extended_at = excluded.extended_at,
+         expires_at = greatest(x.expires_at, excluded.expires_at), cap_at = greatest(x.cap_at, excluded.cap_at)
+   where x.claimed_by = excluded.claimed_by or x.expires_at <= now();
+  insert into lead_holds as x (lead_id, held_by, role, held_at, last_call_at, expires_at, prev_claimed_by)
   select k.id, h.held_by, h.role, h.held_at, h.last_call_at, h.expires_at, h.prev_claimed_by from lead_holds h where h.lead_id = d.id and h.expires_at > now()
-  on conflict (lead_id) do nothing;
+  on conflict (lead_id) do update set held_by = excluded.held_by, role = excluded.role, held_at = least(x.held_at, excluded.held_at), prev_claimed_by = coalesce(x.prev_claimed_by, excluded.prev_claimed_by),
+         expires_at = greatest(x.expires_at, excluded.expires_at), last_call_at = greatest(x.last_call_at, excluded.last_call_at)
+   where x.held_by = excluded.held_by or x.expires_at <= now();
   delete from lead_claims where lead_id = d.id;
   delete from lead_holds where lead_id = d.id;
+  -- 5131: the lead generator's credit moves with the lead (a second live credit for the same person is voided, kept)
+  update lead_gen_credits c set status = 'void', note = 'Merged: the kept lead already has this credit', decided_at = now()
+   where c.lead_id = d.id and c.status not in ('void', 'paid')
+     and exists (select 1 from lead_gen_credits o where o.lead_id = k.id and o.status <> 'void');
+  update lead_gen_credits set lead_id = k.id where lead_id = d.id;
   if not exists (select 1 from contact_sources where lead_id = k.id) then update contact_sources set lead_id = k.id where lead_id = d.id; end if;
   update tasks set related_id = k.id, detail = left(concat_ws(' ', detail, '(Merged: the same person already had a lead.)'), 2000)
    where related_table = 'leads' and related_id = d.id and status not in ('done', 'cancelled');
@@ -213,7 +231,7 @@ on conflict (rule) do nothing;
 
 -- Merges one lead with its match, keeping live work. Never fails the caller: a merge that cannot be done leaves the lead as
 -- it is (the next hourly run tries again). Returns the kept lead's id, or null (no match, or both have live work).
-create function app.lead_merge_auto(p_lead uuid) returns uuid
+create or replace function app.lead_merge_auto(p_lead uuid) returns uuid
 language plpgsql security definer set search_path = public, app, pg_temp as $$
 declare
   v_other uuid;
@@ -235,7 +253,7 @@ begin
   end;
   -- the kept lead was handled and the person wrote again: New again, the same salesperson, who is told
   if k.handled_at is not null then
-    update leads set handled_at = null, handled_by = null, status = 'new',
+    update leads set handled_at = null, handled_by = null, status = case when status in ('contacted', 'qualified') then status else 'new' end,
            followup_stopped_at = null, followup_stop_reason = null
      where id = k.id;
     v_rep := coalesce(k.assigned_to, (select c.claimed_by from lead_claims c where c.lead_id = k.id and c.expires_at > now()));
@@ -263,7 +281,7 @@ create constraint trigger leads_zzz_auto_merge_upd after update of name, email, 
   for each row execute function app.lead_auto_merge();
 
 -- The open leads, newest first: each joins its match. Returns how many were merged.
-create function app.job_lead_merge(p_limit integer default 2000) returns integer
+create or replace function app.job_lead_merge(p_limit integer default 2000) returns integer
 language plpgsql security definer set search_path = public, app, pg_temp as $$
 declare
   r record;

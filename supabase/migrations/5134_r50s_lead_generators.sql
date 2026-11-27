@@ -51,7 +51,7 @@ comment on column program_settings.lead_gen_flat_cents is 'Owner-lead generators
 
 create table lead_gen_credits (
   id             uuid primary key default gen_random_uuid(),
-  lead_id        uuid not null unique references leads (id),
+  lead_id        uuid not null references leads (id),
   staff_id       uuid not null references users (id),
   owner_id       uuid references owners (id),
   amount_cents   bigint not null check (amount_cents between 0 and 100000),
@@ -69,6 +69,11 @@ create table lead_gen_credits (
 );
 comment on table lead_gen_credits is 'Owner-lead generators (5134): the flat amount earned for a lead they entered whose owner signed. One a lead; an Admin approves, voids or marks it paid.';
 create index lead_gen_credits_staff_idx on lead_gen_credits (staff_id, earned_at);
+-- one live credit an owner (a voided, that is rejected, credit blocks nothing), and one a lead while the owner is not known;
+-- the database holds the rule, so two signings at once cannot both credit
+create unique index lead_gen_credits_owner_one on lead_gen_credits (owner_id) where owner_id is not null and status <> 'void';
+create unique index lead_gen_credits_lead_one on lead_gen_credits (lead_id) where owner_id is null and status <> 'void';
+create index lead_gen_credits_lead_idx on lead_gen_credits (lead_id);
 create index lead_gen_credits_owner_idx on lead_gen_credits (owner_id);
 create trigger lead_gen_credits_updated before update on lead_gen_credits for each row execute function app.set_updated_at();
 create trigger audit_lead_gen_credits after insert or update or delete on lead_gen_credits for each row execute function app.audit_row();
@@ -173,11 +178,11 @@ begin
           or (v_owner is not null and exists (select 1 from owner_agreements a where a.owner_id = v_owner and a.kind = 'enrollment' and a.status = 'signed'))) then
     return null;
   end if;
-  -- one credit an owner, whichever of their leads signed
-  if v_owner is not null and exists (select 1 from lead_gen_credits c where c.owner_id = v_owner and c.status <> 'void') then return null; end if;
+  -- one live credit an owner (or a lead, owner not known): the unique indexes decide, so two signings at once credit once
+  if exists (select 1 from lead_gen_credits c where c.lead_id = l.id and c.status <> 'void') then return null; end if;
   insert into lead_gen_credits (lead_id, staff_id, owner_id, amount_cents)
   values (l.id, l.generated_by, v_owner, (app.settings()).lead_gen_flat_cents)
-  on conflict (lead_id) do nothing
+  on conflict do nothing
   returning id into v_id;
   if v_id is null then return null; end if;
   begin

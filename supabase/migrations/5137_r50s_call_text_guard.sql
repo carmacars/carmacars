@@ -20,7 +20,7 @@
 -- edited: app.door is wrapped (_pre5137).
 set local check_function_bodies = off;
 
-create function pg_temp.copy_grants(p_new regprocedure, p_old regprocedure) returns void
+create or replace function pg_temp.copy_grants(p_new regprocedure, p_old regprocedure) returns void
 language plpgsql as $$
 declare g text;
 begin
@@ -30,7 +30,7 @@ begin
   end loop;
 end $$;
 
-create table call_flag_words (
+create table if not exists call_flag_words (
   id          uuid primary key default gen_random_uuid(),
   phrase      text not null unique check (phrase = lower(btrim(phrase)) and length(phrase) between 2 and 60),
   category    text not null check (category in ('swearing', 'off_platform_payment', 'personal_number', 'cash_only', 'threat', 'discrimination')),
@@ -40,9 +40,12 @@ create table call_flag_words (
   updated_at  timestamptz not null default now()
 );
 comment on table call_flag_words is 'Words and phrases that flag a salesperson''s call for Admin (5137), by category. An Admin adds or switches them off.';
+drop trigger if exists call_flag_words_updated on call_flag_words;
 create trigger call_flag_words_updated before update on call_flag_words for each row execute function app.set_updated_at();
+drop trigger if exists audit_call_flag_words on call_flag_words;
 create trigger audit_call_flag_words after insert or update or delete on call_flag_words for each row execute function app.audit_row();
 alter table call_flag_words enable row level security;
+drop policy if exists admin_all on call_flag_words;
 create policy admin_all on call_flag_words for all to authenticated using (app.is_admin()) with check (app.is_admin());
 revoke all on call_flag_words from public, anon, authenticated;
 grant all on call_flag_words to service_role;
@@ -60,7 +63,7 @@ insert into call_flag_words (phrase, category) values
   ('we don''t rent to your kind', 'discrimination'), ('your kind', 'discrimination'), ('people like you', 'discrimination'), ('go back to your country', 'discrimination')
 on conflict (phrase) do nothing;
 
-create table call_flags (
+create table if not exists call_flags (
   id           uuid primary key default gen_random_uuid(),
   activity_id  uuid references phone_activity (id) on delete cascade,
   staff_id     uuid references users (id) on delete set null,
@@ -76,11 +79,13 @@ create table call_flags (
   created_at   timestamptz not null default now()
 );
 comment on table call_flags is 'A salesperson''s call line or blocked text flagged for Admin (5137): a phone number, swearing or other risky words, with the line.';
-create unique index call_flags_one on call_flags (activity_id, category, md5(line)) where activity_id is not null;
-create index call_flags_staff_idx on call_flags (staff_id, created_at);
-create index call_flags_open_idx on call_flags (created_at desc) where reviewed_at is null;
+create unique index if not exists call_flags_one on call_flags (activity_id, category, md5(line)) where activity_id is not null;
+create index if not exists call_flags_staff_idx on call_flags (staff_id, created_at);
+create index if not exists call_flags_open_idx on call_flags (created_at desc) where reviewed_at is null;
+drop trigger if exists audit_call_flags on call_flags;
 create trigger audit_call_flags after insert or update or delete on call_flags for each row execute function app.audit_row();
 alter table call_flags enable row level security;
+drop policy if exists admin_all on call_flags;
 create policy admin_all on call_flags for all to authenticated using (app.is_admin()) with check (app.is_admin());
 revoke all on call_flags from public, anon, authenticated;
 grant all on call_flags to service_role;
@@ -92,7 +97,7 @@ on conflict (rule) do nothing;
 
 -- ================================================================ the checks
 -- Spoken digits become digits, and the separators between digits go, so "647 555-0101" and "six four seven ..." read alike.
-create function app.digits_spoken(p text) returns text
+create or replace function app.digits_spoken(p text) returns text
 language sql immutable set search_path = public, app, pg_temp as $$
   select regexp_replace(
            regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(
@@ -101,25 +106,27 @@ language sql immutable set search_path = public, app, pg_temp as $$
            '(\d)[\s.,()+-]+(?=\d)', '\1', 'g')
 $$;
 
--- A phone number: a run of 10 or 11 digits (spaces, dashes, dots and brackets between them allowed, or spoken). Dates,
--- times, prices and booking numbers are taken out first, so "2026-11-27 10:30", "$1,250.00" and "CC-10673" are not numbers.
-create function app.phone_text_clean(p text) returns text
+-- A phone number: a run of 10 or 11 digits (spaces, dashes, dots and brackets between them allowed, or spoken). Short
+-- dates, times, prices, decimals and references are taken out first, so "2026-11-27 10:30", "$1,250.00" and "CC-10673" are
+-- not numbers. Nothing with a run of 10 digits or more is ever taken out: "647.575.3377", "tel-6475753377" and
+-- "$6475753377" are numbers.
+create or replace function app.phone_text_clean(p text) returns text
 language sql immutable set search_path = public, app, pg_temp as $$
   select regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(lower(coalesce(p, '')),
-           '\m[a-z]{1,4}-\d+\M', ' ', 'g'),                                         -- booking and other references: CC-10673
-           '\$\s*\d[\d,]*(\.\d+)?', ' ', 'g'),                                     -- prices: $1,250.00
-           '\m\d{4}[-/.]\d{1,2}[-/.]\d{1,2}\M|\m\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4}\M', ' ', 'g'),  -- dates
-           '\m\d{1,2}:\d{2}(:\d{2})?(\s*[ap]\.?m\.?)?', ' ', 'g'),               -- times
-           '\m\d[\d,]*\.\d+\M', ' ', 'g')                                         -- decimals
+           '\m[a-z]{1,4}-\d{1,9}\M', ' ', 'g'),                                                -- references: CC-10673
+           '\$\s*(\d{1,3}(,\d{3}){1,2}|\d{1,9})(\.\d{1,2})?(?![\d,])', ' ', 'g'),              -- prices: $1,250.00
+           '\m\d{4}[-/]\d{1,2}[-/]\d{1,2}\M|\m\d{1,2}/\d{1,2}/\d{2,4}\M', ' ', 'g'),            -- dates
+           '\m\d{1,2}:\d{2}(:\d{2})?(\s*[ap]\.?m\.?)?', ' ', 'g'),                            -- times
+           '\m\d{1,6}\.\d{1,2}\M(?!\.\d)', ' ', 'g')                                          -- short decimals: 1250.00
 $$;
 
-create function app.has_phone_number(p text) returns boolean
+create or replace function app.has_phone_number(p text) returns boolean
 language sql immutable set search_path = public, app, pg_temp as $$
   select app.digits_spoken(app.phone_text_clean(p)) ~ '(^|\D)1?\d{10}(\D|$)'
 $$;
 
 -- the flags of one line: (category, phrase)
-create function app.line_flags(p_line text) returns table (category text, phrase text)
+create or replace function app.line_flags(p_line text) returns table (category text, phrase text)
 language sql stable security definer set search_path = public, app, pg_temp as $$
   select 'phone_number', null::text where app.has_phone_number(p_line)
   union all
@@ -128,12 +135,12 @@ language sql stable security definer set search_path = public, app, pg_temp as $
 $$;
 
 -- the staff member on a call
-create function app.call_staff(a phone_activity) returns uuid
+create or replace function app.call_staff(a phone_activity) returns uuid
 language sql stable security definer set search_path = public, app, pg_temp as $$
   select coalesce(a.staff_user_id, (select oc.staff_user_id from outbound_calls oc where oc.activity_id = a.id order by oc.created_at desc limit 1), a.sent_by)
 $$;
 
-create function app.call_flag_scan(p_activity uuid) returns integer
+create or replace function app.call_flag_scan(p_activity uuid) returns integer
 language plpgsql security definer set search_path = public, app, pg_temp as $$
 declare
   a phone_activity;
@@ -172,7 +179,7 @@ begin
   return n;
 end $$;
 
-create function app.call_flag_trg() returns trigger
+create or replace function app.call_flag_trg() returns trigger
 language plpgsql security definer set search_path = public, app, pg_temp as $$
 begin
   if new.kind = 'call' and new.transcript is not null and (tg_op = 'INSERT' or new.transcript is distinct from old.transcript) then
@@ -183,11 +190,12 @@ exception when others then
   raise warning 'call flag scan failed for %: %', new.id, sqlerrm;
   return null;
 end $$;
+drop trigger if exists phone_activity_zz_call_flags on phone_activity;
 create trigger phone_activity_zz_call_flags after insert or update of transcript on phone_activity
   for each row execute function app.call_flag_trg();
 
 -- a salesperson's text with a phone number: kept as a flag, then refused
-create function app.text_phone_guard(p_user uuid, p_body text) returns void
+create or replace function app.text_phone_guard(p_user uuid, p_body text) returns void
 language plpgsql security definer set search_path = public, app, pg_temp as $$
 begin
   if p_user is null or not app.user_va_has_sales(p_user) or app.user_is_admin(p_user) or not app.has_phone_number(p_body) then return; end if;
@@ -203,7 +211,7 @@ end $$;
 -- Every other way a salesperson's text is queued (quick texts, the lead and booking pages, templates): the outbox refuses a
 -- staff text with a phone number from a salesperson, with the same reason (compose and reply above answer it on screen
 -- and keep the flag).
-create function app.phone_outbox_guard() returns trigger
+create or replace function app.phone_outbox_guard() returns trigger
 language plpgsql security definer set search_path = public, app, pg_temp as $$
 begin
   if new.kind = 'staff' and new.sent_by is not null and app.user_va_has_sales(new.sent_by) and not app.user_is_admin(new.sent_by)
@@ -213,10 +221,11 @@ begin
   end if;
   return new;
 end $$;
+drop trigger if exists phone_outbox_phone_guard on phone_outbox;
 create trigger phone_outbox_phone_guard before insert on phone_outbox for each row execute function app.phone_outbox_guard();
 
 -- ================================================================ Admin
-create function app.call_flags_admin(p_by uuid, p jsonb) returns jsonb
+create or replace function app.call_flags_admin(p_by uuid, p jsonb) returns jsonb
 language plpgsql stable security definer set search_path = public, app, pg_temp as $$
 declare v_all boolean := coalesce((p ->> 'all')::boolean, false);
 begin
@@ -232,7 +241,7 @@ begin
 end $$;
 
 -- p: {flag, note}
-create function app.call_flag_review(p_by uuid, p jsonb) returns jsonb
+create or replace function app.call_flag_review(p_by uuid, p jsonb) returns jsonb
 language plpgsql security definer set search_path = public, app, pg_temp as $$
 declare v_id uuid := nullif(p ->> 'flag', '')::uuid;
 begin
@@ -244,7 +253,7 @@ begin
 end $$;
 
 -- p: {phrase, category} adds (or switches on) a word; {id, active} switches one on or off
-create function app.call_flag_word(p_by uuid, p jsonb) returns jsonb
+create or replace function app.call_flag_word(p_by uuid, p jsonb) returns jsonb
 language plpgsql security definer set search_path = public, app, pg_temp as $$
 declare
   v_phrase text := lower(btrim(coalesce(p ->> 'phrase', '')));
@@ -263,8 +272,13 @@ begin
   return jsonb_build_object('ok', true, 'id', v_id);
 end $$;
 
-alter function app.door(uuid, text, text, text, jsonb) rename to door_pre5137;
-create function app.door(p_user uuid, p_aal text, p_call text, p_name text, p jsonb default '{}'::jsonb) returns jsonb
+-- re-run safe: the wrap happens once
+do $$ begin
+  if to_regprocedure('app.door_pre5137(uuid, text, text, text, jsonb)') is null then
+    alter function app.door(uuid, text, text, text, jsonb) rename to door_pre5137;
+  end if;
+end $$;
+create or replace function app.door(p_user uuid, p_aal text, p_call text, p_name text, p jsonb default '{}'::jsonb) returns jsonb
 language plpgsql security definer set search_path = public, app, pg_temp as $$
 declare p_ jsonb := coalesce(p, '{}'::jsonb) - '_va';
 begin

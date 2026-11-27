@@ -81,6 +81,10 @@ New tables (RLS, `admin_all`, audit trigger): `booking_request_notes`, `lead_gen
 - 5137: dates, times, prices and booking numbers are not phone numbers (`app.phone_text_clean`); every other path that
   queues a salesperson's text (`phone_outbox`) refuses one with a phone number.
 - 5139: for a masked viewer, a number matches by its last 4 digits or in full, an email only in full.
+- Second review: a run of 10 digits or more is never cleaned away ("647.575.3377", "tel-6475753377", "$6475753377" are
+  numbers); a reopened lead keeps Contacted or Qualified; a manual merge of two leads claimed by different people is
+  refused (both claims kept) and a folded lead's claim moves with its holder; credits move with the merge and partial
+  unique indexes hold one live credit an owner (a voided credit blocks nothing). 5131, 5133 and 5137 are re-run safe.
 
 ## Guides
 

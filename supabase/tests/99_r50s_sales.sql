@@ -342,3 +342,40 @@ select test.ok('sample rows: the search filter is respected',
 select test.ok('sample rows: only leads the viewer may open',
   not exists (select 1 from jsonb_array_elements(app.sample_request_rows(test.id('rss_fieldonly'), '{}'::jsonb)) x));
 select test.ok('job: the hourly merge runs (the migration itself merges nothing)', app.job_lead_merge(50) >= 0);
+
+-- ================================================================ second review (Nov 27)
+select test.eq('text filter: dotted, prefixed and dollar-signed 10-digit runs are still phone numbers',
+  app.has_phone_number('647.575.3377') || '/' || app.has_phone_number('tel-6475753377') || '/' || app.has_phone_number('$6475753377'), 'true/true/true');
+-- reopen keeps a Contacted or Qualified status
+insert into leads (id, kind, name, email, source, created_at) values (test.id('lead:rss_q1'), 'contact', 'Rss Quin Ash', 'rss_quin@example.test', 'web', now() - interval '6 days');
+update leads set status = 'qualified', handled_at = now() - interval '5 days', handled_by = test.id('rss_sam') where id = test.id('lead:rss_q1');
+insert into lead_claims (lead_id, claimed_by, expires_at, cap_at) values (test.id('lead:rss_q1'), test.id('rss_sam'), now() + interval '2 hours', now() + interval '1 day');
+insert into leads (id, kind, name, email, source) values (test.id('lead:rss_q2'), 'contact', 'Rss Quin Ash', 'rss_quin@example.test', 'web');
+select test.eq('reopen: a Qualified lead stays Qualified, handled no more',
+  (select status || '/' || (handled_at is null) from leads where id = test.id('lead:rss_q1')), 'qualified/true');
+-- two live claims of different people: the manual merge waits, both claims kept
+insert into leads (id, kind, name, email, source, created_at) values (test.id('lead:rss_k1'), 'contact', 'Rss Kai Orr', 'rss_kai1@example.test', 'web', now() - interval '2 days');
+insert into leads (id, kind, name, email, source) values (test.id('lead:rss_k2'), 'contact', 'Rss Kai Orr', 'rss_kai2@example.test', 'web');
+insert into lead_claims (lead_id, claimed_by, expires_at, cap_at) values
+  (test.id('lead:rss_k1'), test.id('rss_sam'), now() + interval '2 hours', now() + interval '1 day'),
+  (test.id('lead:rss_k2'), test.id('rss_eric'), now() + interval '2 hours', now() + interval '1 day');
+select test.throws('merge: two live claims of different people are not merged',
+  format($$select app.lead_merge(%L, %L, %L)$$, test.id('rss_admin'), test.id('lead:rss_k1'), test.id('lead:rss_k2')), '%different people%');
+select test.eq('merge: both claims are kept', (select count(*)::int from lead_claims where lead_id in (test.id('lead:rss_k1'), test.id('lead:rss_k2')) and expires_at > now()), 2);
+-- the claim of the folded lead moves with its holder
+delete from lead_claims where lead_id = test.id('lead:rss_k1');
+select app.lead_merge(test.id('rss_admin'), test.id('lead:rss_k1'), test.id('lead:rss_k2'));
+select test.eq('merge: the folded lead''s live claim moves to the kept lead with its holder', (select claimed_by from lead_claims where lead_id = test.id('lead:rss_k1')), test.id('rss_eric'));
+-- credits: move with the merge; one live credit an owner; a voided credit blocks nothing
+insert into leads (id, kind, name, email, source, created_at) values (test.id('lead:rss_g1'), 'owner_program', 'Rss Gwen Ray', 'rss_gwen1@example.test', 'web', now() - interval '2 days');
+insert into leads (id, kind, name, email, source, generated_by) values (test.id('lead:rss_g2'), 'owner_program', 'Rss Gwen Ray', 'rss_gwen2@example.test', 'lead_gen', test.id('rss_eric'));
+insert into lead_gen_credits (lead_id, staff_id, amount_cents) values (test.id('lead:rss_g2'), test.id('rss_eric'), 10000);
+select app.lead_merge(test.id('rss_admin'), test.id('lead:rss_g1'), test.id('lead:rss_g2'));
+select test.eq('credit: it moves to the kept lead', (select count(*)::int from lead_gen_credits where lead_id = test.id('lead:rss_g1') and staff_id = test.id('rss_eric')), 1);
+select test.mk_owner('rss_ow2');
+insert into lead_gen_credits (lead_id, staff_id, owner_id, amount_cents, status, note) values (test.id('lead:rss_g1'), test.id('rss_eric'), test.id('owner:rss_ow2'), 10000, 'void', 'Not a real signing');
+insert into lead_gen_credits (lead_id, staff_id, owner_id, amount_cents) values (test.id('lead:rss_m1'), test.id('rss_eric'), test.id('owner:rss_ow2'), 10000);
+select test.eq('credit: a voided (rejected) credit does not block another lead of the owner',
+  (select count(*)::int from lead_gen_credits where owner_id = test.id('owner:rss_ow2') and status <> 'void'), 1);
+select test.throws('credit: a second live credit for the same owner is refused by the database',
+  format($$insert into lead_gen_credits (lead_id, staff_id, owner_id, amount_cents) values (%L, %L, %L, 10000)$$, test.id('lead:rss_m3'), test.id('rss_eric'), test.id('owner:rss_ow2')), null);

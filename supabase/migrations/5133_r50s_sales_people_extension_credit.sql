@@ -61,7 +61,7 @@ end $$;
 
 -- the extensions given by default to the booking's salesperson when someone else is recorded as starting them (one with
 -- no requested_by is left as it is: who started it is not known)
-create function app.extension_credit_backfill() returns integer
+create or replace function app.extension_credit_backfill() returns integer
 language plpgsql security definer set search_path = public, app, pg_temp as $$
 declare
   r record;
