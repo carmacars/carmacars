@@ -34,9 +34,11 @@ rembg_up() {
   local tag
   if [ -f "$W/rembg/Dockerfile" ]; then
     tag=$(cat "$W/rembg/Dockerfile" "$W/rembg/server.py" | sha256sum | cut -c1-12)
+    # r50 hotfix2: never built here; the deploy builds it on the runner and sends it when this server lacks it
     if ! docker image inspect "carmacars-rembg:$tag" > /dev/null 2>&1; then
-      say "building carmacars-rembg:$tag (a few minutes the first time: the model is downloaded into the image)"
-      docker build -q -t "carmacars-rembg:$tag" "$W/rembg" > /dev/null || { say "WARNING: the background remover's image did not build; the sections keep their photos"; return 0; }
+      [ -s "$T/rembg-image.tgz" ] && gunzip -c "$T/rembg-image.tgz" | docker load > /dev/null
+      docker image inspect "carmacars-rembg:$tag" > /dev/null 2>&1 || { say "WARNING: no carmacars-rembg:$tag image was sent; the sections keep their photos"; return 0; }
+      say "carmacars-rembg:$tag loaded (built on the runner)"
     fi
     echo "$tag" > "$W/rembg.tag"; sed -i '/^REMBG_IMAGE_TAG=/d' "$W/.env"; printf 'REMBG_IMAGE_TAG=%s\n' "$tag" >> "$W/.env"
     docker images carmacars-rembg --format '{{.CreatedAt}}\t{{.Tag}}' | sort -r | awk -F'\t' 'NR>2 {print $2}' | xargs -r -I{} docker rmi "carmacars-rembg:{}" > /dev/null 2>&1 || true
@@ -188,6 +190,8 @@ ai_local() {
   install -m 755 "$T/ai-warm.sh" "$A/warm.sh"
   install -m 644 "$T/ai-stt.Dockerfile" "$A/stt/Dockerfile"
   install -m 755 "$T/ai-stt-entrypoint.sh" "$A/stt/entrypoint.sh"
+  # r50 hotfix2: the speech image comes built from the runner; the warm-up never builds on this server
+  if [ -s "$T/stt-image.tgz" ]; then gunzip -c "$T/stt-image.tgz" | docker load > /dev/null && say "AI models: the speech image loaded (built on the runner)"; fi
   if systemctl is-active --quiet carmacars-ai-warm 2>/dev/null; then say "AI models: a warm-up is already running"
   elif command -v systemd-run > /dev/null 2>&1 && systemd-run --unit carmacars-ai-warm --collect --nice 19 -p IOSchedulingClass=idle bash "$A/warm.sh" > /dev/null 2>&1; then
     say "AI models: warm-up started in the background (journalctl -u carmacars-ai-warm)"

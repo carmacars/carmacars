@@ -119,6 +119,7 @@ ship() {
   fi
   # r50 (4800): the heal agent (infra/vps/bin/heal-agent) and its timer, installed by the remote script
   cp "$ROOT/infra/vps/bin/heal-agent" "$ROOT/infra/vps/systemd/carmacars-heal-agent.service" "$ROOT/infra/vps/systemd/carmacars-heal-agent.timer" "$stage/"
+  side_images "$stage"
   sed -e "s/@TAG@/$tag/" -e "s/@CRON@/$cron/" "$HERE/web-vps-remote.sh" > "$stage/remote.sh"
   vps_ssh "rm -rf $t && install -d -m 700 $t"
   vps_scp "$stage"/* "$t/"
@@ -152,6 +153,28 @@ ai_state() {
     line="$line $k $v;"
   done
   if [ -n "${GITHUB_ACTIONS:-}" ]; then echo "::notice title=AI models on the server::${line% ;} (the warm-up runs in the background; Admin > Settings > Usage shows the state)"; else say "AI models:${line% ;}"; fi
+}
+
+# r50 hotfix2: nothing is built on the server (the owner keeps its CPU for the site and the database). The background
+# remover's and the speech model's images are built here on the runner, only when the server lacks that version, and sent
+# as files the server loads (rembg-image.tgz, stt-image.tgz). Never fails the deploy: without them those two stay off.
+side_images() {
+  local stage="$1" rt wv have arch
+  rt=$(cat "$ROOT/infra/vps/web/rembg/Dockerfile" "$ROOT/infra/vps/web/rembg/server.py" | sha256sum | cut -c1-12)
+  wv=$(grep -m1 '^WHISPER_VERSION=' "$ROOT/infra/vps/ai/models.env" | cut -d= -f2)
+  have=$(vps_ssh "uname -m; sudo docker image inspect carmacars-rembg:$rt > /dev/null 2>&1 && echo rembg; sudo docker image inspect carmacars-stt:$wv > /dev/null 2>&1 && echo stt; true" 2>/dev/null || true)
+  arch=$(head -1 <<<"$have")
+  [ "$arch" = x86_64 ] || { warn_ "the server's machine type is '${arch:-unknown}': the side images are not built here"; return 0; }
+  if ! grep -qx rembg <<<"$have"; then
+    say "building carmacars-rembg:$rt on the runner"
+    if docker build -q -t "carmacars-rembg:$rt" "$ROOT/infra/vps/web/rembg" > /dev/null; then docker save "carmacars-rembg:$rt" | gzip -1 > "$stage/rembg-image.tgz"
+    else warn_ "the background remover's image did not build on the runner: the sections keep their photos"; fi
+  fi
+  if ! grep -qx stt <<<"$have"; then
+    say "building carmacars-stt:$wv on the runner"
+    if docker build -q --build-arg "WHISPER_VERSION=$wv" -t "carmacars-stt:$wv" "$ROOT/infra/vps/ai/stt" > /dev/null; then docker save "carmacars-stt:$wv" | gzip -1 > "$stage/stt-image.tgz"
+    else warn_ "the speech model's image did not build on the runner: speech stays on Workers AI and Gemini"; fi
+  fi
 }
 
 # origin_tls <stage> <hosts>: stage/origin-cert.pem and origin-key.pem when a new certificate is made; the origin-tls block
