@@ -36,7 +36,9 @@ export const ADMIN_HUBS: Hub[] = [
     { href: '/admin/logs?tab=changes', label: 'Changes' }, { href: '/admin/logs?tab=access', label: 'Data access' }] },
   // r35 (0950): every lead in one place (renters, owners, partners), with the Sales team's numbers
   { key: 'renters', label: 'Renters', tabs: [{ href: '/admin/renters?tab=renters', label: 'Renters' }, { href: '/admin/renters?tab=leads', label: 'Leads' },
-    { href: '/admin/sales-leads', label: 'All leads' }, { href: '/admin/sales-leads?tab=team', label: 'Sales team' }, { href: '/admin/unanswered', label: 'Unanswered' }] },
+    { href: '/admin/sales-leads', label: 'All leads' }, { href: '/admin/sales-leads?tab=team', label: 'Sales team' }, { href: '/admin/unanswered', label: 'Unanswered' },
+    // r50 hotfix 2: lead generators' credits (5134), flagged calls and texts of Sales (5137)
+    { href: '/admin/lead-generators', label: 'Lead generators' }, { href: '/admin/call-flags', label: 'Call flags' }] },
   { key: 'vehicles', label: 'Vehicles', tabs: [
     { href: '/admin/vehicles', label: 'All cars' }, { href: '/admin/vehicles/tracking', label: 'Fleet tracking' }, { href: '/admin/calendar-sync', label: 'Calendar sync' },
     // R50 hotfix 2 (5144): ownership permits uploaded in bulk, each filed on its car
@@ -59,7 +61,9 @@ export const ADMIN_HUBS: Hub[] = [
     // r35 part C (1502, 1504): the schedules and the role KPIs
     { href: '/admin/schedules', label: 'Schedules' }, { href: '/admin/kpis', label: 'KPIs' },
     // r48 (3261): who gets staff perks, what was used
-    { href: '/admin/staff/rewards', label: 'Staff rewards' }] },
+    { href: '/admin/staff/rewards', label: 'Staff rewards' },
+    // r50 hotfix 2 (5136): salespeople's shift claims to approve
+    { href: '/admin/shift-claims', label: 'Shift claims' }] },
   { key: 'ads', label: 'Ads', tabs: [
     { href: '/admin/marketing/listings', label: 'Ad listings' }, { href: '/admin/marketing/ads', label: 'Posted ads' }, { href: '/admin/marketing/social', label: 'Social drafts' },
     // r48 (3263): the month of social posts, approved before anything is published
@@ -94,6 +98,8 @@ export const STAFF_HUBS: Hub[] = [
   { key: 'leads', label: 'Leads', tabs: [{ href: '/staff/sales-leads', label: 'All leads', fns: 'cs sales' }, { href: '/staff/sales-leads?mine=1', label: 'Mine', fns: 'cs sales' }] },
   { key: 'renters', label: 'Renters', tabs: [{ href: '/staff/messages', label: 'Messages', fns: 'cs' }, { href: '/staff/unanswered', label: 'Unanswered', fns: 'cs' }, { href: '/staff/review-requests', label: 'Review requests', fns: 'cs' }, { href: '/staff/game-leads', label: 'Leads', fns: 'cs sales' }] },
   { key: 'owners', label: 'Owners', tabs: [{ href: '/staff/owners', label: 'Owners', fns: 'cs fleet' }, { href: '/staff/owner-leads', label: 'Leads', fns: 'cs sales' }, { href: '/staff/leads', label: 'Owner and buyer leads', fns: 'cs sales' }, { href: '/staff/owner-pipeline', label: 'Owner pipeline', fns: 'cs sales fleet' },
+    // r50 hotfix 2 (5134): the owners a lead generator found
+    { href: '/staff/my-owner-leads', label: 'Owners I found', fns: 'sales' },
     { href: '/staff/owner-forms', label: 'Owner forms', fns: 'cs' }, { href: '/staff/government-forms', label: 'Government forms', fns: 'fleet' }], actions: [{ href: '/staff/owners/add-car', label: 'Add a car for an owner', fns: 'cs fleet' }] },
   { key: 'listings', label: 'Listings', tabs: [{ href: '/staff/listings', label: 'Listings', fns: 'cs fleet' }, { href: '/staff/similar-cars', label: 'Similar cars', fns: 'cs fleet' },
     { href: '/staff/calendar-sync', label: 'Calendar sync', fns: 'fleet' }, { href: '/staff/addons', label: 'Add-ons', fns: 'fleet' },
@@ -109,6 +115,8 @@ export const STAFF_HUBS: Hub[] = [
   { key: 'numbers', label: 'My numbers', tabs: [{ href: '/staff/scorecard', label: 'Scorecard', fns: 'cs fleet finance sales' }, { href: '/staff/my-sales', label: 'My sales', fns: 'cs fleet finance sales' },
     // r48 (3261): the staff member's own rewards
     { href: '/staff/rewards', label: 'My rewards', fns: 'cs fleet finance sales' },
+    // r50 hotfix 2 (5135): the in-person salesperson's invite link and recruits
+    { href: '/staff/recruits', label: 'My recruits', fns: 'sales' },
     { href: '/staff/sales-start', label: 'Do sales too', fns: 'finance' }] },
   // 1061: the hours of the office staff
   { key: 'hours', label: 'Hours', tabs: [{ href: '/staff/hours', label: 'My hours', fns: 'cs fleet finance' }, { href: '/staff/schedule', label: 'Schedule', fns: 'cs fleet finance sales' },

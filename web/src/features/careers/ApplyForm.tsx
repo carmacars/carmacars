@@ -17,8 +17,9 @@ const EMPTY: Draft = { full_name: '', email: '', phone: '', profile_name: '', ci
 // are told and sent to Remote Sales with their details. Only these fields (and the country of the phone and the connection) are used.
 const COUNTRIES: Array<[string, string]> = [['CA', 'Canada'], ['US', 'United States'], ['PH', 'Philippines'], ['IN', 'India'], ['PK', 'Pakistan'], ['MX', 'Mexico'], ['GB', 'United Kingdom'], ['ZZ', 'Another country']];
 
-export function ApplyForm({ role, src, utm, prefill, refToken }: { role: RolePublic; src: string | null; utm: Record<string, string>;
-  prefill?: { full_name: string; email: string; phone: string; from_role: string } | null; refToken?: string | null }) {
+export function ApplyForm({ role, src, utm, prefill, refToken, by }: { role: RolePublic; src: string | null; utm: Record<string, string>;
+  prefill?: { full_name: string; email: string; phone: string; from_role: string } | null; refToken?: string | null;
+  /** 5135: the invite code of the salesperson whose link this is */ by?: string | null }) {
   const KEY = `cc-apply-${role.slug}`;
   const [d, setD] = useState<Draft>(EMPTY);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -90,7 +91,7 @@ export function ApplyForm({ role, src, utm, prefill, refToken }: { role: RolePub
     try {
       r = await submitApplication({ role: role.slug, full_name: d.full_name, email: d.email, phone: d.phone, profile_name: d.profile_name, answers: d.answers, src, utm,
         location: role.remote ? undefined : { city: d.city, region: d.region, country: d.country },
-        ref: refToken ?? null, turnstile: token, website: String(fd.get('website') ?? '') });
+        ref: refToken ?? null, by: by ?? null, turnstile: token, website: String(fd.get('website') ?? '') });
     } catch { setBusy(false); setMessage('Your answers did not send: check your connection and press Send again. They are kept on this device.'); return; }
     setBusy(false);
     if (!r.ok && r.code === 'outside_area') { setAway({ slug: r.remote_slug ?? null, title: r.remote_title ?? null }); requestAnimationFrame(() => document.getElementById('apply-away')?.focus()); return; }

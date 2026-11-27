@@ -16,6 +16,8 @@ import { InfoReply } from '@/features/portal/InfoReply';
 import { Messages, type Msg } from '@/features/portal/Messages';
 import { rpc } from '@/lib/db/repo';
 import { Withdraw } from '@/features/portal/Withdraw';
+import { RequestNotes } from '@/features/portal/RequestNotes';
+import type { RequestNote } from '@/server/actions/portal';
 import { ChangeRequestActions } from '@/features/portal/SelfService';
 import { myBooking, myTripPhotos, reviewState } from '@/server/portal/data';
 import { LicenceNotice, licenceState, renterMissing } from '@/features/portal/LicenceNotice';
@@ -89,6 +91,9 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
     b.checked_in_at ? rpc('server_renter_handover_report', { p_booking: b.id, p_by: user.id }, { role: 'service_role' }).then((x) => x as unknown as HandoverReportData | null).catch(() => null) : Promise.resolve(null),
     // the rental walkthrough (0291): how far the renter is, for the card that opens it
     rpc('server_my_walkthrough', { p_booking: b.id, p_by: user.id }, { role: 'service_role' }).then((x) => x as unknown as Walk | null).catch(() => null)]);
+  // 5132: the renter's notes on their open request
+  const reqNotes = ['requested', 'offered', 'pending_payment'].includes(b.status)
+    ? await rpc('renter_request_notes', { p_booking: b.id, p_by: user.id }, { role: 'service_role' }).then((x) => (x ?? []) as unknown as RequestNote[]).catch(() => [] as RequestNote[]) : null;
   // 0910: the accident card of this booking (its own coverage), from confirmation to the return
   const accident = ['pending_payment', 'confirmed', 'on_rent'].includes(b.status) && b.booking_type !== 'owner'
     ? await rpc('server_accident_card' as never, { p_booking: b.id, p_by: user.id } as never, { role: 'service_role' }).then((x) => x as unknown as AccidentCardData).catch(() => null) : null;
@@ -250,6 +255,10 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
             </QuickActions>
             {['requested', 'pending_payment'].includes(b.status) && <div><Withdraw number={b.booking_number} /></div>}
           </PortalCard>
+
+          {reqNotes && <PortalCard id="pt-request-notes" title="Notes to our team" testId="renter-request-notes">
+            <RequestNotes number={b.booking_number} notes={reqNotes} />
+          </PortalCard>}
 
           {tips?.on && <TipPicker number={b.booking_number} options={tips} source="receipt" />}
           {protection && protection.option !== 4 && (

@@ -37,6 +37,13 @@
      "Academy quizzes: under the pass mark you fix the questions marked wrong once before it counts as a failed try; the wait after a failed try is 2 minutes and a quiz can be taken 10 times a day",
      "Leads, lead alerts and visitors go only to staff who passed the academy (or whose academy an Admin waived) and finished onboarding",
      "The weekly townhall is at 6:30 pm and interview calls start at 5:30 pm; with no outside call link, Join opens the call in the site",
+     "Requests for an example car on the site reach the request queue with real cars free for the same dates to offer instead",
+     "Duplicate leads of one person merge by themselves (the same email, phone or name written another way), keeping their history",
+     "Lead generators enter interested car owners for the sales team to call through the site, and earn a set amount for each owner who signs",
+     "In-person salespeople share an invite link to the sales job; the people who apply from it are tracked under them",
+     "Field shifts claimed by salespeople wait for an Admin's approval, and both sides are told",
+     "Texts from the business line never carry a phone number, and calls with risky words are flagged for an Admin with the line",
+     "An extension or a weekly payment is credited to the person who started it",
      "**Guide me** in every staff portal: an optional coach that walks you through a real job step by step while you do it, on the live screens (send an offer, answer a request, record a payment, a pickup, a return and deposit review, approve an owner's car, a field expense)",
      "**Check-in visits**: long rentals get a free monthly check-in visit; staff work one queue (booked, due, overdue, done) and a short checklist with photos, the odometer, damage, tires, fluids and warning lights. What needs looking after becomes a To do, damage goes to the Admins, and the reading feeds the car's maintenance"
     ]

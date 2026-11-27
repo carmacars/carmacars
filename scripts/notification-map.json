@@ -164,6 +164,15 @@
   "townhall.reminder": {"staff_va_cs": "rule:townhall_reminder", "staff_va_sales": "rule:townhall_reminder", "staff_va_fleet": "rule:townhall_reminder", "staff_va_finance": "rule:townhall_reminder", "staff_field": "rule:townhall_reminder", "staff_admin": "rule:townhall_absent"},
   "field.shift_offer": {"staff_field": "rule:field_shift_offer", "staff_admin": "rule:field_shift_unclaimed", "staff_va_fleet": "rule:field_shift_unclaimed"},
   "hiring.live_call_booked": {"staff_admin": "rule:live_call_booked"},
-  "hiring.interview_finished": {"staff_admin": "rule:interview_finished"}
+  "hiring.interview_finished": {"staff_admin": "rule:interview_finished"},
+  "booking.request_note_added": {"staff_admin": "rule:request_note", "staff_va_cs": "rule:request_note", "staff_va_sales": "rule:request_note", "renter": "gap: none: the renter wrote it and sees it on their request"},
+  "booking.referrer_named": {"staff_va_sales": "rule:referral_named", "staff_field": "rule:referral_named", "staff_admin": "gap: none: the booking's history says who the renter named"},
+  "lead.handled_lead_reopened": {"staff_va_sales": "rule:lead_reopened", "staff_admin": "rule:lead_reopened"},
+  "lead.generator_owner_signed": {"staff_va_sales": "rule:lead_gen_closed", "staff_admin": "rule:lead_gen_credit_due"},
+  "hiring.recruit_applied": {"staff_va_sales": "rule:recruit_applied", "staff_field": "rule:recruit_applied", "applicant": "applicant_received"},
+  "hiring.recruit_hired": {"staff_va_sales": "rule:recruit_hired", "staff_field": "rule:recruit_hired"},
+  "field.sales_shift_claimed": {"staff_admin": "rule:shift_claim_pending", "staff_field": "gap: none: My shifts shows the claim as waiting for an Admin"},
+  "field.sales_shift_decided": {"staff_field": "rule:shift_claim_decided", "staff_admin": "gap: none: the Admin decided it"},
+  "phone.sales_call_flagged": {"staff_admin": "rule:call_flagged", "staff_va_sales": "gap: none: a text with a phone number is refused on screen with the reason; call flags are for Admin"}
  }
 }

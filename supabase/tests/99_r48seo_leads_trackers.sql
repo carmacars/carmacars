@@ -80,18 +80,23 @@ select test.eq('the same phone written another way joins too', (select merged_in
 -- an owner enquiry from the same person is another kind of customer
 insert into x60 select 'o1', (submit_lead('{"kind":"owner_program","name":"Dee Dup","email":"x60_dee@example.test","message":"List my car","payload":{"vehicle":"2020 Honda Civic"}}'::jsonb, null) ->> 'lead_id')::uuid;
 select test.ok('an owner lead and a renter lead of one person stay apart', (select merged_into is null and status = 'new' from leads where id = (select id from x60 where k = 'o1')));
--- a handled lead is not reopened by a new form: the new one stays its own lead, offered for a merge
+-- 5131 (R50 hotfix 2, owner Nov 27): a new form into a handled lead joins it and makes it New again
 update leads set handled_at = now(), handled_by = test.id('x60_admin') where id = (select id from x60 where k = 'd1');
 insert into x60 select 'd4', (submit_lead('{"kind":"contact","name":"Dee Dup","email":"x60_dee@example.test","message":"back again"}'::jsonb, null) ->> 'lead_id')::uuid;
-select test.ok('a new form after the lead was handled is a new lead', (select merged_into is null from leads where id = (select id from x60 where k = 'd4')));
-select test.eq('and the two are offered for a merge, with the reason', (select d ->> 'why' from jsonb_array_elements(app.sales_lead(test.id('x60_admin'), jsonb_build_object('id', (select id from x60 where k = 'd4'))) -> 'duplicates') d
-  where d ->> 'id' = (select id::text from x60 where k = 'd1')), 'same email');
-select test.eq('the lead card counts it', (app.sl_row((select l from leads l where l.id = (select id from x60 where k = 'd4')), test.id('x60_admin')) ->> 'dups')::integer, 1);
+select test.eq('a new form after the lead was handled joins it (5131)', (select merged_into from leads where id = (select id from x60 where k = 'd4')), (select id from x60 where k = 'd1'));
+select test.eq('and makes it New again (5131)', (select status || '/' || (handled_at is null) from leads where id = (select id from x60 where k = 'd1')), 'new/true');
+-- two leads of one person both being worked on are not joined: offered for a merge (5131)
+insert into leads (id, kind, name, email, source, created_at, first_contact_at) values (md5('x60:d5')::uuid, 'contact', 'Bo Both', 'x60_bo@example.test', 'web', now() - interval '2 days', now() - interval '1 day');
+insert into leads (id, kind, name, email, source, first_contact_at) values (md5('x60:d6')::uuid, 'contact', 'Bo Both', 'x60_bo@example.test', 'web', now());
+insert into x60 values ('d5', md5('x60:d5')::uuid), ('d6', md5('x60:d6')::uuid);
+select test.eq('and the two are offered for a merge, with the reason', (select d ->> 'why' from jsonb_array_elements(app.sales_lead(test.id('x60_admin'), jsonb_build_object('id', (select id from x60 where k = 'd6'))) -> 'duplicates') d
+  where d ->> 'id' = (select id::text from x60 where k = 'd5')), 'same email');
+select test.eq('the lead card counts it', (app.sl_row((select l from leads l where l.id = (select id from x60 where k = 'd6')), test.id('x60_admin')) ->> 'dups')::integer, 1);
 
 -- ---------------------------------------------------------------- duplicates: the one-click merge
 select test.lives('an Admin merges with one call', format($q$ select app.door(%L, 'aal2', 'ops_do', 'lead_merge', jsonb_build_object('lead', %L, 'other', %L)) $q$,
-  test.id('x60_admin'), (select id from x60 where k = 'd4'), (select id from x60 where k = 'd1')));
-select test.eq('the older lead is kept, whichever one the button was on', (select merged_into from leads where id = (select id from x60 where k = 'd4')), (select id from x60 where k = 'd1'));
+  test.id('x60_admin'), (select id from x60 where k = 'd6'), (select id from x60 where k = 'd5')));
+select test.eq('the older lead is kept, whichever one the button was on', (select merged_into from leads where id = (select id from x60 where k = 'd6')), (select id from x60 where k = 'd5'));
 select test.eq('everything the person wrote is under the kept lead', (select jsonb_array_length(payload -> 'merged') from leads where id = (select id from x60 where k = 'd1')), 3);
 select test.throws('a lead cannot be merged twice', format($q$ select app.lead_merge(%L, %L, %L) $q$, test.id('x60_admin'), (select id from x60 where k = 'd1'), (select id from x60 where k = 'd4')), 'already merged');
 select test.throws('different kinds of customer are refused', format($q$ select app.lead_merge(%L, %L, %L) $q$, test.id('x60_admin'), (select id from x60 where k = 'd1'), (select id from x60 where k = 'o1')), 'different kinds');

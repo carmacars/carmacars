@@ -14,7 +14,8 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 export interface ApplyInput { role: string; full_name: string; email: string; phone: string; profile_name?: string; answers: Record<string, string | string[]>; src?: string | null;
   location?: { city: string; region: string; country: string };
-  utm?: Record<string, string>; ref?: string | null; turnstile?: string | null; website?: string }
+  utm?: Record<string, string>; ref?: string | null; turnstile?: string | null; website?: string;
+  /** 5135: a salesperson's invite code (8 letters and digits) */ by?: string | null }
 export type ApplyResult = { ok: true; outcome: 'invited' | 'received' | 'declined' | 'referred'; token?: string | null; other_role?: string; other_title?: string; ai_interview?: boolean }
   | { ok: false; code: string; message: string; errors?: Record<string, string>; remote_slug?: string | null; remote_title?: string | null };
 
@@ -33,7 +34,7 @@ export async function submitApplication(i: ApplyInput): Promise<ApplyResult> {
   for (const k of UTM_KEYS) if (i.utm?.[k]) utm[k] = String(i.utm[k]).slice(0, 100);
   try {
     const r = (await rpc('server_hiring_apply', { p: { role: i.role, full_name: String(i.full_name ?? '').slice(0, 200), email: String(i.email ?? '').slice(0, 200), phone: String(i.phone ?? '').slice(0, 60),
-      profile_name: String(i.profile_name ?? '').slice(0, 200), source: sourceOf(i.src), utm, answers, ref: i.ref && TOKEN.test(i.ref) ? i.ref : null,
+      profile_name: String(i.profile_name ?? '').slice(0, 200), source: sourceOf(i.src), utm, answers, ref: i.ref && TOKEN.test(i.ref) ? i.ref : null, by: i.by && /^[a-z0-9]{8}$/.test(i.by) ? i.by : null,
       // 1067: an in-person role's location (city, province or state, country) and the connection's country, nothing finer
       location_city: String(i.location?.city ?? '').slice(0, 80), location_region: String(i.location?.region ?? '').slice(0, 80),
       location_country: /^[A-Z]{2}$/.test(i.location?.country ?? '') ? i.location!.country : '', ip_country: (await requestCountry()) ?? '' } as unknown as Json, p_ip: meta.ip ?? undefined }, SR)) as unknown as

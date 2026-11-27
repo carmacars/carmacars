@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import Link from '@/components/Link';
 import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
@@ -18,6 +19,7 @@ export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Candidate', path: '/admin/hiring', noindex: true, description: 'One application: the answers and the score, the call, the rubric beside the call guide, and the decision.' });
 type R = Record<string, unknown>;
 interface Detail {
+  /** 5135: the salesperson whose invite link the candidate applied from */ recruited_by?: string | null;
   application: { id: string; role: string; role_slug: string; status: string; full_name: string; email: string | null; phone: string | null; profile_name: string | null; source: string;
     utm: Record<string, string>; score: number | null; score_points: number | null; score_max: number | null; pass_mark: number; knockouts: string[]; ko_reasons: string[]; created_at: string;
     slot_starts_at: string | null; mode: string | null; meet_url: string | null; booking_url: string; final_score: number | null; interview_score: number | null; rank: number | null;
@@ -103,6 +105,8 @@ export default async function Candidate({ params }: { params: Promise<{ id: stri
               {a.location_mismatch ? <> <Badge s="needs_review">Mismatch</Badge></> : null}</span>],
             ['Phone and connection country', `${a.phone_country ?? '-'} / ${a.ip_country ?? '-'}`],
             ['Profile name', a.profile_name ?? '-'], ['Source', SOURCE_WORDS[a.source] ?? a.source],
+            // 5135: applied from a salesperson's invite link
+            ...(x.recruited_by ? [['Recruited by', <span key="rb" data-testid="cand-recruited-by">{x.recruited_by}</span>]] as Array<[string, ReactNode]> : []),
             ['Campaign', Object.entries(a.utm ?? {}).map(([k, v]) => `${k.replace('utm_', '')}: ${v}`).join(', ') || '-'], ['Applied', t(a.created_at)],
             ['Booking link', <a key="b" className="link" href={a.booking_url} rel="noopener" target="_blank">Open the candidate&apos;s booking page</a>]]} />
         </Card>
