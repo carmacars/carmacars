@@ -103,7 +103,7 @@ test('item 3: the renter adds a note to their request and Admin sees it', async 
   await ap.goto('/admin/requests', { waitUntil: 'networkidle' });
   await expect(ap.getByTestId(`rq-notes-${number}`)).toContainText('Flight AC 857 lands at 9 pm');
   await ap.context().close();
-  await sql`update bookings set status = 'cancelled' where booking_number = ${number}`;
+  await sql`update bookings set status = 'declined' where booking_number = ${number} and status = 'requested'`;
   await sql.end();
 });
 
