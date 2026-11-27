@@ -188,10 +188,10 @@ for (const f of [...walk('src'), 'build.mjs', 'shots.mjs', 'check.mjs']) written
   for (const [f, s] of outputs) {
     if (!f.startsWith('dist/') || !f.endsWith('.html')) continue;
     const n = (s.match(/class="btn"/g) || []).length;
-    if (n !== 1 && !/renter_vehicle_disabled|renter_breakdown_help|investor_notice_received|renter_signing_code|document_signing_code|insurance_staff_message/.test(f)) p.push(`${f}: ${n} primary buttons`);
+    if (n !== 1 && !/renter_vehicle_disabled|renter_breakdown_help|investor_notice_received|renter_signing_code|document_signing_code|insurance_staff_message|insurer_payment_received/.test(f)) p.push(`${f}: ${n} primary buttons`);
     if (n > 1) p.push(`${f}: more than one primary button`);
   }
-  check('one primary button per rendered email (six emails have none by design: car disabled, breakdown help, investor notice received, the two signing codes, the insurance message)', p);
+  check('one primary button per rendered email (seven emails have none by design: car disabled, breakdown help, investor notice received, the two signing codes, the insurance message, the insurer payment receipt)', p);
 }
 
 // 10. Marketing emails carry unsubscribe and the mailing address; transactional ones do not carry unsubscribe.
