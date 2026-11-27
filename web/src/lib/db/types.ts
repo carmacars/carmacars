@@ -8961,6 +8961,84 @@ export type Database = {
         };
         Relationships: [];
       };
+      expense_entries: {
+        Row: {
+          id: string;
+          expense_on: string;
+          vendor: string | null;
+          category: string;
+          description: string;
+          amount_cents: number;
+          hst_cents: number;
+          vehicle_id: string | null;
+          owner_id: string | null;
+          payer: string;
+          paid_with: string;
+          company_expense_id: string | null;
+          owner_deduction_id: string | null;
+          read: Json;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          expense_on: string;
+          vendor?: string | null;
+          category: string;
+          description: string;
+          amount_cents: number;
+          hst_cents?: number;
+          vehicle_id?: string | null;
+          owner_id?: string | null;
+          payer: string;
+          paid_with?: string;
+          company_expense_id?: string | null;
+          owner_deduction_id?: string | null;
+          read?: Json;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          expense_on?: string;
+          vendor?: string | null;
+          category?: string;
+          description?: string;
+          amount_cents?: number;
+          hst_cents?: number;
+          vehicle_id?: string | null;
+          owner_id?: string | null;
+          payer?: string;
+          paid_with?: string;
+          company_expense_id?: string | null;
+          owner_deduction_id?: string | null;
+          read?: Json;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      expense_entry_photos: {
+        Row: {
+          id: string;
+          entry_id: string;
+          document_id: string;
+          sort: number;
+        };
+        Insert: {
+          id?: string;
+          entry_id: string;
+          document_id: string;
+          sort: number;
+        };
+        Update: {
+          id?: string;
+          entry_id?: string;
+          document_id?: string;
+          sort?: number;
+        };
+        Relationships: [];
+      };
       fee_defaults: {
         Row: {
           id: string;
@@ -20256,6 +20334,66 @@ export type Database = {
         };
         Relationships: [];
       };
+      permit_uploads: {
+        Row: {
+          id: string;
+          storage_path: string;
+          mime_type: string | null;
+          sha256: string | null;
+          file_name: string | null;
+          vin: string | null;
+          plate: string | null;
+          read: Json;
+          status: string;
+          vehicle_id: string | null;
+          document_id: string | null;
+          matched_by: string | null;
+          note: string | null;
+          created_by: string | null;
+          created_at: string;
+          filed_by: string | null;
+          filed_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          storage_path: string;
+          mime_type?: string | null;
+          sha256?: string | null;
+          file_name?: string | null;
+          vin?: string | null;
+          plate?: string | null;
+          read?: Json;
+          status?: string;
+          vehicle_id?: string | null;
+          document_id?: string | null;
+          matched_by?: string | null;
+          note?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          filed_by?: string | null;
+          filed_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          storage_path?: string;
+          mime_type?: string | null;
+          sha256?: string | null;
+          file_name?: string | null;
+          vin?: string | null;
+          plate?: string | null;
+          read?: Json;
+          status?: string;
+          vehicle_id?: string | null;
+          document_id?: string | null;
+          matched_by?: string | null;
+          note?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          filed_by?: string | null;
+          filed_at?: string | null;
+        };
+        Relationships: [];
+      };
       person_locations: {
         Row: {
           user_id: string;
@@ -22334,6 +22472,13 @@ export type Database = {
           owner_stage_uvip_url: string;
           calls_mode: string;
           staff_notice_days: number;
+          owner_calc_typical_cents: number;
+          owner_calc_floor_cents: number;
+          owner_calc_occupancy_pct: number;
+          owner_calc_typical_age: number;
+          owner_calc_age_step_pct: number;
+          owner_calc_premium_max_age: number;
+          owner_calc_class_factor: Json;
         };
         Insert: {
           id?: string;
@@ -23326,6 +23471,13 @@ export type Database = {
           owner_stage_uvip_url?: string;
           calls_mode?: string;
           staff_notice_days?: number;
+          owner_calc_typical_cents?: number;
+          owner_calc_floor_cents?: number;
+          owner_calc_occupancy_pct?: number;
+          owner_calc_typical_age?: number;
+          owner_calc_age_step_pct?: number;
+          owner_calc_premium_max_age?: number;
+          owner_calc_class_factor?: Json;
         };
         Update: {
           id?: string;
@@ -24318,6 +24470,13 @@ export type Database = {
           owner_stage_uvip_url?: string;
           calls_mode?: string;
           staff_notice_days?: number;
+          owner_calc_typical_cents?: number;
+          owner_calc_floor_cents?: number;
+          owner_calc_occupancy_pct?: number;
+          owner_calc_typical_age?: number;
+          owner_calc_age_step_pct?: number;
+          owner_calc_premium_max_age?: number;
+          owner_calc_class_factor?: Json;
         };
         Relationships: [];
       };

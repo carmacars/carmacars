@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { csvLines, findDate, findPlate, findTime, moneyTokens, parseCsv, pickProfile, readText, type Profile, type TextLine } from './parse.ts';
+import { autoMap, classifyHeader, csvLines, findDate, findPlate, findTime, headerRow, moneyTokens, parseCsv, pickProfile, readText, type Cell, type Profile, type TextLine } from './parse.ts';
 
 // The reading profiles as migration 0042 seeds them (the rules an Admin edits).
 const P407: Profile = { id: 'p1', operator: '407 ETR', name: '407 ETR statement', source: 'pdf_text', notice_kind: 'toll_invoice', priority: 10, rules: {
@@ -112,11 +112,125 @@ test('the general profile reads a notice it does not know, with less confidence'
   assert.ok(r.lines[0]!.confidence < 90);
 });
 
-test('CSV: the column mapping with fees and the date order of the profile', () => {
+test('CSV: the column mapping with fees and the date order of the profile; the amount is the charge plus its fees (5140)', () => {
   const rows = parseCsv('Trip,Plate,Date,Time,Toll,Fees\nT1,CCAB 123,14/09/2026,20:12,8.14,4.20\n"T2",ZZZZ999,15/09/2026,,2.00,\n');
-  const out = csvLines(rows, { 0: 'notice_number', 1: 'plate', 2: 'date', 3: 'time', 4: 'amount', 5: 'fees' }, { kind: 'toll_invoice', authority: '407 ETR', dateOrder: 'dmy', plates: FLEET });
+  const { lines: out } = csvLines(rows, { 0: 'notice_number', 1: 'plate', 2: 'date', 3: 'time', 4: 'amount', 5: 'fees' }, { kind: 'toll_invoice', authority: '407 ETR', dateOrder: 'dmy', plates: FLEET });
   assert.equal(out.length, 2);
-  assert.deepEqual([out[0]!.plate, out[0]!.occurred_at, out[0]!.amount_cents, out[0]!.fees_cents, out[0]!.notice_number], ['CCAB123', '2026-09-14T20:12:00', 814, 420, 'T1']);
-  assert.deepEqual([out[1]!.time_unknown, out[1]!.fees_cents], [true, null]);
+  assert.deepEqual([out[0]!.plate, out[0]!.occurred_at, out[0]!.amount_cents, out[0]!.fees_cents, out[0]!.notice_number], ['CCAB123', '2026-09-14T20:12:00', 1234, 420, 'T1']);
+  assert.deepEqual([out[1]!.time_unknown, out[1]!.fees_cents, out[1]!.amount_cents], [true, null, 200]);
   assert.ok(out[1]!.confidence < out[0]!.confidence);
+});
+
+// ---------------------------------------------------------------- 5140: 407 ETR statements as the files are shaped
+// The layouts of a 407 ETR account statement: the PDF (account details, then trips grouped under each licence plate, a
+// column table repeated at the top of each page, a distance printed without "km", a camera charge and a trip toll charge
+// beside the toll, a total column, entry and exit names on two lines, the monthly account fee apart) and the CSV download
+// (account details above the header row, plates with the province, 12-hour times with seconds, a payment row). Plates,
+// account and statement numbers are made up.
+
+/** A line laid out in columns, as pdf.js gives it: each value at the left edge of its column (fractions of the page). */
+const X = [0.04, 0.12, 0.2, 0.34, 0.42, 0.56, 0.64, 0.73, 0.82, 0.91];
+const row = (vals: Array<string | null>, page = 1, y = 0): TextLine => {
+  const cells: Cell[] = vals.map((t, i) => (t ? { text: t, x0: X[i]!, x1: X[i]! + Math.min(0.075, t.length * 0.009) } : null)).filter((c): c is Cell => !!c);
+  return { text: cells.map((c) => c.text).join('  '), page, y, h: 0.02, cells };
+};
+const text = (t: string, page = 1, y = 0): TextLine => ({ text: t, page, y, h: 0.02, cells: [{ text: t, x0: 0.04, x1: 0.04 + t.length * 0.008 }] });
+const HEAD = ['Date', 'Entry Time', 'Entry', 'Exit Time', 'Exit', 'Distance', 'Toll Charge', 'Camera Charge', 'Trip Toll Charge', 'Total'];
+const P407_5140: Profile = { ...P407, rules: { ...P407.rules, fields: { ...P407.rules.fields, plate: ['Licence Plate', 'Plate'] }, trip: { ...P407.rules.trip, statement_fee_words: ['Account Fee', 'Late Payment', 'Statement Fee'] } } };
+const PDF407: TextLine[] = [
+  text('407 ETR Express Toll Route', 1, 0.02), text('Statement Number: ST-0000000001', 1, 0.05), text('Statement Date: Nov 18, 2026', 1, 0.07),
+  text('Account Number: 200000000000', 1, 0.09), text('Payment Due Date: Dec 8, 2026', 1, 0.11), text('Total Amount Due $81.63', 1, 0.13), text('Previous Balance $0.00', 1, 0.15),
+  text('Licence Plate: CCAB 123', 1, 0.2), row(HEAD, 1, 0.22),
+  row(['Nov 03', '08:15 AM', 'Hwy 427', '08:41 AM', 'Brock Rd', '54.21', '$21.33', '$4.25', '$1.00', '$26.58'], 1, 0.25),
+  row(['Nov 03', '6:02 PM', 'Brock Rd', '6:30 PM', 'Highway', '54.21', '$23.10', '$4.25', '$1.00', '$28.35'], 1, 0.28),
+  row([null, null, null, null, '427'], 1, 0.3),
+  text('Page 1 of 2', 1, 0.97),
+  row(HEAD, 2, 0.05),
+  text('Licence Plate: TXYZ 789', 2, 0.08),
+  row(['Dec 30', '11:59 PM', 'Yonge St', '12:20 AM', 'Hwy 400', '9.87', '$3.20', '$4.25', '$1.00', '$8.45'], 2, 0.1),
+  row(['Nov 14', '13:05', 'Dixie Rd', '13:22', 'Hwy 410', '12.00', '$9.00', '$0.00', '$1.00', '$10.00'], 2, 0.13),
+  text('Total Trip Charges $73.38', 2, 0.2), text('Monthly Account Fee $4.25', 2, 0.22), text('Late Payment Charge $4.00', 2, 0.24)
+];
+
+test('407 PDF: each trip read by its columns: date and entry time, plate from its heading, entry and exit, the toll with its camera and trip charges, not the distance', () => {
+  const r = readText(PDF407, P407_5140, { plates: FLEET });
+  assert.equal(r.layout, 'statement');
+  assert.deepEqual([r.statement_number, r.statement_date, r.due_on, r.total_cents], ['ST-0000000001', '2026-11-18', '2026-12-08', 8163]);
+  assert.equal(r.lines.length, 4);
+  const [a, b, c, d] = r.lines;
+  assert.deepEqual([a!.occurred_at, a!.plate, a!.entry, a!.exit, a!.amount_cents, a!.fees_cents, a!.time_unknown], ['2026-11-03T08:15:00', 'CCAB123', 'Hwy 427', 'Brock Rd', 2658, 525, false]);
+  assert.deepEqual([b!.occurred_at, b!.exit, b!.amount_cents], ['2026-11-03T18:02:00', 'Highway 427', 2835], 'a place on two lines is one place');
+  assert.deepEqual([c!.plate, c!.occurred_at, c!.amount_cents, c!.fees_cents], ['TXYZ789', '2025-12-30T23:59:00', 845, 525], 'a later plate heading, on the next page; December on a November statement is last year');
+  assert.deepEqual([d!.plate, d!.occurred_at, d!.amount_cents, d!.fees_cents], ['TXYZ789', '2026-11-14T13:05:00', 1000, 100]);
+  for (const l of r.lines) assert.ok(l.confidence >= 90, `confidence ${l.confidence}: ${l.source_text}`);
+  assert.deepEqual(r.statement_fees.map((f) => f.amount_cents), [425, 400]);
+  assert.deepEqual(r.problems, [], 'the lines and the fees add up to the amount due');
+});
+
+test('407 PDF: a header printed on two lines, a credit left out and said, a line whose charges do not add up flagged', () => {
+  const two = [text('407 ETR', 1, 0.01), text('Statement Date: 2026-11-18', 1, 0.02),
+    row(['Trip', 'Entry', 'Entry', 'Exit', 'Exit', 'Distance', 'Toll', 'Video Toll', 'Trip Toll', 'Total'], 1, 0.1),
+    row(['Date', 'Time', 'Interchange', 'Time', 'Interchange', '(km)', 'Charge', 'Charge', 'Charge', null], 1, 0.12),
+    row(['2026-11-05', '07:40', 'Hwy 401', '07:58', 'Hwy 403', '20.00', '$7.00', '$4.25', '$1.00', '$12.25'], 1, 0.15),
+    row(['2026-11-06', '07:40', 'Hwy 401', '07:58', 'Hwy 403', '20.00', '$7.00', '$4.25', '$1.00', '$15.00'], 1, 0.17),
+    row(['2026-11-07', null, 'Reversal', null, null, null, '-$7.00', null, null, '-$7.00'], 1, 0.19)];
+  const r = readText(two, P407_5140, { plates: FLEET });
+  assert.equal(r.lines.length, 2);
+  assert.deepEqual([r.lines[0]!.occurred_at, r.lines[0]!.entry, r.lines[0]!.amount_cents, r.lines[0]!.fees_cents], ['2026-11-05T07:40:00', 'Hwy 401', 1225, 525]);
+  assert.ok(r.lines[1]!.confidence < 80, 'a total that is not its charges is checked by a person');
+  assert.match(r.problems.join(' | '), /credit or reversal was left out/);
+  assert.match(r.problems.join(' | '), /add up to 12\.25, its total says 15\.00/);
+});
+
+test('407 headers: each column name is read for what it is', () => {
+  assert.deepEqual(['Trip Date', 'Entry Time', 'Exit Time', 'Entry Interchange', 'Exit Interchange', 'Licence Plate', 'Distance (km)', 'Toll Charge', 'Video Toll Charge', 'Trip Toll Charge', 'Camera Charge', 'Total Charges', 'Transponder', 'Trip ID', 'Vehicle Class'].map(classifyHeader),
+    ['date', 'time', 'skip', 'entry', 'exit', 'plate', 'distance', 'toll', 'fee', 'fee', 'fee', 'total', 'transponder', 'ref', 'skip']);
+});
+
+const CSV407 = `Account Number,200000000000
+Statement Date,2026-11-18
+Statement Number,ST-0000000001
+
+Trip Date,Entry Time,Entry Interchange,Exit Time,Exit Interchange,Licence Plate,Distance (km),Toll Charge,Video Toll Charge,Trip Toll Charge,Total Charges
+11/03/2026,8:15:22 AM,Hwy 427,8:41:10 AM,Brock Rd,CCAB123 ON,54.21,$21.33,$4.25,$1.00,$26.58
+11/14/2026,1:05:00 PM,Dixie Rd,1:22:00 PM,Hwy 410,TXYZ 789 (ON),12.00,$9.00,$0.00,$1.00,$10.00
+11/16/2026,,Payment - Thank you,,,,,"($50.00)",,,"($50.00)"
+,,,,,,,,,Total,$36.58
+`;
+
+test('407 CSV: the header found under the account details, every column mapped, fees summed, plates with the province, 12-hour times with seconds', () => {
+  const rows = parseCsv(CSV407);
+  const h = headerRow(rows);
+  assert.equal(h, 3, 'the blank line is not a row');
+  const map = autoMap(rows[h]!);
+  assert.deepEqual(map, { 0: 'date', 1: 'time', 2: 'entry', 4: 'exit', 5: 'plate', 7: 'amount', 8: 'fees', 9: 'fees', 10: 'total' });
+  const { lines, problems } = csvLines(rows, map, { kind: 'toll_invoice', authority: '407 ETR', plates: FLEET, header: h });
+  assert.equal(lines.length, 2);
+  assert.deepEqual([lines[0]!.plate, lines[0]!.occurred_at, lines[0]!.entry, lines[0]!.exit, lines[0]!.amount_cents, lines[0]!.fees_cents], ['CCAB123', '2026-11-03T08:15:00', 'Hwy 427', 'Brock Rd', 2658, 525]);
+  assert.deepEqual([lines[1]!.plate, lines[1]!.occurred_at, lines[1]!.amount_cents, lines[1]!.fees_cents], ['TXYZ789', '2026-11-14T13:05:00', 1000, 100]);
+  assert.ok(lines.every((l) => l.confidence >= 90), 'month first is known from 11/14/2026, so 11/03/2026 is not ambiguous');
+  assert.match(problems.join(' '), /credit or reversal was left out/);
+});
+
+test('407 dates as other exports print them: a two-digit year with the month name, a day and time in one cell without the year', () => {
+  assert.equal(findDate('03-Nov-26')!.iso, '2026-11-03');
+  assert.equal(findDate('Nov 03, 26')!.iso, '2026-11-03');
+  assert.equal(findDate('Nov 03 08:15', 'auto', 2026)!.iso, '2026-11-03', 'the time is not read as a year');
+  assert.equal(findDate('03-Nov 8:15 PM', 'auto', 2026)!.iso, '2026-11-03');
+  const rows = parseCsv('"Trip Date/Time","Entry","Exit","Plate","Toll","Camera Charge","Total"\n"2026-11-03 08:15:22","Hwy 427","Brock Rd","CCAB123","$21.33","$4.25","$25.58"\n');
+  const h = headerRow(rows);
+  const { lines: out } = csvLines(rows, autoMap(rows[h]!), { kind: 'toll_invoice', authority: '407 ETR', plates: FLEET, header: h });
+  assert.deepEqual(out.map((l) => [l.occurred_at, l.plate, l.amount_cents, l.fees_cents, l.time_unknown]), [['2026-11-03T08:15:00', 'CCAB123', 2558, 425, false]]);
+});
+
+test('5147: a credit left out or a total that does not add up holds the statement\'s charging; a clean statement holds nothing', () => {
+  assert.deepEqual(readText(PDF407, P407_5140, { plates: FLEET }).hold, []);
+  const credit = readText([text('407 ETR', 1, 0.01), text('Statement Date: 2026-11-18', 1, 0.02), row(HEAD, 1, 0.1),
+    row(['2026-11-05', '07:40', 'Hwy 401', '07:58', 'Hwy 403', '20.00', '$7.00', '$4.25', '$1.00', '$12.25'], 1, 0.15),
+    row(['2026-11-07', null, 'Reversal', null, null, null, '-$7.00', null, null, '-$7.00'], 1, 0.19)], P407_5140, { plates: FLEET });
+  assert.match(credit.hold.join(' | '), /credit or reversal was left out/);
+  assert.match(readText(lines(STATEMENT.replace('$43.29', '$50.00')), P407, { plates: FLEET }).hold.join(' '), /the statement says 50\.00/);
+  assert.match(readText(lines(STATEMENT.replace('Monthly Account Fee  $4.25', '2026-09-20  Reversal  -$8.14')), P407, { plates: FLEET }).hold.join(' '), /credit or reversal/, 'the line reader holds a credit too');
+  const rows = parseCsv(CSV407); const h = headerRow(rows);
+  assert.match(csvLines(rows, autoMap(rows[h]!), { kind: 'toll_invoice', authority: '407 ETR', plates: FLEET, header: h }).hold.join(' '), /credit or reversal/);
 });

@@ -1,0 +1,36 @@
+CarmaCars  |  Your {{vehicle_name}}
+
+========================================
+
+[Car cost]
+A cost was added for your {{vehicle_name}}
+
+Hi {{first_name}}, we paid this for your car. It comes off your next statement.
+
+What: {{cost_description}}
+Where: {{cost_vendor}}
+Date on the receipt: {{cost_date}}
+Amount with tax: {{cost_amount}}
+Of which tax: {{cost_tax}}
+Receipt photos: {{receipt_count}}
+
+The receipt is in your owner portal under Documents, and the cost shows on your statement for the month.
+
+See your documents:
+https://carmacars.ca/owner/documents
+
+If this cost is not right, reply to this email before your statement is final and we will check it with the receipt.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you have an owner account with CarmaCars. Notices about your vehicles, fees and payouts are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+{{payee_name}}
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

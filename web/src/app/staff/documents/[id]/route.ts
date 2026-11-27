@@ -24,7 +24,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     // an owner's onboarding photo (the ownership permit, the insurance slip, the lender's permission) for customer service and fleet (r34, 0821)
     ?? (await door<D>(user.id, roles.admin ? 'ops_read' : 'va_read', 'onboarding_document', { document: id }, aal).catch(() => null))
     // r49 (3610): the screenshot of an e-Transfer a Sales rep reported, for Finance, Sales and the Admins
-    ?? (await door<D>(user.id, 'ops_read', 'etransfer_proof', { document: id }, aal).catch(() => null));
+    ?? (await door<D>(user.id, 'ops_read', 'etransfer_proof', { document: id }, aal).catch(() => null))
+    // R50 hotfix 2 (5144): a logged expense's receipt photo, or an ownership permit uploaded in bulk
+    ?? (await door<D>(user.id, 'ops_read', 'ops_upload_document', { document: id }, aal).catch(() => null));
   if (!d) return nf();
   const bytes = await (await storage()).get(d.bucket as 'documents', d.path);
   return bytes ? fileResponse({ bytes, fileName: d.path.split('/').pop() ?? 'form', contentType: d.mime_type ?? 'application/octet-stream' }) : nf();

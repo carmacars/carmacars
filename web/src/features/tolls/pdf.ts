@@ -44,19 +44,26 @@ export async function pdfLines(doc: PdfDoc, maxPages = 40): Promise<{ lines: Tex
       r.sort((a, b) => a.x - b.x);
       let text = '';
       let end = -Infinity;
+      // 5140: each run of text with its edges, so a statement's values are read by their column (parse.ts readTable)
+      const cells: Array<{ text: string; x0: number; x1: number }> = [];
       for (const it of r) {
         if (!it.str.trim()) { end = Math.max(end, it.x + it.w); continue; }
         const gap = it.x - end;
         const charW = it.str.length ? it.w / it.str.length : 5;
-        text += text ? (gap > charW * 2.5 ? '  ' : gap > charW * 0.15 || /\s$/.test(text) ? ' ' : '') : '';
+        const wide = gap > charW * 2.5;
+        text += text ? (wide ? '  ' : gap > charW * 0.15 || /\s$/.test(text) ? ' ' : '') : '';
         text += it.str;
+        const last = cells[cells.length - 1];
+        if (last && !wide) { last.text += (gap > charW * 0.15 && !/\s$/.test(last.text) ? ' ' : '') + it.str; last.x1 = (it.x + it.w) / vp.width; }
+        else cells.push({ text: it.str, x0: it.x / vp.width, x1: (it.x + it.w) / vp.width });
         end = it.x + it.w;
       }
       text = text.replace(/[ \t]{3,}/g, '  ').trim();
       if (!text) continue;
       chars += text.length;
       const y = 1 - (r[0]!.y + r[0]!.h) / vp.height;
-      lines.push({ text, page: n, y: Math.max(0, Math.min(1, y)), h: Math.min(0.2, (r[0]!.h * 1.4) / vp.height) });
+      lines.push({ text, page: n, y: Math.max(0, Math.min(1, y)), h: Math.min(0.2, (r[0]!.h * 1.4) / vp.height),
+        cells: cells.map((c) => ({ text: c.text.trim(), x0: c.x0, x1: c.x1 })).filter((c) => c.text) });
     }
   }
   return { lines, chars, pages: doc.numPages };
@@ -99,7 +106,7 @@ export async function imageJpeg(src: Blob | string, longSide = 1600): Promise<{ 
 }
 
 /** Ask the vision model about one image (the server checks who may, and the day's allowance). */
-export async function askVision(purpose: 'toll_read' | 'plate_detect', image: string, extra: { photo?: string; vehicle?: string; width?: number; height?: number } = {}): Promise<{ ok: true; model: string; neurons: number; data: unknown } | { ok: false; message: string; reason?: string }> {
+export async function askVision(purpose: 'toll_read' | 'plate_detect' | 'receipt_read', image: string, extra: { photo?: string; vehicle?: string; width?: number; height?: number } = {}): Promise<{ ok: true; model: string; neurons: number; data: unknown } | { ok: false; message: string; reason?: string }> {
   try {
     const r = await fetch('/api/staff/vision', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ purpose, image, ...extra }) });
     const j = (await r.json().catch(() => null)) as ({ ok: true; model: string; neurons: number; data: unknown } | { ok: false; message: string; reason?: string }) | null;

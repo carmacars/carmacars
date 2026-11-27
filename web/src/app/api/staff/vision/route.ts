@@ -3,10 +3,11 @@ import { currentUser } from '@/server/portal/data';
 import { door, sessionAal } from '@/server/door';
 import { visionModel } from '@/integrations/vision';
 import { PLATE_SCHEMA, PLATE_SYSTEM, TOLL_PROMPT, TOLL_SCHEMA, TOLL_SYSTEM, platePrompt } from '@/features/tolls/vision-schema';
+import { RECEIPT_PROMPT, RECEIPT_SCHEMA, RECEIPT_SYSTEM } from '@/features/expenses/receipt-read';
 import { foreignOrigin } from '@/lib/security/same-origin';
 
 // One image to the vision model (migration 0042): a page of a scanned toll notice (Finance, Admins) or a listing
-// photo for the plate box (Fleet, customer service, Admins). The browser made the image small; the database
+// photo for the plate box (Fleet, customer service, Admins), or (5143) a receipt photo for an expense (Admins, Finance, Fleet). The browser made the image small; the database
 // says whether this person may ask, which model, and whether today's allowance has room; the call is recorded
 // with its neurons. The answer goes back as JSON for the browser to check and show; nothing is stored from it
 // except a plate suggestion on its photo.
@@ -29,7 +30,7 @@ async function handle(req: Request): Promise<Response> {
   if (!user) return NextResponse.json({ ok: false, message: 'Sign in first.' }, { status: 401 });
   const aal = await sessionAal();
   const body = (await req.json().catch(() => null)) as { purpose?: string; image?: string; photo?: string; vehicle?: string; width?: number; height?: number } | null;
-  const purpose = body?.purpose === 'plate_detect' ? 'plate_detect' : body?.purpose === 'toll_read' ? 'toll_read' : null;
+  const purpose = body?.purpose === 'plate_detect' ? 'plate_detect' : body?.purpose === 'toll_read' ? 'toll_read' : body?.purpose === 'receipt_read' ? 'receipt_read' : null;
   const image = typeof body?.image === 'string' ? body.image : '';
   if (!purpose) return NextResponse.json({ ok: false, message: 'Unknown request.' }, { status: 400 });
   if (!/^data:image\/(jpeg|png);base64,/.test(image) || image.length > MAX) {
@@ -42,8 +43,9 @@ async function handle(req: Request): Promise<Response> {
   const t0 = Date.now();
   const r = await (await visionModel()).read({
     purpose, imageDataUrl: image,
-    system: purpose === 'toll_read' ? TOLL_SYSTEM : PLATE_SYSTEM, prompt: purpose === 'toll_read' ? TOLL_PROMPT : platePrompt(Number.isFinite(body?.width) && Number.isFinite(body?.height) ? { width: Number(body!.width), height: Number(body!.height) } : null),
-    schema: (purpose === 'toll_read' ? TOLL_SCHEMA : PLATE_SCHEMA) as unknown as Record<string, unknown>, maxOutputTokens: purpose === 'toll_read' ? 2000 : 300
+    system: purpose === 'toll_read' ? TOLL_SYSTEM : purpose === 'receipt_read' ? RECEIPT_SYSTEM : PLATE_SYSTEM,
+    prompt: purpose === 'toll_read' ? TOLL_PROMPT : purpose === 'receipt_read' ? RECEIPT_PROMPT : platePrompt(Number.isFinite(body?.width) && Number.isFinite(body?.height) ? { width: Number(body!.width), height: Number(body!.height) } : null),
+    schema: (purpose === 'toll_read' ? TOLL_SCHEMA : purpose === 'receipt_read' ? RECEIPT_SCHEMA : PLATE_SCHEMA) as unknown as Record<string, unknown>, maxOutputTokens: purpose === 'toll_read' ? 2000 : purpose === 'receipt_read' ? 400 : 300
   }, [gate.model, gate.fallback_model ?? ''].filter(Boolean));
   const model = r.model ?? r.tried[r.tried.length - 1] ?? gate.model;
   await door(user.id, 'ops_do', 'ai_call_record', { purpose, model, ok: r.ok, error: r.ok ? null : `${r.reason}: ${r.message}`, neurons: r.usage?.neurons ?? 0, duration_ms: Date.now() - t0,

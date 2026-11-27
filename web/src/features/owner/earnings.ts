@@ -1,29 +1,32 @@
-// The earnings calculator of List your car (migration 0354, docs/changes/2026-11-06-owner-earnings-calculator.md): pure
-// maths over the small set of numbers public.owner_calc_data returns with the page. No price is written here: the daily
-// rate is the average of the real cars on the site of the same make and model, else of the same class, else the class
-// rate card of Program settings; the fees are Program settings, or "quoted in your agreement" when not set.
+// The earnings calculator of List your car and the application (migrations 0354, 3291, 5141): pure maths over the small set
+// of numbers public.owner_calc_data returns with the page. 5141 (the owner, Nov 27): the owner's rule sets the month. At the
+// occupancy of Program settings (80%) a typical car makes the typical month for its owner ($1,200), never under the floor
+// ($800), more for a newer car or a class in higher demand. An old car of a premium make is not priced as premium. The days
+// slider, the owner's share and the season move that month; nothing here is a price, every number is a Program setting.
 
 export interface CalcClass { code: string; label: string; card_cents: number | null; avg_cents: number | null; n: number }
-export interface CalcModel { make: string; model: string; class: string; avg_cents: number; n: number;
-  /** 5013: the model's cars by year (the year's average daily rate), and their average year */
-  years?: { year: number; avg_cents: number; n: number }[]; avg_year?: number | null }
+export interface CalcModel { make: string; model: string; class: string; avg_cents: number; n: number; years?: { year: number; avg_cents: number; n: number }[]; avg_year?: number | null }
 export interface CalcRule { make: string | null; model_re: string | null; trim_re: string | null; body_re: string | null; class: string; aged_years: number | null; aged_class: string | null }
+/** 5141: the owner's rule, from Program settings. */
+export interface CalcTarget { typical_cents: number; floor_cents: number; occupancy_pct: number; typical_age: number; age_step_pct: number; premium_max_age: number; class_factor: Record<string, number> }
 export interface CalcData { classes: CalcClass[]; models: CalcModel[]; rules: CalcRule[]; fees: { insurance_cents: number | null; tracker_cents: number | null }; year: number;
-  /** 3291: the calculator's own season (the factor of each month, jan .. dec), the rented days of an average month it starts
-   *  from, and the percent off the listed rate on a rented day. Program settings; the fallbacks below only until the page has them. */
-  season?: Record<string, number>; base_days?: number; discount_pct?: number }
+  /** 3291: the season (the factor of each month, jan .. dec) and the percent off the listed rate on a rented day */
+  season?: Record<string, number>; base_days?: number; discount_pct?: number; target?: CalcTarget }
 export interface CalcCar { year?: number | null; make?: string | null; model?: string | null; trim?: string | null; body?: string | null }
 
-// r48 ops (3291): conservative. The slider is the rented days of an AVERAGE month and stops at 22 (a car is never out
-// every day: cleaning, service, gaps between renters); it starts from Program settings (12), not from 18.
-export const DAYS = { min: 4, max: 22, start: 12, low: 5 } as const;
+/** The Program settings' defaults (5141), only until the page has them. */
+export const TARGET: CalcTarget = { typical_cents: 120000, floor_cents: 80000, occupancy_pct: 80, typical_age: 5, age_step_pct: 5, premium_max_age: 8,
+  class_factor: { economy: 0.9, standard: 1, sedan: 1, coupe: 1.05, van: 1.05, pickup: 1.05, suv: 1.1, premium: 1.15, convertible: 1.2, luxury: 1.3, exotic: 1.8 } };
+/** The days slider: rented days of an average month (a car is never out every day: cleaning, service, gaps). */
+export const DAYS = { min: 4, max: 26 } as const;
 export const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'] as const;
 export const MONTH_NAME = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'] as const;
 const MONTH_DAYS = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-/** The GTA's rental year as the calculator reads it when the page has no setting yet: summer busiest, winter slow, the
- *  shoulder months slowest (the same numbers as the Program setting's default). */
+/** The GTA's rental year when the page has no setting yet: summer busiest, winter slow, the shoulder months slowest. */
 export const SEASON: Record<string, number> = { jan: 0.75, feb: 0.75, mar: 0.70, apr: 0.65, may: 0.85, jun: 1.10, jul: 1.30, aug: 1.30, sep: 0.85, oct: 0.70, nov: 0.65, dec: 0.85 };
-export const startDays = (d: Pick<CalcData, 'base_days'> | null | undefined) => Math.min(DAYS.max, Math.max(DAYS.min, Math.round(d?.base_days ?? DAYS.start)));
+/** The days the slider starts at: the occupancy of a 30-day month (80%: 24 days). */
+export const occupancyDays = (d: Pick<CalcData, 'target'> | null | undefined) => Math.min(DAYS.max, Math.max(DAYS.min, Math.round(((d?.target ?? TARGET).occupancy_pct * 30) / 100)));
+/** The owner's share the typical month is at; the slider moves it. */
 export const SHARE = { min: 60, max: 90, start: 70 } as const;
 
 /** The make as the class rules key it (app.make_key): lower case letters and digits only. */
@@ -42,74 +45,82 @@ export function classOf(rules: CalcRule[], car: CalcCar, year: number): string {
   return r.aged_years !== null && r.aged_class && age !== null && age >= r.aged_years ? r.aged_class : r.class;
 }
 
-/** 5013: how a car's year moves its model's average rate (1 when either year is unknown). */
-export function yearFactor(carYear: number | null | undefined, modelYear: number | null | undefined): number {
-  if (!carYear || !modelYear) return 1;
-  const d = carYear - modelYear;
-  return d < 0 ? Math.max(0.55, 1 + 0.05 * d) : Math.min(1.2, 1 + 0.03 * d);
+const PREMIUM = new Set(['premium', 'luxury', 'exotic']);
+/** 5141: the class the calculator prices: the car's class, but a premium or luxury make older than premium_max_age years is
+ *  priced as the car under the make (the rules without a make: its body), else standard. */
+export function calcClass(d: CalcData, car: CalcCar): string {
+  const t = d.target ?? TARGET;
+  const c = classOf(d.rules, car, d.year);
+  const age = car.year && car.year > 1900 ? d.year - car.year : null;
+  if (!PREMIUM.has(c) || age === null || age <= t.premium_max_age) return c;
+  const under = classOf(d.rules.filter((r) => r.make === null), car, d.year);
+  return PREMIUM.has(under) ? 'standard' : under;
 }
 
-export type RateSource = 'model' | 'class' | 'card' | 'none';
-/** The daily rate: the same make and model on the site, else the class average, else the class rate card. */
-export function rateFor(d: CalcData, car: CalcCar): { cents: number | null; source: RateSource; cls: string; label: string; n: number } {
-  const cls = classOf(d.rules, car, d.year);
-  const c = d.classes.find((x) => x.code === cls);
-  const label = c?.label ?? cls;
-  const mk = makeKey(car.make), md = (car.model ?? '').trim().toLowerCase();
-  if (mk && md) {
-    const m = d.models.find((x) => x.make === mk && x.model === md) ?? d.models.find((x) => x.make === mk && (md.startsWith(x.model + ' ') || x.model.startsWith(md + ' ')));
-    if (m && m.avg_cents > 0) {
-      const y = car.year && car.year > 1900 ? car.year : null;
-      // 5013: the year counts. Cars of the same model within two years of this one, when there are any; else the model's
-      // average moved by the years between (older: 5% a year less, down to 55%; newer: 3% a year more, up to 120%).
-      const near = y ? (m.years ?? []).filter((x) => Math.abs(x.year - y) <= 2) : [];
-      if (near.length) {
-        const n = near.reduce((a, x) => a + x.n, 0);
-        return { cents: Math.round(near.reduce((a, x) => a + x.avg_cents * x.n, 0) / n), source: 'model', cls, label, n };
-      }
-      return { cents: Math.round(m.avg_cents * yearFactor(y, m.avg_year ?? null)), source: 'model', cls, label, n: m.n };
-    }
-  }
-  if (c?.avg_cents && c.n > 0) return { cents: Math.round(c.avg_cents), source: 'class', cls, label, n: c.n };
-  if (c?.card_cents) return { cents: c.card_cents, source: 'card', cls, label, n: 0 };
-  return { cents: null, source: 'none', cls, label, n: 0 };
+export interface MonthAt { cents: number; cls: string; label: string; age: number | null; ageFactor: number; demand: number; floored: boolean }
+/** 5141: the owner's month at the occupancy and the typical share: typical x age factor x demand, never under the floor. */
+export function monthlyAt(d: CalcData, car: CalcCar): MonthAt {
+  const t = d.target ?? TARGET;
+  const cls = calcClass(d, car);
+  const label = d.classes.find((x) => x.code === cls)?.label ?? cls.charAt(0).toUpperCase() + cls.slice(1);
+  const age = car.year && car.year > 1900 ? Math.max(0, d.year - car.year) : null;
+  const ageFactor = Math.min(1.3, Math.max(0.5, 1 + ((t.typical_age - (age ?? t.typical_age)) * t.age_step_pct) / 100));
+  const demand = Number(t.class_factor[cls]) > 0 ? Number(t.class_factor[cls]) : 1;
+  const raw = Math.round(t.typical_cents * ageFactor * demand);
+  return { cents: Math.max(t.floor_cents, raw), cls, label, age, ageFactor, demand, floored: raw < t.floor_cents };
 }
 
 export interface SeasonMonth { key: string; name: string; factor: number; days: number; revenue: number; share: number; net: number }
 export interface SeasonEstimate {
   months: SeasonMonth[];
-  /** the twelve months added up, and their average (what the page leads with: never twelve of the best month) */
+  /** the twelve months added up, and their average (what the page leads with) */
   yearly: number; average: number; revenueAverage: number; shareAverage: number;
   slow: SeasonMonth; busy: SeasonMonth; fees: number | null; beforeFees: boolean;
-  /** the daily rate the months are worked at: the listed rate less the typical discount */
-  dayCents: number; discountPct: number;
+  /** the listed daily rate the month implies (after the typical discount comes off a rented day) */
+  listedCents: number; discountPct: number;
   /** months in which the share does not cover the monthly fees */
   short: number;
 }
 /**
- * A year, month by month (3291): a month's rented days are the average month's days times the month's factor (never more
- * than the month has, never more than 26: a car is not out every day); each day earns the listed rate less the typical
- * discount; the owner's share of that, less the monthly fees when they are set. Cents; the average is whole dollars.
+ * A year, month by month (5141): the owner's share of an average month is the month at the occupancy, scaled by the days
+ * chosen against the occupancy's days and by the share chosen against the typical share; each month moves with the season
+ * (its factor against the season's average), never more rented days than the month has nor more than 26. Revenue is the
+ * share over the share percent. Cents; the averages are whole dollars.
  */
-export function seasonal(a: { rateCents: number; days: number; sharePct: number; fees: CalcData['fees']; season?: Record<string, number> | null; discountPct?: number | null }): SeasonEstimate {
-  const base = Math.min(DAYS.max, Math.max(0, Math.round(a.days)));
-  const pct = Math.min(100, Math.max(0, a.sharePct));
+export function estimate(a: { at: number; days: number; occupancyDays: number; sharePct: number; fees: CalcData['fees']; season?: Record<string, number> | null; discountPct?: number | null }): SeasonEstimate {
+  const pct = Math.min(100, Math.max(1, a.sharePct));
   const discountPct = Math.min(60, Math.max(0, a.discountPct ?? 15));
-  const dayCents = Math.round((a.rateCents * (100 - discountPct)) / 100);
   const set = a.fees.insurance_cents !== null && a.fees.tracker_cents !== null;
   const fees = set ? (a.fees.insurance_cents ?? 0) + (a.fees.tracker_cents ?? 0) : null;
   const season = a.season ?? SEASON;
+  const factors = MONTHS.map((k) => (Number(season[k]) > 0 ? Number(season[k]) : 1));
+  const days = Math.max(0, a.days);
+  const shareMonth = (a.at * (days / Math.max(1, a.occupancyDays)) * pct) / SHARE.start;
+  // the year's rented days (twelve average months) spread over the season, no month above its cap: a busy month that would
+  // pass the cap gives its extra days to the others, so the year still averages the days chosen
+  const caps = MONTH_DAYS.map((n) => Math.min(n, 26));
+  const total = Math.min(days * 12, caps.reduce((n, x) => n + x, 0));
+  const spread: number[] = new Array(12).fill(0);
+  let open = MONTHS.map((_, i) => i); let left = total;
+  for (let pass = 0; pass < 12 && open.length && left > 0; pass++) {
+    const w = open.reduce((n, i) => n + factors[i]!, 0);
+    const over = open.filter((i) => (left * factors[i]!) / w > caps[i]!);
+    if (!over.length) { for (const i of open) spread[i] = (left * factors[i]!) / w; break; }
+    for (const i of over) { spread[i] = caps[i]!; left -= caps[i]!; }
+    open = open.filter((i) => !over.includes(i));
+  }
   const months = MONTHS.map((key, i) => {
-    const factor = Number(season[key]) > 0 ? Number(season[key]) : 1;
-    const days = Math.min(MONTH_DAYS[i]!, 26, Math.round(base * factor));
-    const revenue = dayCents * days;
-    const share = Math.round((revenue * pct) / 100);
-    return { key, name: MONTH_NAME[i]!, factor, days, revenue, share, net: fees === null ? share : share - fees };
+    const factor = factors[i]!;
+    const share = days > 0 ? Math.round((shareMonth * spread[i]!) / days) : 0;
+    const revenue = Math.round((share * 100) / pct);
+    return { key, name: MONTH_NAME[i]!, factor, days: Math.round(spread[i]!), revenue, share, net: fees === null ? share : share - fees };
   });
   const sum = (f: (m: SeasonMonth) => number) => months.reduce((n, m) => n + f(m), 0);
   const yearly = sum((m) => m.net);
   const by = [...months].sort((x, y) => x.net - y.net || x.factor - y.factor || MONTHS.indexOf(x.key as never) - MONTHS.indexOf(y.key as never));
   const whole = (c: number) => Math.round(c / 100) * 100;
+  const perDay = a.occupancyDays > 0 ? (a.at * 100) / SHARE.start / a.occupancyDays : 0;
   return { months, yearly: whole(yearly), average: whole(yearly / 12), revenueAverage: whole(sum((m) => m.revenue) / 12), shareAverage: whole(sum((m) => m.share) / 12),
-    slow: by[0]!, busy: by[by.length - 1]!, fees, beforeFees: fees === null, dayCents, discountPct, short: fees === null ? 0 : months.filter((m) => m.net < 0).length };
+    slow: by[0]!, busy: by[by.length - 1]!, fees, beforeFees: fees === null, listedCents: whole(perDay / (1 - discountPct / 100)), discountPct,
+    short: fees === null ? 0 : months.filter((m) => m.net < 0).length };
 }
