@@ -138,13 +138,42 @@ caddy_site() {
   local old=""
   [ -f "$S/caddy/sites/web.caddy" ] && old="$(mktemp)" && cp "$S/caddy/sites/web.caddy" "$old"
   install -m 644 "$T/web.caddy" "$S/caddy/sites/web.caddy"
-  # a reload Caddy refuses leaves the running configuration as it was; the file is then put back
-  if ! docker exec supabase-caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile; then
+  # a reload Caddy refuses leaves the running configuration as it was; the file is then put back. --force: a new certificate
+  # at the same path leaves the config text unchanged, and without it Caddy skips the reload (r50 hotfix2, below)
+  if ! docker exec supabase-caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile --force; then
     if [ -n "$old" ]; then install -m 644 "$old" "$S/caddy/sites/web.caddy"; else rm -f "$S/caddy/sites/web.caddy"; fi
     say "Caddy refused the site file; it keeps serving what it served"; return 1
   fi
   [ -n "$old" ] && rm -f "$old"
   say "Caddy serves: $(sed -n 's/ {$//p' "$S/caddy/sites/web.caddy" | grep -v '^[[:space:]#]' | head -1)"
+}
+
+# r50 hotfix2: Caddy must hand out the certificate on disk. A reload whose config text is unchanged is skipped, and a
+# certificate loaded from a file stays in Caddy's memory: after the Origin CA certificate lost *.carmacars.ca (f4df37d3)
+# Caddy 2.10.2 still served the old wildcard one for api. and meet. (deploy-vps 45956912204, tls-report), which browsers,
+# the web container (/api/health 503) and vps-health refuse. When the web host's certificate differs from the file, or
+# a DNS-only host (the API, the media server) gets an Origin CA certificate, Caddy is restarted: it then loads the file
+# and manages the Let's Encrypt certificates of the other hosts again (kept in its data volume).
+served() { echo | timeout 10 openssl s_client -connect 127.0.0.1:443 -servername "$1" 2>/dev/null | openssl x509 -noout "${@:2}" 2>/dev/null; }
+caddy_cert_sync() {
+  local O="$S/caddy/sites/origin/cert.pem" web api h why="" i
+  web=$(sed -n 's/ {$//p' "$S/caddy/sites/web.caddy" 2>/dev/null | grep -v '^[[:space:]#]' | head -1 | cut -d, -f1 | tr -d ' ')
+  api=$(grep -m1 '^API_HOSTNAME=' "$S/defaults.env" | cut -d= -f2)
+  if [ -n "$web" ] && [ -s "$O" ] && grep -q 'sites/origin/cert.pem' "$S/caddy/sites/web.caddy" \
+     && [ "$(served "$web" -fingerprint -sha256)" != "$(openssl x509 -in "$O" -noout -fingerprint -sha256)" ]; then why="$web is not served the certificate on disk"; fi
+  for h in "$api" $(sed -n 's/ {$//p' "$S/caddy/sites/meet.caddy" 2>/dev/null | grep -v '^[[:space:]#]' | head -1); do
+    [ -n "$h" ] && served "$h" -issuer | grep -qi 'CloudFlare Origin' && why="${why:+$why; }$h is served a Cloudflare Origin CA certificate" || true
+  done
+  [ -n "$why" ] || return 0
+  say "Caddy restarted: $why"
+  docker restart supabase-caddy > /dev/null
+  for i in $(seq 1 30); do docker exec supabase-caddy wget -qO /dev/null http://localhost:2019/config/ 2>/dev/null && break; sleep 2; done
+  # Let's Encrypt for the DNS-only hosts: up to 3 minutes (HTTP-01 or TLS-ALPN-01, straight to Caddy)
+  for i in $(seq 1 36); do
+    served "$api" -issuer | grep -qi 'CloudFlare Origin' || break
+    sleep 5
+  done
+  say "Caddy now serves $api a certificate from: $(served "$api" -issuer | sed 's/.*O = //; s/,.*//')"
 }
 
 # r48 part AI: the server's own AI models (infra/vps/ai). Installed with each deploy and warmed up in the background (a
@@ -194,7 +223,7 @@ livekit_up() {
   [[ "$gw" =~ ^[0-9.]+$ ]] || { say "WARNING: media server: the Docker gateway of $net was not found; the calls use the outside link"; return 0; }
   [ -f "$S/caddy/sites/meet.caddy" ] && old="$(mktemp)" && cp "$S/caddy/sites/meet.caddy" "$old"
   sed "s/__LIVEKIT_UPSTREAM__/$gw:7880/" "$T/meet.caddy" > "$S/caddy/sites/meet.caddy"; chmod 644 "$S/caddy/sites/meet.caddy"
-  if ! docker exec supabase-caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile > /dev/null 2>&1; then
+  if ! docker exec supabase-caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile --force > /dev/null 2>&1; then
     if [ -n "$old" ]; then install -m 644 "$old" "$S/caddy/sites/meet.caddy"; else rm -f "$S/caddy/sites/meet.caddy"; fi
     say "WARNING: Caddy refused the media server's site file; it keeps serving what it served"; return 0
   fi
@@ -248,6 +277,7 @@ case "${1:-}" in
     caddy_site
     ai_local || say "AI models: the warm-up could not be started (the site uses Workers AI and Gemini meanwhile)"
     livekit_up || say "media server: not started (the calls use the outside link meanwhile)"
+    caddy_cert_sync
     # the last four images are kept (a rollback needs the one before)
     docker images carmacars-web --format '{{.CreatedAt}}\t{{.Tag}}' | sort -r | awk -F'\t' 'NR>4 {print $2}' | xargs -r -I{} docker rmi "carmacars-web:{}" > /dev/null 2>&1 || true
     ;;

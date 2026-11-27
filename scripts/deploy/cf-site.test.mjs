@@ -229,3 +229,17 @@ test('live-on: the input wins, then the variable; an unreadable zone fails', asy
   W.deny.add('GET /zones');
   assert.notEqual((await run(['live-on'])).code, 0);
 });
+
+// r50 hotfix2: a reload with unchanged config text is skipped by Caddy, which kept serving the old wildcard Origin CA
+// certificate for api. and meet. (deploy-vps 45956912204). Every reload of the deploy forces, and the deploy restarts
+// Caddy when it hands out a certificate other than the file's, then requires a trusted certificate for the API.
+test('the deploy forces Caddy onto the certificate on disk and checks the API certificate', () => {
+  const remote = fs.readFileSync(path.join(HERE, 'web-vps-remote.sh'), 'utf8');
+  const reloads = remote.match(/caddy reload [^\n;|]*/g) ?? [];
+  assert.ok(reloads.length >= 3);
+  for (const r of reloads) assert.match(r, /--force/, r);
+  assert.match(remote, /caddy_site\n[\s\S]*livekit_up[^\n]*\n\s*caddy_cert_sync\n/);
+  assert.match(remote, /docker restart supabase-caddy/);
+  const web = fs.readFileSync(path.join(HERE, 'web-vps.sh'), 'utf8');
+  assert.match(web, /has_cert "\$api" \|\| \{ tls_diag "\$api"; die/);
+});

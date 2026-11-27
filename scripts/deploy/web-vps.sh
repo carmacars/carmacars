@@ -133,6 +133,10 @@ ship() {
   done
   [ "$code" = 200 ] || tls_diag "$first"
   [ "$code" = 200 ] || die "https://$first/api/health answered ${code:-nothing} after 6 minutes: check the hostname's A record points at the server, SSL is Full (strict) and the Origin CA certificate is in place (the lines above)"
+  # r50 hotfix2: the API (DNS-only) must have a certificate browsers trust; the site, staff sign-in and file links need it
+  local api="api.${DOMAIN:-carmacars.ca}"
+  has_cert "$api" || { tls_diag "$api"; die "$api is not served a publicly trusted certificate: browsers, the site and vps-health refuse it (the [tls] lines above)"; }
+  say "TLS: $api has a trusted certificate"
   if [ -n "${GITHUB_ACTIONS:-}" ]; then echo "::notice title=deploy-vps::$tag is running on the server and https://$first/api/health answers 200 (cron: $cron). DNS for the public site is unchanged."; fi
   ai_state
 }
