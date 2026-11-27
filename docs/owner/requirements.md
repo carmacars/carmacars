@@ -879,6 +879,24 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 - Rule: later, not now. Note: it needs a walk-around video at each check-in and check-out (8 to 12 photos are too few for photogrammetry or Gaussian splatting), and it runs on our own server.
 - Done when: to be set when the owner schedules it (a future idea, no build yet).
 
+### REQ-126 E-Transfer requests for renters who pay by e-Transfer
+- Status: not started
+- Proof: none yet (open, next release)
+- Test: GAP
+- Asked: Nov 27 15:55
+- Owner: "Need to implement e-transfer requests when someone wants to pay via e-transfer"
+- Rule: open, next release.
+- Done when: a renter who chooses e-Transfer gets an email request with the exact amount, the e-Transfer address and the booking number as the message, the booking waits for that payment, and the received e-Transfer is matched to the booking automatically.
+
+### REQ-127 Never accept an offer for the renter
+- Status: not started
+- Proof: none yet (open; a rule for staff and Claude)
+- Test: GAP
+- Asked: Nov 27 15:55
+- Owner: "don't accept the offer for him"
+- Rule: a rule for staff and Claude.
+- Done when: Admin tools and Claude never use Book it now (accept an offer without the renter) unless the owner names that action for that booking.
+
 ## 16. Earlier decisions (Oct to Nov 12, from the chat extraction)
 
 ### REQ-092 Corporation, shares and shareholder money
