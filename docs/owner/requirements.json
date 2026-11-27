@@ -1092,6 +1092,18 @@
     "test": "to be added with the work"
   },
   {
+    "id": "REQ-117",
+    "title": "CI only on the integration branch",
+    "area": "15. Infrastructure and quality",
+    "status": "done",
+    "asked": "Nov 27",
+    "owner_quote": "\"make sure you're not doing things systematically wrong; that's what's causing the long CI runs and test fails\"",
+    "rule": "CI runs only on the integration branch; helpers test locally; never push onto a red base. A helper branch runs the suites it touches locally (scripts/test.sh, or the db file alone on a copy of the base database; npm run test:unit; the node checks) and pushes with [skip ci]. When the integration branch is red, one CI doctor makes it green before anyone branches from it or merges into it. One push of the integration branch runs CI once for all merged helper work. A 99_ test never depends on the data or settings another 99_ test leaves.",
+    "done_when": "no CI run starts on a helper branch, and the integration branch is green before helpers branch from it.",
+    "proof": ".github/workflows/ci.yml (push only to main, r50-hotfix2 and release/**; pull_request; Run workflow; concurrency per ref); hotfix-notes/ci-root-cause-2026-11-27.md",
+    "test": "the db-base, db and db-suite jobs of ci.yml (scripts/test-merge.sh fails when a file is not run exactly once)"
+  },
+  {
     "id": "REQ-092",
     "title": "Corporation, shares and shareholder money",
     "area": "16. Earlier decisions (Oct to Nov 12, from the chat extraction)",

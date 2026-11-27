@@ -76,7 +76,8 @@ select app.door(test.id('th6_admin'), 'aal1', 'admin_do', 'staff_birthday_save',
 select test.eq('birthdays: cleared', (select birthday_month from staff_profiles where user_id = test.id('th6_field')), null::smallint);
 
 -- ================================================================ 5. KPIs hit, every staff member
-select test.ok('kpis: a line for every active staff member', not exists (select 1 from staff_profiles sp where app.staff_is_member(sp.user_id)
+select test.ok('kpis: a line for every real staff member with a tracked KPI (5074, REQ-070)', not exists (select 1 from staff_profiles sp where app.staff_is_member(sp.user_id)
+  and exists (select 1 from jsonb_array_elements(app.townhall_staff_kpis((select w from th6_w))) k where k ->> 'user_id' = sp.user_id::text)
   and not exists (select 1 from jsonb_array_elements(test.th6_slide('kpis') -> 'staff') x where x ->> 'user_id' = sp.user_id::text)));
 select test.eq('kpis: as many lines as staff', jsonb_array_length(test.th6_slide('kpis') -> 'lines'), jsonb_array_length(test.th6_slide('kpis') -> 'staff'));
 select test.ok('kpis: the Academy section passed is a KPI hit', not exists (select 1 from academy_sections)

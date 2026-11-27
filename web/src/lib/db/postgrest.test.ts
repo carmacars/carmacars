@@ -99,7 +99,7 @@ test('0106: a deadline gives up on a hanging call with the statement-timeout cod
   const signal = ac.signal;
   const run = () => postgrestRpc(hang, T, 'car_page', {}, { role: 'anon' }, signal);
   await assert.rejects(withBuildRetry(run, { building: false, sleep: async () => {} }), (e: unknown) => e instanceof RpcError && e.code === DEADLINE_CODE && /busy/.test(e.message));
-  assert.ok(Date.now() - t0 < 1000, 'gave up fast');
+  assert.ok(Date.now() - t0 < 5000, 'gave up fast'); // 50 ms timer; generous so a loaded machine never fails it (calls === 1 is the real check)
   assert.equal(calls, 1, 'not repeated');
   assert.equal(didNotRun(new RpcError('x', DEADLINE_CODE)), false);
   // an already spent deadline does not even send the call

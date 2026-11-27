@@ -794,6 +794,15 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 - Rule: nothing the owner asked is dropped; the ledger and this file list all of it.
 - Done when: every item here is Done or has a named owner and date.
 
+### REQ-117 CI only on the integration branch
+- Status: done
+- Proof: .github/workflows/ci.yml (push only to main, r50-hotfix2 and release/**; pull_request; Run workflow; concurrency per ref); hotfix-notes/ci-root-cause-2026-11-27.md
+- Test: the db-base, db and db-suite jobs of ci.yml (scripts/test-merge.sh fails when a file is not run exactly once)
+- Asked: Nov 27
+- Owner: "make sure you're not doing things systematically wrong; that's what's causing the long CI runs and test fails"
+- Rule: CI runs only on the integration branch; helpers test locally; never push onto a red base. A helper branch runs the suites it touches locally (scripts/test.sh, or the db file alone on a copy of the base database; npm run test:unit; the node checks) and pushes with [skip ci]. When the integration branch is red, one CI doctor makes it green before anyone branches from it or merges into it. One push of the integration branch runs CI once for all merged helper work. A 99_ test never depends on the data or settings another 99_ test leaves.
+- Done when: no CI run starts on a helper branch, and the integration branch is green before helpers branch from it.
+
 ## 16. Earlier decisions (Oct to Nov 12, from the chat extraction)
 
 ### REQ-092 Corporation, shares and shareholder money

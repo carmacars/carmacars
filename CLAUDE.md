@@ -10,6 +10,10 @@ This file is read at the start of every Claude Code session and by every helper 
 4. Update status, Proof and Test in the same commit as the work. "done" needs a Proof and a Test; a missing test is recorded as `Test: GAP` and counts as an open item.
 5. The not-done items feed the weekly Admin call deck through `docs/owner/requirements.json`.
 
+## CI (REQ-117, Nov 27)
+
+CI runs only on the integration branch (main, r50-hotfix2, release/**); helpers test locally; never push onto a red base. A helper runs the suites its change touches locally (scripts/test.sh, npm run test:unit, the node checks) and pushes with [skip ci]. If the integration branch is red, it is fixed first, then helpers branch from it. A 99_ database test never depends on data or settings another 99_ test leaves.
+
 ## Working rules (Nov 25: what makes the biggest difference)
 
 1. **Read once, edit once, test once.** Before changing anything, list every file the change needs and read them in one pass. Then make all the edits, then run the checks once. No read, edit, read, edit loops.

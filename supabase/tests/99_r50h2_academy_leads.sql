@@ -20,7 +20,7 @@ $$ select public.door(test.id(p_user), 'aal2', p_call, p_name, p) $$;
 select test.eq('waits: 2 minutes after a failed try and 10 tries a day by default',
   (select string_agg(column_default, '/' order by column_name) from information_schema.columns
     where table_name = 'program_settings' and column_name in ('academy_attempts_per_day', 'academy_fail_cooldown_minutes')), '10/2');
-select test.eq('waits: production values are set (2 and 10)', (select academy_fail_cooldown_minutes || '/' || academy_attempts_per_day from program_settings where id = (app.settings()).id), '2/10');
+-- (the row's values are not checked here: earlier 99_ files set their own waits, and a 99_ file never depends on another's data)
 
 -- ================================================================ 2. fix once (5070)
 update program_settings set academy_read_wpm = 0, academy_fail_cooldown_minutes = 2, academy_attempts_per_day = 10 where id = (app.settings()).id;

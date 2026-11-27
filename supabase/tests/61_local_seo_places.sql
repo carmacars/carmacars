@@ -49,7 +49,7 @@ select test.eq('regions: Canada 13, the United States 56 (states, DC, territorie
   (select string_agg(country || '=' || n || '/' || on_, ',' order by country) from (select country, count(*) n, coalesce(string_agg(code, ' ') filter (where is_enabled), '') on_ from place_regions group by country) x), 'CA=13/CA-ON,MX=32/,US=56/');
 select test.eq('places: the curated top', (select string_agg(slug || ':' || app.place_kind(kind), ',' order by id) from places where flags & 16 <> 0 and slug in ('canada', 'united-states', 'mexico', 'ontario', 'gta')),
   'canada:country,united-states:country,mexico:country,ontario:province,gta:area');
-select test.ok('places: the size cap is 6 GB by default', (app.settings()).place_db_cap_mb = 6144);
+select test.ok('places: the size cap is 16 GB by default (5075)', (app.settings()).place_db_cap_mb = 16384);
 
 create temp table lp_imp as select public.server_places_import_begin(array['CA-ON'], array['geonames'], null) as id;
 insert into places_staging (src_id, kind, flags, region_code, country, lat, lng, population, parent_src_id, slug, name, iata) values
@@ -73,7 +73,7 @@ select test.ok('finish: the counts per country and kind, and the region skipped'
   and (select skipped like 'skipped%' from place_regions where code = 'US-TX'));
 select test.ok('finish: the GTA holds Peel''s places', (select flags & 1 <> 0 from places where src_id = 9800003));
 select test.eq('finish: the airport is the place of the landing page with its code', (select slug || '/' || landing_slug from places where src_id = 9800005), 'lp-pearson-yyz/lp-pearson-yyz');
-select test.ok('budget: the database size and the cap', (public.server_places_budget() ->> 'cap_bytes')::bigint = 6144::bigint * 1048576);
+select test.ok('budget: the database size and the cap', (public.server_places_budget() ->> 'cap_bytes')::bigint = 16384::bigint * 1048576);
 
 -- ================================================================ 4. terms
 select test.eq('terms with pages of their own: rental 31, 36 more (0098), 15 more (0115) and the 3 alternatives (0522) and the 2 01 Motors terms (1102), buying help 14 and 4 more (0115), detailing 27, body shop 20 and 2 more (0115) and 20 for the mechanical work we arrange (0121); synonyms are counted in suites 77 and 78; 2402 grouped the same search intent (rental 32, buying help 4, detailing 9 and body shop 10 joined their groups)',
