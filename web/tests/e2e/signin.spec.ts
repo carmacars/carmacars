@@ -408,6 +408,7 @@ test('view as matches the person\'s own sign-in: a Sales assistant and a custome
       const text = (sel: string) => Array.from(document.querySelectorAll(sel)).map((e) => norm((e as HTMLElement).innerText));
       // the townhall's call link (1505) is the person's own (their join counts): never shown while viewing as them
       // r37 (2340): Report a bug is the person's own too (a report filed while viewing would be the Admin's), never shown then
+      // r50 hotfix 2: the call screen's phone button places the person's own calls: never shown while viewing as them
       // r51 (3950): Guide me keeps the person's own progress, so it is not shown while viewing as them either
       for (const t of Array.from(document.querySelectorAll('[role="timer"], .pu-timer, .ad-wait, time, [data-testid^="guide-banner"], [data-testid="townhall-link"], [data-testid^="bug-report"], .gm-anchor'))) t.remove();
       const kinds = new Set(Array.from(document.querySelectorAll('.ad__main [data-testid]')).map((e) => e.getAttribute('data-testid')!)
