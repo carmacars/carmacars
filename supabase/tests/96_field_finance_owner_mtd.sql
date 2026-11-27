@@ -15,7 +15,11 @@ select test.eq('settings: field jobs from bookings, least busy, e-Transfer and c
 update program_settings set field_jobs_auto = true, field_offline_deposit_methods = array['e_transfer', 'cash'], field_tracker_override = true;
 -- only this suite's field staff are active while it runs (put back at the end)
 create table test.ff_inactive as select user_id from staff_profiles where staff_type = 'field' and is_active;
+-- a fixture, not a person leaving: 5101's trigger would hand their open jobs back to the queue, and this suite's drivers
+-- would get them (r50 hotfix 2 integration)
+alter table staff_profiles disable trigger staff_profiles_gone_release;
 update staff_profiles set is_active = false where staff_type = 'field';
+alter table staff_profiles enable trigger staff_profiles_gone_release;
 
 select test.mk_user('fq_admin', 'admin');
 select test.mk_user('fq_cs', 'va', 'cs');
