@@ -32,12 +32,12 @@ test.beforeAll(async () => {
   await sql`insert into vehicle_photos (vehicle_id, angle, shot_type, original_path, processed_path, status, is_public, r48, ai_generated, background_status, plate_status, sort_order, r45, width, height)
             select p.vehicle_id, p.shot_type, p.shot_type, p.original_path, p.processed_path, 'approved', true, true, true, 'done', 'not_visible', -100,
                    jsonb_build_object('state', 'done', 'spec', app.photo_r48_spec(), 'gate', jsonb_build_object('pass', true, 'spec', app.photo_r48_spec())), p.width, p.height
-              from vehicle_photos p where p.vehicle_id = ${vehicleId} and not p.r48 and p.shot_type = any (app.photo_r45_angles())`;
+              from vehicle_photos p where p.vehicle_id = ${vehicleId} and not p.r48 and p.shot_type = any (app.photo_render_order())`;
   // every standard angle, so the set is complete (an angle the seed has no photo of reuses the side drawing)
   await sql`insert into vehicle_photos (vehicle_id, angle, shot_type, original_path, processed_path, status, is_public, r48, ai_generated, background_status, plate_status, sort_order, r45, width, height)
             select ${vehicleId}, a, a, 'vehicles/original/e2e/' || a || '.jpg', (select processed_path from vehicle_photos where vehicle_id = ${vehicleId} and shot_type = 'left' and not r48 limit 1),
                    'approved', true, true, true, 'done', 'not_visible', -100, jsonb_build_object('state', 'done', 'spec', app.photo_r48_spec(), 'gate', jsonb_build_object('pass', true, 'spec', app.photo_r48_spec())), 1800, 1200
-              from unnest(app.photo_r45_angles()) a
+              from unnest(app.photo_render_order()) a
              where not exists (select 1 from vehicle_photos x where x.vehicle_id = ${vehicleId} and x.r48 and x.shot_type = a)`;
   await sql`delete from photo_render_notified where vehicle_id = ${vehicleId}`;
   await sql`select app.listing_cache_refresh(array[${vehicleId}::uuid])`;
@@ -91,6 +91,8 @@ test('the card carries its side render\'s matte for the drive-off once one is ma
             select ${vehicleId}, 'left', 'studio', 'vehicle-public', (select processed_path from vehicle_photos where vehicle_id = ${vehicleId} and r48 and shot_type = 'left' limit 1),
                    'site/cutouts/e2e-left.matte.png', 480, 320, 'left', now(), 'matte', 'site/cutouts/e2e-left.plate.jpg', '{"x":0.1,"y":0.5,"w":0.8,"h":0.3}'::jsonb
             on conflict (vehicle_id, shot) do update set path = excluded.path, source_path = excluded.source_path, kind = 'matte', plate_path = excluded.plate_path, box = excluded.box`;  // 3701: only when cut from the live render
+  // 5080: the cover is the front three-quarter render, and the cutout rides only on a side cover: the front render is taken off
+  await sql`update vehicle_photos set is_public = false where vehicle_id = ${vehicleId} and r48 and shot_type = 'front_left'`;
   await sql`select app.listing_cache_refresh(array[${vehicleId}::uuid])`;
   expect((await request.post('/api/jobs/public-rebuild', { headers: { authorization: `Bearer ${jobToken()}`, 'content-type': 'application/json' }, data: {} })).status()).toBe(200);
   await expect.poll(async () => { await page.goto('/cars'); return page.locator('.car-card[data-matte]').count(); }, { timeout: 30_000, intervals: [2_000] }).toBeGreaterThan(0);

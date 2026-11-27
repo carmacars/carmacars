@@ -27,7 +27,7 @@ export async function crawl(base, extra = []) {
     const res = await fetch(base + key, { redirect: 'manual' });
     const html = res.headers.get('content-type')?.includes('text/html') ? await res.text() : '';
     seen.set(key, { status: res.status, html, location: res.headers.get('location') });
-    if (res.status >= 300 && res.status < 400 && res.headers.get('location')) { const l = new URL(res.headers.get('location'), base); if (l.origin === new URL(base).origin) queue.push(l.pathname + l.search); }
+    if (res.status >= 300 && res.status < 400 && res.headers.get('location')) { const l = new URL(res.headers.get('location'), base); if (l.origin === new URL(base).origin && !l.pathname.startsWith('/auth/oauth/fake')) queue.push(l.pathname + l.search); }   // the local stand-in for Google needs the flow cookie of a real sign-in: a crawler has none (400)
     for (const m of html.matchAll(/<a\b[^>]*\bhref="([^"]+)"/g)) {
       const h = m[1].replace(/&amp;/g, '&');
       if (/^(mailto:|tel:|https?:)/.test(h) && !h.startsWith(base)) continue;

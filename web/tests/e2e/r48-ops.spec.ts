@@ -621,7 +621,7 @@ test('List your car: the earnings calculator is conservative and seasonal, with 
   expect(Math.min(...days), 'a shoulder month is the slowest').toBe(Math.min(days[2]!, days[3]!, days[9]!, days[10]!));
   expect(Math.min(days[11]!, days[0]!, days[1]!), 'winter is slow, above the slowest').toBeGreaterThanOrEqual(Math.min(...days));
   const val = async (id: string) => Number(await page.getByTestId(id).getAttribute('data-value'));
-  const rate = Number((await page.getByTestId('ecalc-result').locator('.ecalc__kicker').innerText()).match(/\$([\d,]+) a day listed/)![1]!.replace(/,/g, ''));
+  const rate = Number((await page.getByTestId('ecalc-result').locator('.ecalc__kicker').innerText()).match(/\$([\d,]+) a day/)![1]!.replace(/,/g, ''));
   expect(await val('ecalc-monthly'), 'under 24 days at the full rate and the typical share').toBeLessThan(rate * 24 * 0.7);
   expect(await val('ecalc-yearly')).toBeLessThan(rate * Math.max(...days) * 0.7 * 12);
   const note = page.getByTestId('ecalc-disclaimer');

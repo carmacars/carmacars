@@ -97,7 +97,7 @@ test('call screen: dial any number, connect, mute, hold, keypad, end; End while 
     // connected: the name, the number, the timer and the controls
     await expect(dock).toHaveAttribute('data-phase', 'in_call');
     await expect(page.getByTestId('voice-who')).toHaveText('Dana Driver');
-    await expect(dock).toContainText('647-555-0123');
+    await expect(dock).toContainText('(647) 555-0123');
     await expect(page.getByTestId('voice-status')).toHaveText(/^0:0\d$/);
     await page.getByTestId('voice-mute').click();
     await expect(page.getByTestId('voice-mute')).toHaveAttribute('aria-pressed', 'true');

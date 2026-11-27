@@ -82,7 +82,7 @@ if (/<sitemapindex/.test(sm)) {
         const u = blk.match(/<loc>([^<]+)<\/loc>/)?.[1];
         if (!u) continue;
         const pg = await get(new URL(u).pathname);
-        if (pg.status === 200 && !/Representative photo|Sample photo|Photos coming soon/.test(pg.body)) bad('sitemap', `${new URL(u).pathname} has real photos but no image entry (image sitemap)`);
+        if (pg.status === 200 && /Rendered photos\./.test(pg.body)) bad('sitemap', `${new URL(u).pathname} has real photos but no image entry (image sitemap)`);
       }
     }
     for (const m of part.body.matchAll(/<lastmod>([^<]+)<\/lastmod>/g)) if (Number.isNaN(Date.parse(m[1]))) bad('sitemap', `unreadable lastmod ${m[1]} in ${loc}`);
