@@ -344,6 +344,9 @@ email_report() {
   for w in carmacars-prod carmacars-email-forwarder; do
     echo "[email] Worker $w cron: $(cfapi GET "/accounts/$acc/workers/scripts/$w/schedules" 2>&1 | jq -c '[.result.schedules[]?.cron]' 2>/dev/null)"
   done
+  # the Turo reader the Gmail Apps Script posts to (scripts/turo-gmail.gs): 403 without its token means it is live
+  echo "[email] POST https://${DOMAIN:-carmacars.ca}/api/inbound/turo without a token: $(curl -sS -o /dev/null -w '%{http_code}' --max-time 15 -X POST "https://${DOMAIN:-carmacars.ca}/api/inbound/turo" 2>&1) (403 = live)"
+  echo "[email] MX of in.${DOMAIN:-carmacars.ca}: $(cfapi GET "/zones/$zone/dns_records?name=in.${DOMAIN:-carmacars.ca}&type=MX" 2>&1 | jq -c '[.result[]?.content]' 2>/dev/null)"
   echo "[email] Worker custom domains: $(cfapi GET "/accounts/$acc/workers/domains" 2>&1 | jq -c '[.result[]? | "\(.hostname)=\(.service)"]' 2>/dev/null)"
 }
 
