@@ -30,14 +30,14 @@ select test.eq('a draft statement is not counted', (select count(*) from owner_s
 -- ---------------------------------------------------------------- 2. pickup not recorded: the car is presumed out
 select test.mk_booking('F50-OUT', 'F50B', 'f50r', test.f50t(interval '-7 days'), test.f50t(interval '-1 day'), 'confirmed');
 select test.eq('the booking counts as presumed out', app.booking_pickup_unrecorded((select b from bookings b where b.booking_number = 'F50-OUT')), true);
-select test.eq('the car is not available tonight (it used to be: the booking''s dates are over)',
-  app.vehicle_is_available_pre3810(test.id('vehicle:F50B'), now() + interval '2 hours', now() + interval '1 day') || ':'
-  || app.vehicle_is_available(test.id('vehicle:F50B'), now() + interval '2 hours', now() + interval '1 day'), 'true:false');
-select test.eq('nor next month', app.vehicle_is_available(test.id('vehicle:F50B'), now() + interval '30 days', now() + interval '32 days'), false);
+-- r50 hotfix2 (5111): an ended booking never blocks its car; it is named as a note that does not hold the new offer
+select test.eq('the car is available tonight: the booking''s dates are over (5111)',
+  app.vehicle_is_available(test.id('vehicle:F50B'), now() + interval '2 hours', now() + interval '1 day'), true);
+select test.eq('and next month', app.vehicle_is_available(test.id('vehicle:F50B'), now() + interval '30 days', now() + interval '32 days'), true);
 select test.eq('the other car is', app.vehicle_is_available(test.id('vehicle:F50A'), now() + interval '30 days', now() + interval '32 days'), true);
 select test.mk_booking('F50-NEW', 'F50B', 'f50r', test.f50t(interval '3 hours'), test.f50t(interval '2 days'), 'offered');
-select test.eq('a new offer on the car shows the conflict and is held by it', (select (x ->> 'kind') || ':' || (x ->> 'holds') || ':' || (x ->> 'booking_number')
-  from jsonb_array_elements(app.booking_date_conflicts(test.id('booking:F50-NEW'))) x where x ->> 'kind' = 'presumed_out'), 'presumed_out:true:F50-OUT');
+select test.eq('a new offer on the car names the ended booking, which does not hold it', (select (x ->> 'kind') || ':' || (x ->> 'holds') || ':' || (x ->> 'blocks') || ':' || (x ->> 'booking_number')
+  from jsonb_array_elements(app.booking_date_conflicts(test.id('booking:F50-NEW'))) x where x ->> 'kind' = 'presumed_out'), 'presumed_out:false:false:F50-OUT');
 select test.eq('the owner portal lists it, presumed out', (test.f50row('F50-OUT') ->> 'presumed_out'), 'true');
 select app.job_presumed_out();
 select test.eq('Fleet, and the Admins once its return time passed, get the To do to record the handover',

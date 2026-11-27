@@ -77,7 +77,7 @@ const confirmProps = {
   preview_id: { type: 'string', format: 'uuid', description: 'The preview_id the preview returned (only with confirm: true).' }
 };
 // the offer and booking forms take more fields than are listed (the same names as the screen's form): extra ones pass to the database, which checks them
-const OPEN_FORMS = ['create_offer', 'revise_offer', 'change_booking', 'record_past_trip'];
+const OPEN_FORMS = ['create_offer', 'revise_offer', 'change_booking', 'record_past_trip', 'add_rental'];
 const write = (name: string, title: string, description: string, required: string[], properties: Record<string, unknown>, destructive = false): Tool => ({
   name, scope: 'admin:write', readOnly: false, destructive, title,
   description: `${description} Two steps: call without confirm for a preview of what will change (nothing is changed), then again with the same arguments plus confirm: true and the preview_id.`,
@@ -103,7 +103,7 @@ export const ADMIN_TOOLS: Tool[] = [
 
   write('send_offer', 'Send an offer', 'Send the offer of a request (Admin > the booking > Send the offer), with an optional message and expiry.', ['booking'],
     { ...booking, message: str('A message to the renter'), expires_at: { type: 'string', format: 'date-time' }, book_now: { type: 'boolean', description: 'Book it now: the offer is approved at once as if the renter had approved it; the booking waits for the renter to sign and pay (the Sign and pay link is emailed) and holds the car. Use when the renter already agreed.' }, book_now_reason: str('Why it is booked without the renter\'s approval (kept in the booking\'s history)') }),
-  write('create_offer', 'Make an offer', 'Make and send an offer for a renter and a car (the staff offer form): renter_id (or renter {full_name, email, mobile, date_of_birth}), vehicle_id, pickup_at, return_at, and optionally the price fields of the form, rental_pay_method, deposit_pay_method, message, notify, channels.',
+  write('create_offer', 'Make an offer', 'Make and send an offer for a renter and a car (the staff offer form): renter_id (or renter {full_name, email, mobile, date_of_birth}), vehicle_id, pickup_at, return_at, and optionally the price fields of the form, coverage_option (1 the renter\'s own insurance with OPCF 27: the booking asks the renter to upload the policy and the OPCF 27; 2 credit card coverage; 3 the Protection Plan), rental_pay_method, deposit_pay_method, message, notify, channels.',
     ['vehicle_id', 'pickup_at', 'return_at'], { renter_id: id('A renter on file'), renter: { type: 'object' }, vehicle_id: id('The car'), pickup_at: { type: 'string', format: 'date-time' },
       return_at: { type: 'string', format: 'date-time' }, source: str('phone, walk_in, email, ...'), rental_pay_method: str('card, cash, e_transfer, ...'), deposit_pay_method: str('card, cash, ...'),
       message: str('A message to the renter'), notify: { type: 'boolean' }, channels: { type: 'object' }, rental_charge_cents: cents('A rental charge agreed with the renter'),
@@ -475,3 +475,26 @@ export function normalizeToolArgs(args: unknown): unknown {
   const t = typeof a.price_tax === 'string' ? PRICE_TAX_ALIAS[a.price_tax.trim().toLowerCase()] : undefined;
   return t ? { ...a, price_tax: t } : args;
 }
+
+// r50 hotfix2 (5112): one Program or Site setting by its key, as Admin > Settings saves it; secrets and bank details refused
+export const SETTING_TOOLS: Tool[] = [
+  write('set_setting', 'Change one setting', 'Change one of the Program settings the connector may change: offer_expiry_hours, instant_book_repeat_enabled, manual_rental_past_max_days (5112), validated exactly as Admin > Settings saves it; it changes from today as a dated row. Every other setting is refused, and the payment settings (e_transfer_email, direct deposit, card_*, card_provider) and secrets always: an Admin changes those in Admin > Settings.', ['key', 'value'],
+    { key: str('The setting\'s key: offer_expiry_hours, instant_book_repeat_enabled or manual_rental_past_max_days'), value: { description: 'The new value: text, a number, true or false, or null' } })
+];
+TOOLS.push(...SETTING_TOOLS);
+
+// r50 hotfix2 (5115): a car that went out before it was paid (CC-10673). Each runs the screen's database action.
+const COVERAGE = { type: 'integer', enum: [1, 2, 3], description: '1 the renter\'s own insurance with OPCF 27 (the renter uploads the policy and the OPCF 27), 2 credit card coverage, 3 the Protection Plan' };
+const PAST_PICKUP = { at: { type: 'string', format: 'date-time', description: 'The real pickup time (now or in the past)' }, odometer_km: { type: 'integer', minimum: 0 }, fuel_pct: { type: 'integer', minimum: 0, maximum: 100 } };
+export const RENTAL_TOOLS: Tool[] = [
+  write('add_rental', 'Add a rental', 'Add a rental agreed by phone or at the counter (Bookings > Add a rental): renter_id (or renter {full_name, email, mobile, date_of_birth, licence_number}), vehicle_id, pickup_at, return_at, coverage_option, payment {mode: link, other_way or unpaid, method, reference, amount_cents}, deposit {method}, and the price fields of the form. A pickup already passed with the return ahead is recorded on trip from that pickup in the same step; anything the handover checks that is missing becomes a To do.',
+    ['vehicle_id', 'pickup_at', 'return_at'], { renter_id: id('A renter on file'), renter: { type: 'object' }, vehicle_id: id('The car'), pickup_at: { type: 'string', format: 'date-time' },
+      return_at: { type: 'string', format: 'date-time' }, coverage_option: COVERAGE, payment: { type: 'object' }, deposit: { type: 'object' }, note: str('A note on the booking') }),
+  write('change_coverage', 'Change the coverage', 'Change a booking\'s coverage (the Protection Plan, the renter\'s own insurance with OPCF 27, or card coverage) on a request, an offer, a confirmed booking or a rental in progress, with a reason the renter reads. The price difference becomes a balance or a refund for approval; no money moves by itself.',
+    ['booking', 'to', 'reason'], { ...booking, to: COVERAGE, reason: str('Why it changes (the renter reads it)'), notify: { type: 'boolean', description: 'Tell the renter (default true)' } }),
+  write('confirm_pay_later', 'Confirm, pay later', 'Confirm a booking waiting for payment with the rental and the deposit still owed (no card processor now; the renter pays later by e-Transfer or cash). Admins only; the reason (10 characters or more) is kept in the history and Finance gets a To do to collect.',
+    ['booking', 'reason'], { ...booking, reason: str('Why it is confirmed before payment') }),
+  write('start_rental_pay_later', 'Car already out: record the pickup', 'For a car that already went out before payment: an open offer is booked, the booking is confirmed pay later, and the pickup is recorded at the real time given, in one step. Admins only.',
+    ['booking', 'reason', 'at'], { ...booking, reason: str('Why it started before payment'), ...PAST_PICKUP })
+];
+TOOLS.push(...RENTAL_TOOLS);

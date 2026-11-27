@@ -32,12 +32,15 @@ export function BugReportButton({ portal, mineHref }: { portal: 'admin' | 'staff
   // r50 (3900): while a pop-up, drawer or sheet is open (a native modal dialog makes everything outside it inert, and others can
   // cover the header), a copy of the button is shown inside that pop-up (or above it), so a bug can always be reported
   const [over, setOver] = useState<Overlay | null>(null);
+  // r50 hotfix2: on a phone the copy sits inside the pop-up, in its flow after its content, never floating over a sheet's
+  // fields or buttons (it covered the full width of "Stop blocking the calendar")
+  const [narrow, setNarrow] = useState(false);
   const [mounted, setMounted] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);
   const popup = useRef<string>('');
   useEffect(() => {
     let raf = 0;
-    const check = () => { raf = 0; const o = topOverlay(trigger.current, dlg.current); setOver((was) => (was?.el === o?.el && was?.mode === o?.mode ? was : o)); };
+    const check = () => { raf = 0; const o = topOverlay(trigger.current, dlg.current); setOver((was) => (was?.el === o?.el && was?.mode === o?.mode ? was : o)); setNarrow(window.matchMedia('(max-width: 48rem)').matches); };
     const later = () => { if (!raf) raf = requestAnimationFrame(check); };
     const mo = new MutationObserver(later);
     mo.observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['open', 'aria-modal', 'hidden', 'class', 'inert'] });
@@ -110,9 +113,9 @@ export function BugReportButton({ portal, mineHref }: { portal: 'admin' | 'staff
   return (
     <>
       {over && createPortal(
-        <button type="button" className="btn btn--sm br-float" title="Report a bug" onClick={open} disabled={busy === 'capture'} data-testid="bug-report-float" data-bug-report-ui>
+        <button type="button" className={narrow ? 'btn btn--quiet btn--sm br-inline' : 'btn btn--sm br-float'} title="Report a bug" onClick={open} disabled={busy === 'capture'} data-testid="bug-report-float" data-bug-report-ui>
           {bug}<span>{busy === 'capture' ? 'Capturing…' : 'Report a bug'}</span>
-        </button>, over.mode === 'inside' ? over.el : document.body)}
+        </button>, over.mode === 'inside' || narrow ? over.el : document.body)}
       <button ref={trigger} type="button" className="btn btn--quiet btn--sm hd-act" title="Report a bug" onClick={open} disabled={busy === 'capture'} data-testid="bug-report-open" data-bug-report-ui>
         {bug}
         <span className="hd-lbl">{busy === 'capture' ? 'Capturing…' : 'Report a bug'}</span>

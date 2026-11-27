@@ -229,3 +229,49 @@ test('live-on: the input wins, then the variable; an unreadable zone fails', asy
   W.deny.add('GET /zones');
   assert.notEqual((await run(['live-on'])).code, 0);
 });
+
+// r50 hotfix2: a reload with unchanged config text is skipped by Caddy, which kept serving the old wildcard Origin CA
+// certificate for api. and meet. (deploy-vps 45956912204). Every reload of the deploy forces, and the deploy restarts
+// Caddy when it hands out a certificate other than the file's, then requires a trusted certificate for the API.
+test('the deploy forces Caddy onto the certificate on disk and checks the API certificate', () => {
+  const remote = fs.readFileSync(path.join(HERE, 'web-vps-remote.sh'), 'utf8');
+  const reloads = remote.match(/caddy reload [^\n;|]*/g) ?? [];
+  assert.ok(reloads.length >= 3);
+  for (const r of reloads) assert.match(r, /--force/, r);
+  assert.match(remote, /caddy_site\n[\s\S]*livekit_up[^\n]*\n\s*caddy_cert_sync\n/);
+  assert.match(remote, /docker restart supabase-caddy/);
+  const web = fs.readFileSync(path.join(HERE, 'web-vps.sh'), 'utf8');
+  assert.match(web, /has_cert "\$api" \|\| \{ tls_diag "\$api"; die/);
+});
+
+// r50 hotfix2 review: caddy_cert_sync restarts Caddy only when a served certificate differs from the expected one, never
+// for a host that answers nothing, skips the API wait without API_HOSTNAME, and a failed restart only warns.
+test('caddy_cert_sync: restart only on a real difference; no API, no wait; a failed restart warns', () => {
+  const remote = fs.readFileSync(path.join(HERE, 'web-vps-remote.sh'), 'utf8');
+  const fn = remote.slice(remote.indexOf('caddy_cert_sync() {'), remote.indexOf('\n}\n', remote.indexOf('caddy_cert_sync() {')) + 3);
+  const run = ({ web, api = 'api.example.test', apiIssuer = 'R3 Encrypt', dockerFails = false }) => {
+    const S = fs.mkdtempSync(path.join(os.tmpdir(), 'ccs-'));
+    fs.mkdirSync(path.join(S, 'caddy/sites/origin'), { recursive: true });
+    fs.writeFileSync(path.join(S, 'caddy/sites/origin/cert.pem'), 'PEM');
+    fs.writeFileSync(path.join(S, 'caddy/sites/web.caddy'), 'new.example.test {\n  tls /etc/caddy/sites/origin/cert.pem key.pem\n}\n');
+    fs.writeFileSync(path.join(S, 'defaults.env'), `API_HOSTNAME=${api}\n`);
+    const sh = `set -u
+S='${S}'
+say() { echo "say: $*"; }
+sleep() { :; }
+openssl() { echo 'sha256 Fingerprint=FILE'; }
+served() { case "$1:$2" in new.example.test:-fingerprint) echo '${web}' ;; api.example.test:-issuer) echo 'issuer=O = ${apiIssuer}' ;; esac; }
+docker() { echo "docker: $*" >> "$S/docker.log"; ${dockerFails ? 'return 1' : 'return 0'}; }
+${fn}
+caddy_cert_sync; echo "rc=$?"; cat "$S/docker.log" 2>/dev/null || true`;
+    return execFileSync('bash', ['-c', sh], { encoding: 'utf8' });
+  };
+  assert.doesNotMatch(run({ web: 'sha256 Fingerprint=FILE' }), /docker: restart/, 'the same certificate: no restart');
+  assert.doesNotMatch(run({ web: '' }), /docker: restart/, 'a host that answers nothing: no restart');
+  assert.match(run({ web: 'sha256 Fingerprint=OLD' }), /docker: restart supabase-caddy/, 'another certificate: restart');
+  const noApi = run({ web: 'sha256 Fingerprint=OLD', api: '' });
+  assert.match(noApi, /docker: restart/); assert.doesNotMatch(noApi, /now serves/, 'no API_HOSTNAME: no wait'); assert.match(noApi, /rc=0/);
+  const failed = run({ web: 'sha256 Fingerprint=OLD', dockerFails: true });
+  assert.match(failed, /WARNING: Caddy could not be restarted/); assert.match(failed, /rc=0/);
+  assert.match(run({ web: 'sha256 Fingerprint=FILE', apiIssuer: 'CloudFlare Origin' }), /docker: restart/, 'the API on an Origin CA certificate: restart');
+});

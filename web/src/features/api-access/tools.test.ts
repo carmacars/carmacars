@@ -350,3 +350,27 @@ test('r50: list_company_documents reads (admin:read); company_document_upload an
   assert.match(SQL5060, /app\.api_key_check\(p_hash, 'admin:write', p_tool, a - 'pdf_base64' - 'body_md' - 'fields', p_client\)/);
   assert.ok(!/search_path = public, app\s*as/.test(SQL5060), 'search_path ends with pg_temp');
 });
+
+// r50 hotfix2 (5112): set_setting is the database's, admin:write, two-step
+test('5112: set_setting is two-step admin:write and the database runs it', () => {
+  const t = TOOLS.find((x) => x.name === 'set_setting')!;
+  const sql = readFileSync(new URL('../../../../supabase/migrations/5112_r50h2_connector_set_setting.sql', import.meta.url), 'utf8');
+  assert.equal(t.scope, 'admin:write');
+  const schema = t.inputSchema as { properties: Record<string, unknown>; required: string[] };
+  assert.ok(schema.properties.confirm && schema.properties.preview_id && schema.required.includes('key') && schema.required.includes('value'));
+  assert.match(sql, /p_tool <> 'set_setting'/);
+  assert.match(sql, /cc_pay_/);
+});
+
+// r50 hotfix2 (5115): the rentals that start before payment, and the coverage on a started booking
+test('5115: add_rental, change_coverage, confirm_pay_later and start_rental_pay_later are two-step door actions', async () => {
+  const { RENTAL_TOOLS } = await import('./tools.ts');
+  const sql = readFileSync(new URL('../../../../supabase/migrations/5115_r50h2_connector_rentals.sql', import.meta.url), 'utf8');
+  for (const [n, door] of [['add_rental', 'manual_rental_create'], ['change_coverage', 'protection_change'], ['confirm_pay_later', 'booking_pay_later'], ['start_rental_pay_later', 'booking_start_pay_later']]) {
+    const t = TOOLS.find((x) => x.name === n)!;
+    assert.ok(t && RENTAL_TOOLS.includes(t) && t.scope === 'admin:write' && !t.readOnly, n);
+    const schema = t.inputSchema as { properties: Record<string, unknown> };
+    assert.ok(schema.properties.confirm && schema.properties.preview_id, n);
+    assert.match(sql, new RegExp(`when '${n}'\\s+then '\\{"call":"(ops|admin)_do","name":"${door}"`), n);
+  }
+});

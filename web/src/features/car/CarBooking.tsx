@@ -23,6 +23,8 @@ export interface CarBookingProps {
   allowsYoung: boolean;
   /** 0102: a sample (example) car offers the best real car free for the chosen dates */
   isSample?: boolean;
+  /** r50 hotfix2 (5114): the car may be booked at once (the fleet read says; false for sample cars and owners kept off it) */
+  instantBook?: boolean;
   /** 0280: the phone number box (site_facts().phone_gate) */
   gate?: GateRules | null;
 }
@@ -129,7 +131,7 @@ export function CarBooking(p: CarBookingProps) {
   const query = new URLSearchParams();
   if (ready) { query.set('from', from); query.set('to', to); query.set('tf', tf); query.set('tt', tt); }
   // instant only for a real car on dates it shows free (Any car, any time on taken dates is a request for Fleet)
-  const carInstantOk = !p.isSample && !(ready && (problem || clash(from, tf, to, tt, blocks)));
+  const carInstantOk = !p.isSample && p.instantBook !== false && !(ready && (problem || clash(from, tf, to, tt, blocks)));
   const instant = how === 'instant' && instantOk.canBookNow && carInstantOk;
   if (instant) query.set('how', 'instant');
   if (deliver) query.set('deliver', '1'); if (collect) query.set('collect', '1'); if (age !== '26_plus') query.set('age', age);

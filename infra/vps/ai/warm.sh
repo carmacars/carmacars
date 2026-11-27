@@ -40,10 +40,9 @@ docker exec carmacars-llm ollama list 2>/dev/null | awk 'NR > 1 {print $1}' | wh
   [ "$m" = "$LOCAL_LLM_MODEL" ] || [ "$m" = "$LOCAL_VISION_MODEL" ] || { log "removing $m (not pinned)"; docker exec carmacars-llm ollama rm "$m" > /dev/null 2>&1 || true; }
 done
 
+# r50 hotfix2: never built on this server (the owner keeps its CPU for the site): deploy-vps builds it on the runner
 if ! docker image inspect "carmacars-stt:$WHISPER_VERSION" > /dev/null 2>&1; then
-  state speech warming
-  log "building whisper.cpp $WHISPER_VERSION"
-  nice -n 19 dca build stt > "$A/stt-build.log" 2>&1 || { state speech "failed: the whisper image did not build (see $A/stt-build.log)"; exit 0; }
+  state speech "waiting: the next deploy sends the whisper image (built on the runner)"; exit 0
 fi
 dca up -d stt > /dev/null 2>&1 || { state speech "failed: carmacars-stt did not start"; exit 0; }
 for i in $(seq 1 90); do

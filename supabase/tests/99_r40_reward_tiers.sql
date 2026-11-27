@@ -20,14 +20,16 @@ select set_config('request.jwt.claim.sub', test.id('r40_mia')::text, false);
 select test.ok('a Member: no tier, 1,000 points to Gold, the three tiers with their perks',
   (public.my_rewards() -> 'ladder' ->> 'tier_code') is null and (public.my_rewards() -> 'next_tier' ->> 'points_needed')::int = 1000
   and jsonb_array_length(public.my_rewards() -> 'ladder' -> 'tiers') = 3
-  and (public.my_rewards() -> 'ladder' -> 'tiers' -> 0 -> 'perks' -> 0 ->> 'code') = 'instant_book');
+  and not (public.my_rewards() -> 'ladder' -> 'tiers')::text like '%instant_book%'); -- 5113: Instant booking is no longer a tier perk
 select test.r40_earn('r40_mia', 1200, 'mia1');
 select test.eq('1,200 points: Gold', public.my_rewards() -> 'ladder' ->> 'tier_code', 'gold');
 insert into reward_ledger (renter_id, points, kind, action, source_key, reason) values (test.id('renter:r40_mia'), -1000, 'redeem', 'redeem', 'r40:mia-redeem', 'Test redeem');
 select test.eq('redeeming 1,000 keeps Gold (points earned count, not the balance)', public.my_rewards() -> 'ladder' ->> 'tier_code', 'gold');
 select set_config('request.jwt.claim.sub', '', false);
-select test.ok('Gold has Instant Book, not Any car', app.rewards_has_perk(test.id('renter:r40_mia'), 'instant_book') and not app.rewards_has_perk(test.id('renter:r40_mia'), 'any_car'));
-select test.eq('Instant Book reads the tier', app.instant_book_check(test.id('renter:r40_mia')) ->> 'eligible', 'true');
+select test.ok('Gold has no Any car', not app.rewards_has_perk(test.id('renter:r40_mia'), 'any_car'));
+-- r50 hotfix2 (5113): Instant booking reads the profile, not the tier
+update renters set address_line1 = '1 Example Street', city = 'Toronto', postal_code = 'M5V 1A1' where id = test.id('renter:r40_mia');
+select test.eq('Instant booking reads the complete profile', app.instant_book_check(test.id('renter:r40_mia')) ->> 'eligible', 'true');
 update renters set instant_book_revoked_at = now(), instant_book_revoked_reason = 'Test' where id = test.id('renter:r40_mia');
 select test.eq('an Admin''s revoke still wins over the tier', app.instant_book_check(test.id('renter:r40_mia')) ->> 'reason', 'Taken away by an Admin: Test');
 update renters set instant_book_revoked_at = null, instant_book_revoked_reason = null where id = test.id('renter:r40_mia');
@@ -62,7 +64,7 @@ select test.eq('a visitor may not', public.my_any_car() ->> 'any_car', 'false');
 
 -- 3. Black: one free day a year, a one-time code CarmaCars pays for; Black keeps Gold's and Platinum's perks
 select test.r40_earn('r40_bea', 61000, 'bea1');
-select test.ok('Black keeps every perk', app.rewards_has_perk(test.id('renter:r40_bea'), 'instant_book') and app.rewards_has_perk(test.id('renter:r40_bea'), 'any_car') and app.rewards_has_perk(test.id('renter:r40_bea'), 'free_day'));
+select test.ok('Black keeps every perk', app.rewards_has_perk(test.id('renter:r40_bea'), 'any_car') and app.rewards_has_perk(test.id('renter:r40_bea'), 'free_day'));
 select test.eq('the free day code: one day, the renter''s own, once, a year, company funded',
   (select free_days || '/' || (renter_id = test.id('renter:r40_bea'))::text || '/' || max_uses || '/' || company_funded::text || '/' || (valid_until > now() + interval '364 days')::text
      from promo_codes where id = (select free_day_promo_id from reward_accounts where renter_id = test.id('renter:r40_bea'))), '1/true/1/true/true');

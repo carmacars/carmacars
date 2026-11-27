@@ -119,6 +119,8 @@ export async function POST(req: Request) {
       if (r.ok && (r.result as { run?: string } | undefined)?.run === 'owner_setup') r = await ownerSetup(r.result as Record<string, unknown>);
       // r48 (2923): the pay link is cancelled in the database; its PaymentIntent is cancelled at Stripe here (never captured)
       if (r.ok && (r.result as { run?: string } | undefined)?.run === 'pay_link_cancel') r = await payLinkCancel(r.result as Record<string, unknown>);
+      // r50 hotfix2 (5112): a setting changed through the connector reaches every page, as Admin > Settings does
+      if (r.ok && name === 'set_setting' && (r.result as { done?: boolean } | undefined)?.done) { const { revalidatePath } = await import('next/cache'); revalidatePath('/', 'layout'); }
       // a bug report's pictures (2340): private files, given as links that expire in ten minutes
       if (r.ok && name === 'bug_report_get') r = { ...r, result: await signedShots(r.result) };
       // r50 (3870): files (a recording, ID images, a signed agreement, photos) as links signed for ten minutes

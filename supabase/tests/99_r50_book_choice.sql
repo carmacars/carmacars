@@ -4,6 +4,8 @@ select test.mk_owner('r51b_o');
 select test.mk_user('r51b_admin', 'admin');
 select test.mk_renter('r51b_gold');
 select test.mk_renter('r51b_new');
+-- r50 hotfix2 (5113): Book instantly needs a complete profile, whatever the tier (r51b_new has no home address)
+update renters set address_line1 = '1 Example Street', city = 'Toronto', postal_code = 'M5V 1A1' where id = test.id('renter:r51b_gold');
 select test.mk_vehicle('R51B', 'r51b_o');
 select test.mk_booking('R51B-1', 'R51B', 'r51b_gold', '2026-01-05 10:00', '2026-01-08 10:00');
 insert into reward_ledger (renter_id, points, kind, action, source_key, reason) values (test.id('renter:r51b_gold'), 1000, 'earn', 'adjust', 'r51b_gold', 'Test: Gold');

@@ -63,6 +63,8 @@ export default async function AdminOwner({ params, searchParams }: { params: Pro
   const set = await door<{ pay_model: string; variant: string | null; status: string | null; awaiting_lawyer: boolean } | null>(user.id, 'ops_read', 'owner_agreement_set', { owner: id }).catch(() => null);
   // 0340: who sourced the owner (only an Admin changes it, with a reason)
   const src = await door<{ staff_id: string | null; name: string | null; via: string | null; options: Array<{ id: string; name: string }> } | null>(user.id, 'admin_read', 'owner_sourced', { owner_id: id }).catch(() => null);
+  // r50 hotfix2 (5113): Instant booking on or off for all of this owner's cars (01 Motors starts off)
+  const ib = await door<{ instant_book_off: boolean } | null>(user.id, 'admin_read', 'owner_instant_book', { owner_id: id }).catch(() => null);
   if (!d) notFound();
   const nameChanges = await nameChangesFor(user.id, { owner_id: id });
   // the tabs of 0067: Overview (as before), Terms (negotiated per owner and car), Invoices (every invoice, drafts included)
@@ -85,6 +87,10 @@ export default async function AdminOwner({ params, searchParams }: { params: Pro
           {src && <Act action="owner_sourced_set" payload={{ owner_id: id }} label={`Sourced by: ${src.name ?? 'nobody'}`} title="Who sourced this owner" testId="owner-sourced-by" submitLabel="Save"
             done="Saved." refresh={[`/admin/owners/${id}`, '/admin/money/commissions']} fields={[{ name: 'staff_id', label: 'Sourced by', type: 'select', value: src.staff_id ?? '',
               options: [['', 'Nobody (CarmaCars)'], ...src.options.map((o): [string, string] => [o.id, o.name])], hint: 'Only an Admin changes this. A pending commission request of the person before is withdrawn; an approved one, with what it has not paid yet, goes to the new person.' },
+              { name: 'reason', label: 'Why', type: 'text', required: true }]} />}
+          {ib && <Act action="owner_instant_book_set" payload={{ owner_id: id }} label={`Instant booking: ${ib.instant_book_off ? 'off' : 'on'}`} title="Instant booking for this owner's cars" testId="owner-instant-book" submitLabel="Save"
+            done="Saved." refresh={[`/admin/owners/${id}`, '/cars']} fields={[{ name: 'off', label: 'Instant booking', type: 'select', required: true, value: ib.instant_book_off ? 'true' : 'false',
+              options: [['false', 'On: renters with a complete profile can book these cars at once'], ['true', 'Off: every booking of these cars is a request']], hint: 'Applies to all of this owner\'s cars. Sample cars are never booked instantly.' },
               { name: 'reason', label: 'Why', type: 'text', required: true }]} />}</div></header>
       <Tabs items={tabs} current={tab === 'overview' ? `/admin/owners/${id}` : `/admin/owners/${id}?tab=${tab}`} label="Owner" />
     </>

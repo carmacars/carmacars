@@ -321,6 +321,16 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
         {can.admin && (b.test?.on
           ? <Act action="booking_test_set" payload={{ ...P, on: false }} label="Make it a real booking again" fields={[{ name: 'reason', label: 'Why', type: 'text' }]} refresh={refresh} testId="test-off" />
           : <Act action="booking_test_set" payload={{ ...P, on: true }} label="Mark as a test booking" confirm="A test booking does not stop its car from being deleted: if every booking on a car is a test, the Admin can delete the car and they go with it (a copy is kept in the archive of deleted requests). Nothing else changes." fields={[{ name: 'reason', label: 'Why (optional)', type: 'text' }]} refresh={refresh} testId="test-on" />)}
+        {/* r50 hotfix2 (5114): no card processor: an Admin confirms a booking with the rental and deposit owed, or starts a rental already out */}
+        {can.admin && b.status === 'pending_payment' && <Act action="booking_pay_later" payload={P} label="Confirm, pay later" testId="pay-later" refresh={refresh}
+          done="Confirmed. The rental and the deposit are still owed: Finance has a To do to collect them."
+          confirm="The booking is confirmed before it is paid. The renter still owes the rental and the deposit (e-Transfer or cash)."
+          fields={[{ name: 'reason', label: 'Why it is paid later', type: 'text', required: true, placeholder: 'No card processor now: pays by e-Transfer tonight' }]} />}
+        {can.admin && ['offered', 'pending_payment', 'confirmed'].includes(b.status) && <Act action="booking_start_pay_later" payload={P} label="Car already out: record the pickup" testId="start-pay-later" refresh={refresh}
+          done="The pickup is recorded and the booking is on rent. Anything unpaid stays owed."
+          fields={[{ name: 'at', label: 'When the car went out', type: 'datetime', required: true, value: new Date().toISOString() },
+            { name: 'reason', label: 'Why it started before payment', type: 'text', required: true },
+            { name: 'odometer_km', label: 'Odometer (km)', type: 'number', min: 0 }, { name: 'fuel_pct', label: 'Fuel (%)', type: 'number', min: 0, max: 100 }]} />}
         {can.admin && !b.placeholder?.on && ['confirmed', 'on_rent', 'requested', 'offered', 'pending_payment'].includes(b.status) && <Act action="blocks_calendar" payload={{ ...P, blocks: !b.blocks_calendar }} label={b.blocks_calendar ? 'Stop blocking the calendar' : 'Block the calendar'} fields={[{ name: 'reason', label: 'Reason', type: 'text', required: true }]} refresh={refresh} />}
         {can.cancelForRenter && ['confirmed', 'pending_payment'].includes(b.status) && <Act action="cancel_booking" payload={{ ...P, reason: 'renter_request' }} label="Cancel for the renter" variant="danger" fields={[
           { name: 'channel', label: 'Received by', type: 'select', required: true, options: [['email', 'Email'], ['portal', 'Portal'], ['phone', 'Phone']], value: 'email' },

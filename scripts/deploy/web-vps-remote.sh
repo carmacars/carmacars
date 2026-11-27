@@ -34,9 +34,11 @@ rembg_up() {
   local tag
   if [ -f "$W/rembg/Dockerfile" ]; then
     tag=$(cat "$W/rembg/Dockerfile" "$W/rembg/server.py" | sha256sum | cut -c1-12)
+    # r50 hotfix2: never built here; the deploy builds it on the runner and sends it when this server lacks it
     if ! docker image inspect "carmacars-rembg:$tag" > /dev/null 2>&1; then
-      say "building carmacars-rembg:$tag (a few minutes the first time: the model is downloaded into the image)"
-      docker build -q -t "carmacars-rembg:$tag" "$W/rembg" > /dev/null || { say "WARNING: the background remover's image did not build; the sections keep their photos"; return 0; }
+      [ -s "$T/rembg-image.tgz" ] && gunzip -c "$T/rembg-image.tgz" | docker load > /dev/null
+      docker image inspect "carmacars-rembg:$tag" > /dev/null 2>&1 || { say "WARNING: no carmacars-rembg:$tag image was sent; the sections keep their photos"; return 0; }
+      say "carmacars-rembg:$tag loaded (built on the runner)"
     fi
     echo "$tag" > "$W/rembg.tag"; sed -i '/^REMBG_IMAGE_TAG=/d' "$W/.env"; printf 'REMBG_IMAGE_TAG=%s\n' "$tag" >> "$W/.env"
     docker images carmacars-rembg --format '{{.CreatedAt}}\t{{.Tag}}' | sort -r | awk -F'\t' 'NR>2 {print $2}' | xargs -r -I{} docker rmi "carmacars-rembg:{}" > /dev/null 2>&1 || true
@@ -138,13 +140,48 @@ caddy_site() {
   local old=""
   [ -f "$S/caddy/sites/web.caddy" ] && old="$(mktemp)" && cp "$S/caddy/sites/web.caddy" "$old"
   install -m 644 "$T/web.caddy" "$S/caddy/sites/web.caddy"
-  # a reload Caddy refuses leaves the running configuration as it was; the file is then put back
-  if ! docker exec supabase-caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile; then
+  # a reload Caddy refuses leaves the running configuration as it was; the file is then put back. --force: a new certificate
+  # at the same path leaves the config text unchanged, and without it Caddy skips the reload (r50 hotfix2, below)
+  if ! docker exec supabase-caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile --force; then
     if [ -n "$old" ]; then install -m 644 "$old" "$S/caddy/sites/web.caddy"; else rm -f "$S/caddy/sites/web.caddy"; fi
     say "Caddy refused the site file; it keeps serving what it served"; return 1
   fi
   [ -n "$old" ] && rm -f "$old"
   say "Caddy serves: $(sed -n 's/ {$//p' "$S/caddy/sites/web.caddy" | grep -v '^[[:space:]#]' | head -1)"
+}
+
+# r50 hotfix2: Caddy must hand out the certificate on disk. A reload whose config text is unchanged is skipped, and a
+# certificate loaded from a file stays in Caddy's memory: after the Origin CA certificate lost *.carmacars.ca (f4df37d3)
+# Caddy 2.10.2 still served the old wildcard one for api. and meet. (deploy-vps 45956912204, tls-report), which browsers,
+# the web container (/api/health 503) and vps-health refuse. When the web host's certificate differs from the file, or
+# a DNS-only host (the API, the media server) gets an Origin CA certificate, Caddy is restarted: it then loads the file
+# and manages the Let's Encrypt certificates of the other hosts again (kept in its data volume).
+served() { echo | timeout 10 openssl s_client -connect 127.0.0.1:443 -servername "$1" 2>/dev/null | openssl x509 -noout "${@:2}" 2>/dev/null; }
+caddy_cert_sync() {
+  # review (r50 hotfix2): a restart only when a served certificate differs from the expected one (the web host: the file's
+  # fingerprint; a DNS-only host: anything but a Cloudflare Origin CA certificate); a host that answers nothing is not a
+  # reason; no API_HOSTNAME means no API wait; a failed restart warns and leaves the running deploy as it is
+  local O="$S/caddy/sites/origin/cert.pem" web api h why="" i fp want
+  web=$(sed -n 's/ {$//p' "$S/caddy/sites/web.caddy" 2>/dev/null | grep -v '^[[:space:]#]' | head -1 | cut -d, -f1 | tr -d ' ')
+  api=$(grep -m1 '^API_HOSTNAME=' "$S/defaults.env" 2>/dev/null | cut -d= -f2)
+  if [ -n "$web" ] && [ -s "$O" ] && grep -q 'sites/origin/cert.pem' "$S/caddy/sites/web.caddy"; then
+    want=$(openssl x509 -in "$O" -noout -fingerprint -sha256 2>/dev/null); fp=$(served "$web" -fingerprint -sha256)
+    [ -n "$fp" ] && [ -n "$want" ] && [ "$fp" != "$want" ] && why="$web is not served the certificate on disk"
+  fi
+  for h in "$api" $(sed -n 's/ {$//p' "$S/caddy/sites/meet.caddy" 2>/dev/null | grep -v '^[[:space:]#]' | head -1); do
+    [ -n "$h" ] && served "$h" -issuer | grep -qi 'CloudFlare Origin' && why="${why:+$why; }$h is served a Cloudflare Origin CA certificate" || true
+  done
+  [ -n "$why" ] || return 0
+  say "Caddy restarted: $why"
+  if ! docker restart supabase-caddy > /dev/null 2>&1; then say "WARNING: Caddy could not be restarted ($why); it keeps serving what it served"; return 0; fi
+  for i in $(seq 1 30); do docker exec supabase-caddy wget -qO /dev/null http://localhost:2019/config/ 2>/dev/null && break; sleep 2; done
+  [ -n "$api" ] || return 0
+  # Let's Encrypt for the DNS-only hosts: up to 3 minutes (HTTP-01 or TLS-ALPN-01, straight to Caddy)
+  for i in $(seq 1 36); do
+    served "$api" -issuer | grep -qi 'CloudFlare Origin' || break
+    sleep 5
+  done
+  say "Caddy now serves $api a certificate from: $(served "$api" -issuer | sed 's/.*O = //; s/,.*//')"
 }
 
 # r48 part AI: the server's own AI models (infra/vps/ai). Installed with each deploy and warmed up in the background (a
@@ -159,6 +196,8 @@ ai_local() {
   install -m 755 "$T/ai-warm.sh" "$A/warm.sh"
   install -m 644 "$T/ai-stt.Dockerfile" "$A/stt/Dockerfile"
   install -m 755 "$T/ai-stt-entrypoint.sh" "$A/stt/entrypoint.sh"
+  # r50 hotfix2: the speech image comes built from the runner; the warm-up never builds on this server
+  if [ -s "$T/stt-image.tgz" ]; then gunzip -c "$T/stt-image.tgz" | docker load > /dev/null && say "AI models: the speech image loaded (built on the runner)"; fi
   if systemctl is-active --quiet carmacars-ai-warm 2>/dev/null; then say "AI models: a warm-up is already running"
   elif command -v systemd-run > /dev/null 2>&1 && systemd-run --unit carmacars-ai-warm --collect --nice 19 -p IOSchedulingClass=idle bash "$A/warm.sh" > /dev/null 2>&1; then
     say "AI models: warm-up started in the background (journalctl -u carmacars-ai-warm)"
@@ -194,7 +233,7 @@ livekit_up() {
   [[ "$gw" =~ ^[0-9.]+$ ]] || { say "WARNING: media server: the Docker gateway of $net was not found; the calls use the outside link"; return 0; }
   [ -f "$S/caddy/sites/meet.caddy" ] && old="$(mktemp)" && cp "$S/caddy/sites/meet.caddy" "$old"
   sed "s/__LIVEKIT_UPSTREAM__/$gw:7880/" "$T/meet.caddy" > "$S/caddy/sites/meet.caddy"; chmod 644 "$S/caddy/sites/meet.caddy"
-  if ! docker exec supabase-caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile > /dev/null 2>&1; then
+  if ! docker exec supabase-caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile --force > /dev/null 2>&1; then
     if [ -n "$old" ]; then install -m 644 "$old" "$S/caddy/sites/meet.caddy"; else rm -f "$S/caddy/sites/meet.caddy"; fi
     say "WARNING: Caddy refused the media server's site file; it keeps serving what it served"; return 0
   fi
@@ -248,6 +287,7 @@ case "${1:-}" in
     caddy_site
     ai_local || say "AI models: the warm-up could not be started (the site uses Workers AI and Gemini meanwhile)"
     livekit_up || say "media server: not started (the calls use the outside link meanwhile)"
+    caddy_cert_sync
     # the last four images are kept (a rollback needs the one before)
     docker images carmacars-web --format '{{.CreatedAt}}\t{{.Tag}}' | sort -r | awk -F'\t' 'NR>4 {print $2}' | xargs -r -I{} docker rmi "carmacars-web:{}" > /dev/null 2>&1 || true
     ;;

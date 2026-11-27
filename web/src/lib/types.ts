@@ -25,6 +25,8 @@ export interface CarRow {
   class: string; classes: string[]; body_style: string | null; seats: number | null; transmission: string | null;
   doors: number | null; drivetrain: string | null; luggage: string | null; home_area: string | null;
   allows_18_to_20: boolean; is_featured: boolean; taking_requests: boolean; model_hub_path: string; is_sample?: boolean;
+  /** r50 hotfix2 (5114): a renter with a complete profile may book it at once (never a sample car or an owner kept off it) */
+  instant_book?: boolean;
   /** 0079: the public car code (CC-7F3A) a renter quotes to staff; never the fleet number. */
   car_code?: string | null;
   daily_rate_cents: number; weekend_rate_cents: number; weekly_rate_cents: number; monthly_rate_cents: number;

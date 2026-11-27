@@ -77,3 +77,17 @@ test('the pages that took a card show e-Transfer while paused', () => {
   assert.match(money, /<CardPausedNote /);
   assert.doesNotMatch(money.slice(money.indexOf('const may = cardsOff')), /m\.may\./);
 });
+
+// r50 hotfix2 review (5110): with the card setting off no card form is reachable. Every page or tab that renders a card
+// form component reads the card state and shows e-Transfer or direct deposit instead (the database refuses the card calls,
+// test above and 99_hotfix_card_off.sql).
+test('every page that renders a card form checks the card state first', async () => {
+  const { readdirSync, statSync } = await import('node:fs');
+  const { join } = await import('node:path');
+  const FORMS = ['PayForm', 'PayLinkForm', 'AddonPayForm', 'OwnerPayForm', 'DebitSetupForm', 'GiftBuy', 'GiftPay'];
+  const root = new URL('../../app/', import.meta.url).pathname;
+  const walk = (d: string): string[] => readdirSync(d).flatMap((n) => { const p = join(d, n); return statSync(p).isDirectory() ? walk(p) : /\.tsx$/.test(n) ? [p] : []; });
+  const users = walk(root).filter((f) => FORMS.some((c) => new RegExp(`import[^;]*\\b${c}\\b`).test(readFileSync(f, 'utf8'))));
+  assert.ok(users.length >= 6, `found ${users.length}`);
+  for (const f of users) assert.match(readFileSync(f, 'utf8'), /cardOn\(|cardPaymentsOn\(|cardsOn/, f);
+});

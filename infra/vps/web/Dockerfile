@@ -6,7 +6,7 @@
 # Run `node web/scripts/guide-assets.mjs` first: the user guides' images are copied from docs/ into web/public.
 # The public settings come from web/.env.production (written by the deploy job, as for the Worker build). The secret
 # file is only read while the pages are built; it is never in a layer of the image.
-FROM node:22-bookworm-slim AS build
+FROM node:24-bookworm-slim AS build
 WORKDIR /src
 ENV NEXT_TELEMETRY_DISABLED=1 HOSTING_TARGET=node
 COPY package.json package-lock.json ./
@@ -16,7 +16,7 @@ RUN --mount=type=secret,id=buildenv,required=false \
     set -a; if [ -f /run/secrets/buildenv ]; then . /run/secrets/buildenv; fi; set +a; \
     npm run -s build:node
 
-FROM node:22-bookworm-slim
+FROM node:24-bookworm-slim
 ARG DEPLOY_VERSION=dev
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 HOSTING_TARGET=node NEXT_STANDALONE_DIR=/app PORT=3000 DEPLOY_VERSION=$DEPLOY_VERSION
 WORKDIR /app

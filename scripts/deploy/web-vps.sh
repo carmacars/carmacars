@@ -119,6 +119,7 @@ ship() {
   fi
   # r50 (4800): the heal agent (infra/vps/bin/heal-agent) and its timer, installed by the remote script
   cp "$ROOT/infra/vps/bin/heal-agent" "$ROOT/infra/vps/systemd/carmacars-heal-agent.service" "$ROOT/infra/vps/systemd/carmacars-heal-agent.timer" "$stage/"
+  side_images "$stage"
   sed -e "s/@TAG@/$tag/" -e "s/@CRON@/$cron/" "$HERE/web-vps-remote.sh" > "$stage/remote.sh"
   vps_ssh "rm -rf $t && install -d -m 700 $t"
   vps_scp "$stage"/* "$t/"
@@ -133,6 +134,10 @@ ship() {
   done
   [ "$code" = 200 ] || tls_diag "$first"
   [ "$code" = 200 ] || die "https://$first/api/health answered ${code:-nothing} after 6 minutes: check the hostname's A record points at the server, SSL is Full (strict) and the Origin CA certificate is in place (the lines above)"
+  # r50 hotfix2: the API (DNS-only) must have a certificate browsers trust; the site, staff sign-in and file links need it
+  local api="api.${DOMAIN:-carmacars.ca}"
+  has_cert "$api" || { tls_diag "$api"; die "$api is not served a publicly trusted certificate: browsers, the site and vps-health refuse it (the [tls] lines above)"; }
+  say "TLS: $api has a trusted certificate"
   if [ -n "${GITHUB_ACTIONS:-}" ]; then echo "::notice title=deploy-vps::$tag is running on the server and https://$first/api/health answers 200 (cron: $cron). DNS for the public site is unchanged."; fi
   ai_state
 }
@@ -148,6 +153,28 @@ ai_state() {
     line="$line $k $v;"
   done
   if [ -n "${GITHUB_ACTIONS:-}" ]; then echo "::notice title=AI models on the server::${line% ;} (the warm-up runs in the background; Admin > Settings > Usage shows the state)"; else say "AI models:${line% ;}"; fi
+}
+
+# r50 hotfix2: nothing is built on the server (the owner keeps its CPU for the site and the database). The background
+# remover's and the speech model's images are built here on the runner, only when the server lacks that version, and sent
+# as files the server loads (rembg-image.tgz, stt-image.tgz). Never fails the deploy: without them those two stay off.
+side_images() {
+  local stage="$1" rt wv have arch
+  rt=$(cat "$ROOT/infra/vps/web/rembg/Dockerfile" "$ROOT/infra/vps/web/rembg/server.py" | sha256sum | cut -c1-12)
+  wv=$(grep -m1 '^WHISPER_VERSION=' "$ROOT/infra/vps/ai/models.env" | cut -d= -f2)
+  have=$(vps_ssh "uname -m; sudo docker image inspect carmacars-rembg:$rt > /dev/null 2>&1 && echo rembg; sudo docker image inspect carmacars-stt:$wv > /dev/null 2>&1 && echo stt; true" 2>/dev/null || true)
+  arch=$(head -1 <<<"$have")
+  [ "$arch" = x86_64 ] || { warn_ "the server's machine type is '${arch:-unknown}': the side images are not built here"; return 0; }
+  if ! grep -qx rembg <<<"$have"; then
+    say "building carmacars-rembg:$rt on the runner"
+    if docker build -q -t "carmacars-rembg:$rt" "$ROOT/infra/vps/web/rembg" > /dev/null; then docker save "carmacars-rembg:$rt" | gzip -1 > "$stage/rembg-image.tgz"
+    else warn_ "the background remover's image did not build on the runner: the sections keep their photos"; fi
+  fi
+  if ! grep -qx stt <<<"$have"; then
+    say "building carmacars-stt:$wv on the runner"
+    if docker build -q --build-arg "WHISPER_VERSION=$wv" -t "carmacars-stt:$wv" "$ROOT/infra/vps/ai/stt" > /dev/null; then docker save "carmacars-stt:$wv" | gzip -1 > "$stage/stt-image.tgz"
+    else warn_ "the speech model's image did not build on the runner: speech stays on Workers AI and Gemini"; fi
+  fi
 }
 
 # origin_tls <stage> <hosts>: stage/origin-cert.pem and origin-key.pem when a new certificate is made; the origin-tls block
@@ -189,6 +216,17 @@ tls_diag() { # hostname: what Caddy loaded and logged about its certificate (no 
     echo \"[tls] hosts in Caddy's running config: \$(sudo docker exec supabase-caddy wget -qO- http://localhost:2019/config/apps/http/servers 2>/dev/null | jq -rc '[.. | .host? // empty | .[]] | unique | join(\" \")')\"
     echo | timeout 10 openssl s_client -connect 127.0.0.1:443 -servername '$h' 2>&1 | grep -E '^(subject|issuer)=|Verify return code|alert' | sed 's/^/[tls] /'
     sudo docker logs supabase-caddy --since 40m 2>&1 | grep -vF 'http.log.access' | grep -iE 'tls|acme|certificate|$h' | tail -30 | cut -c1-600" || true
+}
+# tls_report: read only (deploy-vps action=test): for the API, media and web hostnames, the certificate Caddy hands out on
+# the server and from the runner, Caddy's version, the Origin CA certificate's names and Caddy's certificate log lines
+tls_report() {
+  local dom="${DOMAIN:-carmacars.ca}" h
+  load_vps
+  vps_ssh "sudo bash -s $dom" < "$HERE/tls-report-remote.sh" || true
+  for h in "api.$dom" "meet.$dom" "new.$dom"; do
+    echo "[tls] runner $h: $(curl -sS -o /dev/null -w '%{http_code} %{remote_ip}' --max-time 15 "https://$h/" 2>&1 | head -1)"
+    echo | timeout 10 openssl s_client -connect "$h:443" -servername "$h" 2>&1 | grep -E '^(subject|issuer)=|Verify return code' | sed "s/^/[tls] runner $h: /" || true
+  done
 }
 acme_window() {
   local hosts="$1" h n i left
@@ -291,6 +329,27 @@ email() {
   if [ -n "${GITHUB_ACTIONS:-}" ]; then echo "::notice title=deploy-vps::inbound email: $n rule(s) now send mail to the Worker $want"; else say "inbound email: $n rule(s) -> $want"; fi
 }
 
+# email_report: read only (deploy-vps action=test): the zone's Email Routing state and every rule as matcher -> action type
+# and Worker name (forward destinations are masked), the catch-all, and the cron triggers of both Workers. r50 hotfix2: the
+# switch logged "0 rule(s) now send mail to the Worker carmacars-email-forwarder" (deploy-vps 45973781031)
+email_report() {
+  local zone acc="${CLOUDFLARE_ACCOUNT_ID:-}" w
+  declare -F cfapi > /dev/null || . "$HERE/lib.sh"
+  zone=$(cfapi GET "/zones?name=${DOMAIN:-carmacars.ca}" 2>/dev/null | jq -r '.result[0].id // empty') || zone=""
+  [ -n "$zone" ] || { echo "[email] the token cannot read the zone"; return 0; }
+  echo "[email] routing: $(cfapi GET "/zones/$zone/email/routing" 2>&1 | jq -c '.result | {enabled, status, name}' 2>/dev/null)"
+  local mask='def m: if type == "string" then (if test("@") then (split("@") | "***@" + .[1]) else . end) else . end;'
+  cfapi GET "/zones/$zone/email/routing/rules?per_page=50" 2>&1 | jq -r "$mask"' .result[]? | "[email] rule \(.priority) enabled=\(.enabled) \([.matchers[]? | "\(.type):\(.field // ""):\(.value // "")"] | join(",")) -> \([.actions[]? | "\(.type):\([.value[]? | m] | join("|"))"] | join(","))"' || echo "[email] rules: unreadable"
+  cfapi GET "/zones/$zone/email/routing/rules/catch_all" 2>&1 | jq -r "$mask"' .result | "[email] catch-all enabled=\(.enabled) -> \([.actions[]? | "\(.type):\([.value[]? | m] | join("|"))"] | join(","))"' || echo "[email] catch-all: unreadable"
+  for w in carmacars-prod carmacars-email-forwarder; do
+    echo "[email] Worker $w cron: $(cfapi GET "/accounts/$acc/workers/scripts/$w/schedules" 2>&1 | jq -c '[.result.schedules[]?.cron]' 2>/dev/null)"
+  done
+  # the Turo reader the Gmail Apps Script posts to (scripts/turo-gmail.gs): 403 without its token means it is live
+  echo "[email] POST https://${DOMAIN:-carmacars.ca}/api/inbound/turo without a token: $(curl -sS -o /dev/null -w '%{http_code}' --max-time 15 -X POST "https://${DOMAIN:-carmacars.ca}/api/inbound/turo" 2>&1) (403 = live)"
+  echo "[email] MX of in.${DOMAIN:-carmacars.ca}: $(cfapi GET "/zones/$zone/dns_records?name=in.${DOMAIN:-carmacars.ca}&type=MX" 2>&1 | jq -c '[.result[]?.content]' 2>/dev/null)"
+  echo "[email] Worker custom domains: $(cfapi GET "/accounts/$acc/workers/domains" 2>&1 | jq -c '[.result[]? | "\(.hostname)=\(.service)"]' 2>/dev/null)"
+}
+
 cmd="${1:-}"; shift || true
 case "$cmd" in
   envfile) envfile "$@" ;;
@@ -298,6 +357,8 @@ case "$cmd" in
   rollback) rollback ;;
   forwarder) forwarder ;;
   switch) switch ;;
+  tls-report) tls_report ;;
+  email-report) email_report ;;
   email) email "$@" ;;
   *) die "usage: web-vps.sh envfile <out> | ship <image.tgz> <web.env> | rollback | forwarder | email forwarder|worker" ;;
 esac

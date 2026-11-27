@@ -8,6 +8,8 @@ export type CardProvider = 'stripe' | 'helcim' | 'off';
 export interface CardPayments {
   on: boolean; provider: CardProvider; configured_provider: 'stripe' | 'helcim'; setting_on: boolean;
   reason: 'setting' | 'processor' | null; e_transfer_email: string | null;
+  /** 5110: the company's deposit account for direct deposit (Program settings cc_pay_*, typed by an Admin); null when not set */
+  direct_deposit?: { account_name: string | null; bank: string | null; institution: string | null; transit: string | null; account: string } | null;
   processor?: { charges_enabled: boolean; payouts_enabled: boolean; disabled_reason: string | null; checked_at: string | null; paused_since: string | null };
 }
 
