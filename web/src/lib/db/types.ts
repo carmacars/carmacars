@@ -38190,6 +38190,7 @@ export type Database = {
       server_vin_lookup: { Args: { p_vin: string }; Returns: Json };
       server_vin_read_gate: { Args: { p_client: string; p_by?: string }; Returns: Json };
       server_vin_read_record: { Args: { p_client: string; p: Json; p_by?: string }; Returns: Json };
+      server_voice_contacts: { Args: { p_user: string; p: Json }; Returns: Json };
       server_voice_presence: { Args: { p_user: string; p: Json }; Returns: Json };
       server_voice_ring: { Args: { p: Json }; Returns: Json };
       server_voice_settings: { Args: never; Returns: Json };

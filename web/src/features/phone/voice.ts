@@ -174,6 +174,17 @@ export function sendDigit(d: string): void { if (current && /^[0-9*#]$/.test(d))
 export function dismiss(): void { if (state.phase === 'problem' || state.phase === 'dialing') set({ phase: 'idle', ring: ringing }); }
 
 // ================================================================ r50 hotfix 2: the call screen (dialer, hold, audio)
+/** r50 hotfix 2 (5092): the call screen's contacts. No search: the people this person called last; a search: renters and
+ *  leads (Sales: their own leads, the number masked; the call goes by the lead or renter). */
+export interface VoiceContact { name: string; number: string; shown: string; lead: string | null; renter: string | null }
+export async function voiceContacts(q: string): Promise<VoiceContact[] | null> {
+  try {
+    const r = await fetch(`/api/staff/phone?what=voice_contacts&q=${encodeURIComponent(q.trim().slice(0, 60))}`, { cache: 'no-store', credentials: 'same-origin', signal: AbortSignal.timeout(15_000) });
+    const j = (await r.json().catch(() => null)) as unknown;
+    return r.ok && Array.isArray(j) ? (j as VoiceContact[]) : null;
+  } catch { return null; }
+}
+
 /** The keypad to call any number (the call screen's dialer). */
 export function openDialer(): void { if (state.phase === 'idle' || state.phase === 'problem') set({ phase: 'dialing', ring: ringing }); }
 

@@ -96,6 +96,21 @@
   font-variant-numeric: tabular-nums; padding: 6px 0; border-radius: 0; }
 .vc-num:focus { outline: none; border-bottom-color: var(--vc-fg); }
 .vc-hint { margin: 0; text-align: center; }
+.vc-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: 999px; background: var(--vc-btn); }
+.vc-tab { min-height: 40px; border: 0; border-radius: 999px; background: none; color: var(--vc-muted); font: inherit; font-weight: 600; cursor: pointer; }
+.vc-tab.is-on { background: var(--vc-bg); color: var(--vc-fg); box-shadow: 0 1px 3px rgb(0 0 0 / 0.18); }
+.vc-contacts { display: grid; gap: 8px; min-height: 0; }
+.vc-find { font-size: 16px; width: 100%; min-width: 0; }
+.vc-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; max-height: min(52vh, 360px); overflow-y: auto; }
+.vc-contact { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; width: 100%; min-height: 56px; padding: 6px 8px;
+  border: 0; border-radius: 12px; background: none; color: var(--vc-fg); font: inherit; text-align: left; cursor: pointer; }
+.vc-contact:hover { background: var(--vc-btn); }
+.vc-contact__t { display: grid; min-width: 0; }
+.vc-contact__n { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vc-contact__s { color: var(--vc-muted); font-size: 0.875rem; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.vc-contact__go { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: var(--vc-go); color: var(--white); }
+.vc-contact__go .vc-ic { width: 18px; height: 18px; }
+.vc-contact .vc-avatar { width: 40px; height: 40px; font-size: 1rem; margin: 0; }
 .vc-audio { display: grid; gap: 8px; }
 .vc-sel { display: grid; gap: 4px; }
 .vc-sel .input { font-size: 16px; width: 100%; min-width: 0; }

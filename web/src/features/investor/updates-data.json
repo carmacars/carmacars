@@ -31,7 +31,9 @@
      "A studio grid shows every car's nine views side by side, so a photo that does not match the others is easy to spot",
      "The Academy shows pictures in every section: real screens with numbered pins, good and bad example photos, flow diagrams and do and do not pairs; and about one quiz question in three has a funny wrong answer written for that very question",
      "**Guide me** in every staff portal: an optional coach that walks you through a real job step by step while you do it, on the live screens (send an offer, answer a request, record a payment, a pickup, a return and deposit review, approve an owner's car, a field expense)",
-     "**Check-in visits**: long rentals get a free monthly check-in visit; staff work one queue (booked, due, overdue, done) and a short checklist with photos, the odometer, damage, tires, fluids and warning lights. What needs looking after becomes a To do, damage goes to the Admins, and the reading feeds the car's maintenance"
+     "**Check-in visits**: long rentals get a free monthly check-in visit; staff work one queue (booked, due, overdue, done) and a short checklist with photos, the odometer, damage, tires, fluids and warning lights. What needs looking after becomes a To do, damage goes to the Admins, and the reading feeds the car's maintenance",
+     "Calls in the site work like a phone: a call screen with the name, number and timer, Mute, Keypad, Speaker and microphone choice, Hold and a red End call that is always there (also while the call starts); the round phone button dials any number or calls a contact, and leaving the page ends the call",
+     "Emails go through Amazon SES again, so there are no more \"almost out of email\" warnings, and texts and AI auto-replies recover on their own"
     ]
    },
    {

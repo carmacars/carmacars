@@ -2,13 +2,13 @@
 import './phone.css';
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { answer, audioDevices, chooseMicrophone, chooseSpeaker, decline, dismiss, hangUp, openDialer, placeCall, sendDigit, startVoice, subscribeVoice,
-  toggleHold, toggleMute, voiceState, type AudioDevices, type VoiceState } from './voice';
+  toggleHold, toggleMute, voiceContacts, voiceState, type AudioDevices, type VoiceContact, type VoiceState } from './voice';
 import { e164, prettyNumber } from './quo-links';
 
 // The browser's phone (release 44, migration 2790), on every page of the staff and Admin portals. r50 hotfix 2: a call
 // screen like a phone's own: the contact's name and number, the timer, round buttons (Mute, Keypad, Speaker, Hold), the
 // microphone choice and a red End button; Answer and Decline for an incoming call; a keypad dialer to call any number
-// (the round Phone button at the bottom left when there is no call). On a phone the screen covers the page; on a computer
+// (the round Phone button at the bottom left when there is no call) and the person's contacts (5092). On a phone the screen covers the page; on a computer
 // it is a card at the bottom left (the caller pop-up keeps the bottom right). quiet: viewing as someone else (no phone).
 
 const IDLE: VoiceState = { phase: 'idle' };
@@ -33,6 +33,7 @@ export function VoiceDock({ quiet, dialer }: { quiet?: boolean; dialer?: boolean
   const [padFor, setPadFor] = useState<number | null>(null);
   const [audioFor, setAudioFor] = useState<{ at: number; a: AudioDevices } | null>(null);
   const [typed, setTyped] = useState('');
+  const [tab, setTab] = useState<'keypad' | 'contacts'>('keypad');
   useEffect(() => { if (!quiet) startVoice(); }, [quiet]);
   useEffect(() => {
     if (st.phase !== 'in_call') return;
@@ -42,7 +43,7 @@ export function VoiceDock({ quiet, dialer }: { quiet?: boolean; dialer?: boolean
   if (quiet) return null;
   if (st.phase === 'idle') {
     if (!dialer) return null;
-    return <button type="button" className="vc-launch" onClick={() => { setTyped(''); openDialer(); }} aria-label="Phone: call a number" title="Call a number" data-testid="voice-launch"><Ic d={PHONE} /></button>;
+    return <button type="button" className="vc-launch" onClick={() => { setTyped(''); setTab('keypad'); openDialer(); }} aria-label="Phone: call a number" title="Call a number" data-testid="voice-launch"><Ic d={PHONE} /></button>;
   }
   const who = st.who ?? 'A caller';
   const pad = st.phase === 'in_call' && padFor === st.since;
@@ -62,7 +63,11 @@ export function VoiceDock({ quiet, dialer }: { quiet?: boolean; dialer?: boolean
     <section className={`vc vc--${st.phase}`} role="dialog" aria-modal="false" aria-label="Phone" data-testid="voice-dock" data-phase={st.phase}>
       {st.phase === 'dialing' && <>
         <div className="vc-head"><button type="button" className="vc-x" onClick={dismiss} aria-label="Close the keypad">×</button></div>
-        <form className="vc-dial" onSubmit={(e) => { e.preventDefault(); dial(); }}>
+        <div className="vc-tabs" role="tablist" aria-label="Call by">
+          {(['keypad', 'contacts'] as const).map((t) => <button key={t} type="button" role="tab" aria-selected={tab === t} className={`vc-tab${tab === t ? ' is-on' : ''}`}
+            onClick={() => setTab(t)} data-testid={`voice-tab-${t}`}>{t === 'keypad' ? 'Keypad' : 'Contacts'}</button>)}
+        </div>
+        {tab === 'contacts' ? <Contacts /> : <form className="vc-dial" onSubmit={(e) => { e.preventDefault(); dial(); }}>
           <label className="vh" htmlFor="vc-number">Number to call</label>
           <input id="vc-number" className="vc-num" type="tel" inputMode="tel" autoComplete="off" autoFocus value={typed} placeholder="Enter a number"
             onChange={(e) => setTyped(e.target.value.replace(/[^0-9+*#()\s.-]/g, '').slice(0, 20))} data-testid="voice-number" />
@@ -73,7 +78,7 @@ export function VoiceDock({ quiet, dialer }: { quiet?: boolean; dialer?: boolean
             <button type="submit" className="vc-round vc-round--go" disabled={!e164(typed)} aria-label="Call" data-testid="voice-call"><Ic d={PHONE} /></button>
             {typed ? <button type="button" className="vc-round vc-round--plain" onClick={() => setTyped((t) => t.slice(0, -1))} aria-label="Delete the last digit"><Ic d={BACK} /></button> : <span className="vc-spacer" />}
           </div>
-        </form>
+        </form>}
       </>}
       {st.phase !== 'dialing' && st.phase !== 'problem' && <>
         <div className="vc-who">
@@ -106,6 +111,38 @@ export function VoiceDock({ quiet, dialer }: { quiet?: boolean; dialer?: boolean
           <button type="button" className="btn btn--primary btn--sm" onClick={() => { dismiss(); openDialer(); }}>Keypad</button></p>
       </>}
     </section>
+  );
+}
+
+/** The contacts tab: the people called last, or a search by name or number; a tap calls (Sales: by the record, masked). */
+function Contacts() {
+  const [q, setQ] = useState('');
+  const [list, setList] = useState<VoiceContact[] | null | undefined>(undefined);
+  useEffect(() => {
+    let live = true;
+    const t = setTimeout(() => { void voiceContacts(q).then((r) => { if (live) setList(r); }); }, q ? 300 : 0);
+    return () => { live = false; clearTimeout(t); };
+  }, [q]);
+  const short = q.trim().length === 1;
+  return (
+    <div className="vc-contacts" data-testid="voice-contacts">
+      <label className="vh" htmlFor="vc-find">Find a person</label>
+      <input id="vc-find" className="input vc-find" type="search" autoComplete="off" autoFocus value={q} placeholder="Name or number"
+        onChange={(e) => setQ(e.target.value.slice(0, 60))} data-testid="voice-find" />
+      <p className="small muted vc-hint">{q.trim() ? (short ? 'Type one more letter or digit.' : 'People found') : 'Called last'}</p>
+      {list === undefined ? <p className="small muted" role="status">Loading...</p>
+        : list === null ? <p className="alert alert--warn small" role="alert"><span>Contacts did not load. Try again in a moment, or use the keypad.</span></p>
+        : list.length === 0 ? <p className="small muted" role="status">{q.trim() ? 'Nobody found.' : 'Nobody called yet.'}</p>
+        : <ul className="vc-list">{list.map((c) => (
+            <li key={`${c.number}|${c.lead ?? ''}|${c.renter ?? ''}`}>
+              <button type="button" className="vc-contact" onClick={() => void placeCall({ number: c.number, name: c.name, lead: c.lead, renter: c.renter })}
+                aria-label={`Call ${c.name}`} data-testid="voice-contact">
+                <span className="vc-avatar" aria-hidden="true">{initial(c.name)}</span>
+                <span className="vc-contact__t"><span className="vc-contact__n">{c.name}</span>{c.shown !== c.name && <span className="vc-contact__s">{c.shown}</span>}</span>
+                <span className="vc-contact__go" aria-hidden="true"><Ic d={PHONE} /></span>
+              </button>
+            </li>))}</ul>}
+    </div>
   );
 }
 
