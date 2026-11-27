@@ -18,11 +18,11 @@
 -- SCHEMA_MARKER is not changed. No applied migration is edited: app.lead_auto_merge (the trigger function) is replaced.
 set local check_function_bodies = off;
 
--- The words of a name, for comparing variants: lower case, letters only, one space between words.
+-- The words of a name, for comparing variants: lower case, letters and digits only ("Lead 1" and "Lead 2" differ), one space between words.
 create function app.lead_name_words(p text) returns text[]
 language sql immutable set search_path = public, app, pg_temp as $$
-  select coalesce(array_agg(w order by n), '{}') from regexp_split_to_table(btrim(regexp_replace(lower(coalesce(p, '')), '[^a-z ]+', ' ', 'g')), '\s+') with ordinality t(w, n)
-   where length(w) >= 2
+  select coalesce(array_agg(w order by n), '{}') from regexp_split_to_table(btrim(regexp_replace(lower(coalesce(p, '')), '[^a-z0-9 ]+', ' ', 'g')), '\s+') with ordinality t(w, n)
+   where length(w) >= 2 or w ~ '^[0-9]+$'
 $$;
 
 -- Two names are variants of one name: at least two words each, and the same words in any order, or the same first and last
@@ -36,6 +36,21 @@ language sql immutable set search_path = public, app, pg_temp as $$
     from (select app.lead_name_words(a) as x, app.lead_name_words(b) as y) s
 $$;
 
+-- Index keys for the name rule (so a lead's name variants are found by an index, not by reading every open lead): the
+-- first and last word in alphabetical order, and all the words in alphabetical order. Names that match share one of them.
+create function app.lead_name_fl(p text) returns text
+language sql immutable set search_path = public, app, pg_temp as $$
+  select case when cardinality(w) >= 2 then least(w[1], w[cardinality(w)]) || ' ' || greatest(w[1], w[cardinality(w)]) end
+    from (select app.lead_name_words(p) as w) s
+$$;
+create function app.lead_name_sorted(p text) returns text
+language sql immutable set search_path = public, app, pg_temp as $$
+  select case when cardinality(w) >= 2 then (select string_agg(x, ' ' order by x) from unnest(w) x) end
+    from (select app.lead_name_words(p) as w) s
+$$;
+create index leads_open_name_fl_idx on leads (app.lead_name_fl(name)) where status in ('new', 'contacted', 'qualified');
+create index leads_open_name_sorted_idx on leads (app.lead_name_sorted(name)) where status in ('new', 'contacted', 'qualified');
+
 create function app.lead_open_for_merge(l leads) returns boolean
 language sql immutable set search_path = public, app, pg_temp as $$
   select app.lead_mergeable(l) and l.kind <> 'sample_car' and l.status in ('new', 'contacted', 'qualified') and l.sales_outcome is null
@@ -44,18 +59,26 @@ $$;
 -- The open lead p_lead joins: the oldest open lead of the same person and kind of customer, older than it. Null: none.
 create function app.lead_merge_target(p_lead uuid) returns uuid
 language sql stable security definer set search_path = public, app, pg_temp as $$
-  -- three indexed lookups (the email, the phone key, the open leads of the 30 days around it for a name), then the rules
+  -- four indexed lookups (the email, the phone key, the two name keys of the open leads), then the rules
   select o.id
     from leads l
-    join leads o on o.id in (
+    cross join lateral (
            select x.id from leads x where l.email is not null and lower(x.email) = lower(l.email)
            union
-           select x.id from leads x where length(coalesce(app.phone_key(l.phone), '')) = 10 and app.phone_key(x.phone) = app.phone_key(l.phone)
+           select x.id from leads x where length(coalesce(app.phone_key(l.phone), '')) = 10 and x.phone is not null and app.phone_key(x.phone) = app.phone_key(l.phone)
            union
-           select x.id from leads x where x.status in ('new', 'contacted', 'qualified') and x.created_at between l.created_at - interval '30 days' and l.created_at + interval '30 days'
+           select x.id from leads x where x.status in ('new', 'contacted', 'qualified') and app.lead_name_fl(x.name) = app.lead_name_fl(l.name)
+              and x.created_at between l.created_at - interval '30 days' and l.created_at + interval '30 days'
               and app.lead_names_match(x.name, l.name)
               and not (x.email is not null and l.email is not null and lower(x.email) <> lower(l.email))
-              and not (app.phone_key(x.phone) is not null and app.phone_key(l.phone) is not null and app.phone_key(x.phone) <> app.phone_key(l.phone)))
+              and not (app.phone_key(x.phone) is not null and app.phone_key(l.phone) is not null and app.phone_key(x.phone) <> app.phone_key(l.phone))
+           union
+           select x.id from leads x where x.status in ('new', 'contacted', 'qualified') and app.lead_name_sorted(x.name) = app.lead_name_sorted(l.name)
+              and x.created_at between l.created_at - interval '30 days' and l.created_at + interval '30 days'
+              and app.lead_names_match(x.name, l.name)
+              and not (x.email is not null and l.email is not null and lower(x.email) <> lower(l.email))
+              and not (app.phone_key(x.phone) is not null and app.phone_key(l.phone) is not null and app.phone_key(x.phone) <> app.phone_key(l.phone))) c
+    join leads o on o.id = c.id
    where l.id = p_lead and app.lead_open_for_merge(l)
      and o.id <> l.id and app.lead_open_for_merge(o) and app.sl_type(o) = app.sl_type(l)
      and (o.created_at, o.id) < (l.created_at, l.id)
@@ -119,9 +142,9 @@ begin
   perform cron.schedule('carmacars-r50s-lead-merge', '23 * * * *', $q$select app.job_lead_merge()$q$);
 end $$;
 
-revoke all on function app.lead_name_words(text), app.lead_names_match(text, text), app.lead_open_for_merge(leads), app.lead_merge_target(uuid),
+revoke all on function app.lead_name_words(text), app.lead_name_fl(text), app.lead_name_sorted(text), app.lead_names_match(text, text), app.lead_open_for_merge(leads), app.lead_merge_target(uuid),
   app.lead_merge_auto(uuid), app.lead_auto_merge(), app.job_lead_merge(integer) from public, anon, authenticated;
-grant execute on function app.lead_name_words(text), app.lead_names_match(text, text), app.lead_open_for_merge(leads), app.lead_merge_target(uuid),
+grant execute on function app.lead_name_words(text), app.lead_name_fl(text), app.lead_name_sorted(text), app.lead_names_match(text, text), app.lead_open_for_merge(leads), app.lead_merge_target(uuid),
   app.lead_merge_auto(uuid), app.lead_auto_merge(), app.job_lead_merge(integer) to service_role;
 
 -- the leads already there
