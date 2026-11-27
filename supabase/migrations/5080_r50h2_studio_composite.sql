@@ -162,6 +162,13 @@ select pg_temp.patch_fn('app.job_photo_r48_pre3152()'::regprocedure,
   $q$case v_pass when 1 then array['left'] when 2 then array['front_left'] else v_order[3:] end$q$,
   $q$case v_pass when 1 then v_order[1:1] when 2 then v_order[2:2] else v_order[3:] end$q$);
 
+-- Only a check-in or check-out photo of the car's outside (an angle shot) goes to the image model: never the inside, a
+-- licence, the keys or any other shot (REQ-001 privacy; the privacy page says exterior check-in photos may be used).
+create or replace function app.photo_r48_handover_shot(p_shot text, p_angle text) returns text language sql immutable parallel safe as $$
+  select case when coalesce(p_angle, p_shot) in ('front_left', 'front', 'left', 'rear_left', 'rear', 'front_right', 'right', 'rear_right') then coalesce(p_angle, p_shot) end
+$$;
+comment on function app.photo_r48_handover_shot(text, text) is 'R50 hotfix 2 (5080): the exterior angle of a check-in or check-out photo, or null: only these are sent to the image model (no inside, licence or other shot).';
+
 -- The references of one view: the car's listing photos on the view's side (outside or inside), the same angle first; when it
 -- has none on that side, its newest check-in, check-out and field job photos of that side; then its listing photos of the
 -- other side (its colour and trim), or, with no listing photo at all, the other side's check-in photos. At most 6.
@@ -191,11 +198,13 @@ language sql stable security definer set search_path = public, app, pg_temp as $
 $$;
 
 -- ================================================================ 4. every render made before r48.4 is made again
--- a render of an older standard is never live (photo_render_live: the gate's spec); the "check in place" of 3701 is over
--- (its refusal started the tries again, a loop under r48.4): its marks and its queued steps are taken off
+-- a render of an older standard stays on the site while its view is made again (prev_live, read with the definition of 3701
+-- before this migration replaces it) and goes when the new render passes, or is flagged (photo_render_live); the "check in
+-- place" of 3701 is over (its refusal started the tries again, a loop under r48.4): its marks and its queued steps are taken off
 update listing_jobs set input = input #- '{r45,regate}'
  where kind = 'photo_r45' and status = 'queued' and coalesce(input #>> '{r45,regate}', '') = 'true';
-update vehicle_photos set r45 = (coalesce(r45, '{}'::jsonb) - 'regate' - 'reasons' - 'why') || jsonb_build_object('state', 'redo', 'tries', 0, 'at', now())
+update vehicle_photos vp set r45 = (coalesce(r45, '{}'::jsonb) - 'regate' - 'reasons' - 'why') || jsonb_build_object('state', 'redo', 'tries', 0, 'at', now(),
+                                                                                                          'prev_live', app.photo_render_live(vp))
  where r48 and replaced_at is null and coalesce(r45 #>> '{gate,spec}', '') <> 'r48.4' and coalesce(r45 ->> 'state', '') in ('done', 'flagged', 'redo');
 update vehicle_photos set r45 = r45 - 'regate' where r48 and r45 ? 'regate';
 create or replace function app.photo_r48_regate_queue(p_limit integer) returns integer
@@ -268,24 +277,35 @@ alter table vehicle_photos add column if not exists r48_source uuid references v
 create index if not exists vehicle_photos_r48_source on vehicle_photos (r48_source) where r48_source is not null;
 comment on column vehicle_photos.r48_source is 'R50 hotfix 2 (5080): a studio extra (shot studio_extra): the car''s real outside photo it was cut out from and put on the dealership.';
 
--- a studio view the public may see: made at the current standard, passed, approved, on the site; a standard view or an extra
+-- a studio view the public may see: made at the current standard, passed, approved, on the site; a standard view or an extra.
+-- A render of an older standard that was on the site when r48.4 began (prev_live) stays until its view is made again: the new
+-- render replaces it when it passes (a flagged view is off).
 create or replace function app.photo_render_live(ph vehicle_photos) returns boolean
 language sql stable security definer set search_path = public, app, pg_temp as $$
   select ph.r48 and ph.replaced_at is null and ph.status = 'approved' and ph.is_public and nullif(ph.processed_path, '') is not null
      and ph.processed_path !~ '^/' and coalesce(ph.r45 ->> 'state', '') <> 'flagged'
-     and coalesce((ph.r45 #>> '{gate,pass}')::boolean, false) and ph.r45 #>> '{gate,spec}' = app.photo_r48_spec()
+     and ((coalesce((ph.r45 #>> '{gate,pass}')::boolean, false) and ph.r45 #>> '{gate,spec}' = app.photo_r48_spec())
+          or (coalesce(ph.r45 ->> 'prev_live', '') = 'true' and coalesce(ph.r45 #>> '{gate,spec}', '') <> app.photo_r48_spec()
+              and coalesce(ph.r45 ->> 'state', '') in ('done', 'queued', 'redo')))
      and (ph.shot_type = any (app.photo_render_order()) or (ph.shot_type = 'studio_extra' and ph.r48_source is not null))
 $$;
-comment on function app.photo_render_live(vehicle_photos) is 'R50 hotfix 2 (5080): a studio view the public may see: made to the current standard (r48.4), passed the check and the gate, approved, on the site; a standard view or a real photo cut out on the dealership (studio_extra).';
+comment on function app.photo_render_live(vehicle_photos) is 'R50 hotfix 2 (5080): a studio view the public may see: made to the current standard (r48.4), passed the check and the gate, approved, on the site; a standard view or a real photo cut out on the dealership (studio_extra). A render of an older standard that was live when r48.4 began stays until its view is made again.';
 
 -- the car's real outside photos to cut out: once its standard views are all made or flagged and one outside view is live
+-- a standard view of any car waiting for its render (queued or to be made again): the extras wait until none is
+create function app.photo_r48_views_waiting() returns boolean
+language sql stable security definer set search_path = public, app, pg_temp as $$
+  select exists (select 1 from vehicle_photos ph where ph.r48 and ph.replaced_at is null and ph.shot_type = any (app.photo_render_order())
+                    and coalesce(ph.r45 ->> 'state', '') in ('queued', 'redo'))
+$$;
+
 create function app.photo_r48_extra_queue(p_vehicle uuid, p_room integer) returns integer
 language plpgsql security definer set search_path = public, app, pg_temp as $$
 declare ps program_settings := app.settings(); s record; n integer := 0; v_intake uuid; v_id uuid; v_have integer;
 begin
   if coalesce(p_room, 0) <= 0 or ps.listing_photo_r48_extras <= 0 then return 0; end if;
   if coalesce((select v.is_sample from vehicles v where v.id = p_vehicle), true) then return 0; end if;
-  if not app.photo_r48_car_done(p_vehicle) or not app.photo_has_live_render(p_vehicle) then return 0; end if;
+  if not app.photo_r48_car_done(p_vehicle) or not app.photo_has_live_render(p_vehicle) or app.photo_r48_views_waiting() then return 0; end if;
   select count(*) into v_have from vehicle_photos x where x.vehicle_id = p_vehicle and x.shot_type = 'studio_extra' and x.replaced_at is null;
   for s in select ph.id, ph.original_path, ph.shot_type, ph.sort_order from vehicle_photos ph join listing_shot_types st on st.code = ph.shot_type and st.is_public
             where ph.vehicle_id = p_vehicle and not ph.ai_generated and ph.replaced_at is null and ph.status <> 'rejected' and nullif(ph.original_path, '') is not null
@@ -304,7 +324,7 @@ begin
   end loop;
   return n;
 end $$;
-comment on function app.photo_r48_extra_queue(uuid, integer) is 'R50 hotfix 2 (5080): queues up to p_room of the car''s real outside photos (at most listing_photo_r48_extras in all) to be cut out on the dealership, once its standard views are done or flagged and one is live.';
+comment on function app.photo_r48_extra_queue(uuid, integer) is 'R50 hotfix 2 (5080): queues up to p_room of the car''s real outside photos (at most listing_photo_r48_extras in all) to be cut out on the dealership, once its standard views are done or flagged and one is live, and no standard view of any car is waiting.';
 
 -- the extra's step: its one real photo is the reference (no drawing, no stock photo)
 alter function app.listing_job_context(uuid) rename to listing_job_context_pre5080;
@@ -456,12 +476,24 @@ begin
 end $$;
 select pg_temp.copy_grants('app.photo_r45_fleet_read(uuid, jsonb)'::regprocedure, 'app.photo_r45_fleet_read_pre5080(uuid, jsonb)'::regprocedure);
 
+-- ================================================================ the privacy page: exterior check-in photos
+-- the one line: exterior photos taken at check-in and check-out may be used to make the car's studio photos (only these go to the image model)
+update site_content_blocks
+   set body = replace(body, '- **CarmaCars staff.** Our staff see each vehicle''s location and trips, read only, to run the fleet and help you.',
+     '- **CarmaCars staff.** Our staff see each vehicle''s location and trips, read only, to run the fleet and help you.' || chr(10)
+     || '- **Photos of the car.** Exterior photos of a vehicle taken at check-in and check-out may be used to create the car''s studio photos on our website. Photos of the inside, your licence or other documents are never used for this.')
+ where block_key = 'legal.privacy' and body like '%- **CarmaCars staff.** Our staff see each vehicle''s location and trips, read only, to run the fleet and help you.%'
+   and body not like '%- **Photos of the car.**%';
+update site_content_blocks set data = data || jsonb_build_object('last_updated', 'November 27, 2026')
+ where block_key = 'legal.meta' and coalesce(data ->> 'last_updated', '') <> 'November 27, 2026'
+   and exists (select 1 from site_content_blocks b where b.block_key = 'legal.privacy' and b.body like '%- **Photos of the car.**%');
+
 -- ================================================================ privileges (the functions replaced in place keep theirs)
 do $$
 declare f record;
 begin
   for f in select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-            where n.nspname = 'app' and p.proname = any (array['photo_r48_extra_queue', 'photo_r48_cost_guard', 'photo_shot_cutout', 'worker_listing_result_pre5080', 'listing_job_context_pre5080',
+            where n.nspname = 'app' and p.proname = any (array['photo_r48_extra_queue', 'photo_r48_views_waiting', 'photo_r48_cost_guard', 'photo_shot_cutout', 'worker_listing_result_pre5080', 'listing_job_context_pre5080',
               'job_photo_r48_pre5080', 'photo_r45_fleet_read_pre5080'])
   loop
     execute format('revoke all on function %s from public, anon, authenticated', f.sig);

@@ -44,16 +44,20 @@ create temp table rq5h2_real as select test.rq5h2_photo('rq5h2_a', 'front_left',
 insert into condition_reports (id, vehicle_id, kind) values (test.id('cr:rq5h2_a'), test.id('vehicle:rq5h2_a'), 'baseline'), (test.id('cr:rq5h2_h'), test.id('vehicle:rq5h2_h'), 'baseline');
 insert into condition_report_photos (condition_report_id, seq, shot, storage_path)
 select test.id('cr:rq5h2_' || c), row_number() over (partition by c), s, 'reports/rq5h2/' || c || '/' || s || '.jpg'
-  from unnest(array['a', 'h']) c cross join unnest(array['keys', 'front_left', 'rear', 'instrument_cluster', 'front_seats']) s;
+  from unnest(array['a', 'h']) c cross join unnest(array['keys', 'licence', 'other', 'trunk', 'front_left', 'rear', 'instrument_cluster', 'front_seats']) s;
 select test.eq('an outside view of a car with outside listing photos: its listing photos only, the same angle first',
   (select string_agg((e ->> 'from') || ':' || (e ->> 'shot'), ',' order by n) from jsonb_array_elements(app.photo_r48_refs(test.id('vehicle:rq5h2_a'), 'front_left')) with ordinality t(e, n)),
   'listing:front_left,listing:rear');
-select test.eq('an inside view with no inside listing photo: its check-in photos of the inside, the same view first, then its listing photos (colour and trim)',
+select test.eq('an inside view with no inside listing photo: its listing photos (colour and trim) only; no inside check-in photo is sent',
   (select string_agg((e ->> 'from') || ':' || (e ->> 'shot'), ',' order by n) from jsonb_array_elements(app.photo_r48_refs(test.id('vehicle:rq5h2_a'), 'dashboard')) with ordinality t(e, n)),
-  'handover:dashboard,handover:front_seats,listing:front_left,listing:rear');
-select test.eq('a car with no listing photo: its check-in photos, the view''s side first, never keys',
+  'listing:front_left,listing:rear');
+select test.eq('a car with no listing photo: its exterior check-in photos only, the view''s angle first; never keys, a licence, the inside or any other shot',
   (select string_agg((e ->> 'from') || ':' || (e ->> 'shot'), ',' order by n) from jsonb_array_elements(app.photo_r48_refs(test.id('vehicle:rq5h2_h'), 'rear')) with ordinality t(e, n)),
-  'handover:rear,handover:front_left,handover:dashboard,handover:front_seats');
+  'handover:rear,handover:front_left');
+select test.eq('only the eight outside angles of a check-in or check-out photo go to the image model',
+  (select string_agg(coalesce(app.photo_r48_handover_shot(s, null), '-'), ',' order by n) from unnest(array['front_left', 'right', 'rear_right', 'instrument_cluster', 'front_seats', 'trunk', 'licence', 'other', 'keys', 'wheel_front_left']) with ordinality t(s, n)),
+  'front_left,right,rear_right,-,-,-,-,-,-,-');
+select test.eq('an angle named on the photo wins over its shot, and an inside angle on an outside shot is not sent', app.photo_r48_handover_shot('other', 'rear') || '/' || coalesce(app.photo_r48_handover_shot('front', 'front_seats'), '-'), 'rear/-');
 
 -- ---------------------------------------------------------------- 3. the image model's gate: the cap a photo, the cost, the pause
 create temp table rq5h2_v as select test.rq5h2_photo('rq5h2_h', 'front', true, jsonb_build_object('state', 'queued', 'tries', 0)) as id;
@@ -115,6 +119,20 @@ select test.ok('no live render: the photos as before release 50 (5064), never th
   app.public_listing_photos(test.id('vehicle:rq5h2_a')) = coalesce(nullif(app.photo_fallback_gallery(test.id('vehicle:rq5h2_a')), '[]'::jsonb), jsonb_build_array(app.photo_placeholder(test.id('vehicle:rq5h2_a'))))
   and position((select processed_path from vehicle_photos where id = (select id from rq5h2_old)) in app.public_listing_photos(test.id('vehicle:rq5h2_a'))::text) = 0);
 
+-- a render made before r48.4 that was on the site stays until its view is made again, then the new render takes its place
+create temp table rq5h2_prev as select test.rq5h2_photo('rq5h2_a', 'rear', true, test.rq5h2_live('r48.3') || jsonb_build_object('prev_live', true, 'state', 'redo')) as id;
+select test.ok('an older render that was live stays live while its view is made again', (select app.photo_render_live(ph) from vehicle_photos ph where ph.id = (select id from rq5h2_prev)));
+select test.ok('so the car keeps showing it', position((select processed_path from vehicle_photos where id = (select id from rq5h2_prev)) in app.public_listing_photos(test.id('vehicle:rq5h2_a'))::text) > 0);
+update vehicle_photos set r45 = r45 || jsonb_build_object('state', 'queued') where id = (select id from rq5h2_prev);
+select test.ok('also while the new render is queued', (select app.photo_render_live(ph) from vehicle_photos ph where ph.id = (select id from rq5h2_prev)));
+update vehicle_photos set r45 = test.rq5h2_live() || jsonb_build_object('prev_live', true) where id = (select id from rq5h2_prev);
+select test.ok('the new render that passed takes its place', (select app.photo_render_live(ph) and ph.r45 #>> '{gate,spec}' = 'r48.4' from vehicle_photos ph where ph.id = (select id from rq5h2_prev)));
+update vehicle_photos set r45 = test.rq5h2_live('r48.3') || jsonb_build_object('prev_live', true, 'state', 'flagged') where id = (select id from rq5h2_prev);
+select test.ok('a flagged view is off the site', not (select app.photo_render_live(ph) from vehicle_photos ph where ph.id = (select id from rq5h2_prev)));
+update vehicle_photos set r45 = test.rq5h2_live('r48.3') || jsonb_build_object('state', 'redo') where id = (select id from rq5h2_prev);
+select test.ok('a render of an older standard that was never on the site stays off', not (select app.photo_render_live(ph) from vehicle_photos ph where ph.id = (select id from rq5h2_prev)));
+update vehicle_photos set replaced_at = now() where id = (select id from rq5h2_prev);
+
 -- ---------------------------------------------------------------- 6. the gallery: the sample order, then the real photos cut out
 update vehicle_photos set replaced_at = now() where id = (select id from rq5h2_old);
 create temp table rq5h2_r as select
@@ -131,6 +149,13 @@ insert into vehicle_photos (vehicle_id, angle, shot_type, original_path, status,
 select test.id('vehicle:rq5h2_a'), a, a, 'vehicles/original/rq5h2/f-' || a || '.jpg', 'processed', false, 'done', true, true, 0, jsonb_build_object('state', 'flagged', 'tries', 3)
   from unnest(array['front', 'rear', 'front_seats', 'wheel']) a;
 update program_settings set listing_photo_r48_extras = 1 where id = (select id from app.settings());
+-- other test files leave queued views of their own: set aside (flagged) for this section, put back after it
+create temp table rq5h2_aside as select ph.id, ph.r45 from vehicle_photos ph where ph.r48 and ph.replaced_at is null and ph.shot_type = any (app.photo_render_order())
+  and coalesce(ph.r45 ->> 'state', '') in ('queued', 'redo') and ph.id <> (select id from rq5h2_v);
+update vehicle_photos set r45 = r45 || jsonb_build_object('state', 'flagged') where id in (select id from rq5h2_aside);
+select test.ok('a standard view waiting (here a queued one of another car) holds the extras', app.photo_r48_views_waiting() and app.photo_r48_extra_queue(test.id('vehicle:rq5h2_a'), 10) = 0);
+update vehicle_photos set r45 = r45 || jsonb_build_object('state', 'flagged') where id = (select id from rq5h2_v);
+select test.ok('none waiting: no hold', not app.photo_r48_views_waiting());
 select test.eq('then at most listing_photo_r48_extras of them (here 1), the first real photo first', app.photo_r48_extra_queue(test.id('vehicle:rq5h2_a'), 10), 1);
 create temp table rq5h2_x as select ph.* from vehicle_photos ph where ph.vehicle_id = test.id('vehicle:rq5h2_a') and ph.shot_type = 'studio_extra';
 select test.ok('the extra: a generated row of its real photo, off the site, its step in mode r48 with extra',
@@ -150,6 +175,7 @@ update vehicle_photos set replaced_at = now() where id = (select fl from rq5h2_r
 select test.eq('its real photo replaced: the extra goes too', test.rq5h2_gallery('rq5h2_a'), 'front_left*,left,rear_left,dashboard');
 select test.ok('a car''s progress counts its eight standard views only (REQ-001)', (app.photo_r48_car(test.id('vehicle:rq5h2_a')) ->> 'done')::int = 4);
 update program_settings set listing_photo_r48_extras = 6 where id = (select id from app.settings());
+update vehicle_photos ph set r45 = a.r45 from rq5h2_aside a where ph.id = a.id;
 
 -- ---------------------------------------------------------------- 7. the cost guard
 insert into provider_calls (provider, purpose, ok, error, duration_ms, cost_microusd, units, unit, vehicle_id, vehicle_photo_id)
