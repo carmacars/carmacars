@@ -38,7 +38,9 @@ export const ADMIN_HUBS: Hub[] = [
   { key: 'renters', label: 'Renters', tabs: [{ href: '/admin/renters?tab=renters', label: 'Renters' }, { href: '/admin/renters?tab=leads', label: 'Leads' },
     { href: '/admin/sales-leads', label: 'All leads' }, { href: '/admin/sales-leads?tab=team', label: 'Sales team' }, { href: '/admin/unanswered', label: 'Unanswered' }] },
   { key: 'vehicles', label: 'Vehicles', tabs: [
-    { href: '/admin/vehicles', label: 'All cars' }, { href: '/admin/vehicles/tracking', label: 'Fleet tracking' }, { href: '/admin/calendar-sync', label: 'Calendar sync' }],
+    { href: '/admin/vehicles', label: 'All cars' }, { href: '/admin/vehicles/tracking', label: 'Fleet tracking' }, { href: '/admin/calendar-sync', label: 'Calendar sync' },
+    // R50 hotfix 2 (5144): ownership permits uploaded in bulk, each filed on its car
+    { href: '/admin/ownership-documents', label: 'Ownership documents' }],
     actions: [{ href: '/admin/vehicles/new', label: 'Add a car' }, { href: '/admin/vehicles/bulk-rates', label: 'Rates for many cars' }, { href: '/admin/vehicles/samples', label: 'Retire or delete' }, { href: '/admin/vehicles/import-photos', label: 'Import photos from Drive' }] },
   { key: 'listings', label: 'Listings', tabs: [{ href: '/admin/listings', label: 'Listings' }, { href: '/admin/similar-cars', label: 'Similar cars' }] },
   // the owner: "People -> Owners (tabs: Applications, Owners, Owner forms, Paid and signed; Add a car for an owner as a button)"
@@ -179,10 +181,13 @@ export const ADMIN_SECTIONS: Section[] = [
 const OFFICE = 'cs fleet finance sales';
 export const STAFF_SECTIONS: Section[] = [
   { key: 'todo', label: 'To do', items: [{ href: '/staff', label: 'To do', fns: OFFICE }, { href: '/staff/today', label: 'Today at a glance', fns: OFFICE }] },
-  { key: 'cs', label: 'Customer service', items: ['leads', 'renters', 'owners', 'listings', { href: '/staff/chauffeur', label: 'Chauffeur', fns: 'cs' }] },
+  { key: 'cs', label: 'Customer service', items: ['leads', 'renters', 'owners', 'listings', { href: '/staff/chauffeur', label: 'Chauffeur', fns: 'cs' }, { href: '/staff/ownership-documents', label: 'Ownership documents', fns: 'cs' }] },
   { key: 'sales', label: 'Sales', items: ['leads', 'renters', 'owners', { href: '/staff/chauffeur', label: 'Chauffeur', fns: 'sales' }] },
-  { key: 'fleet', label: 'Fleet', items: ['field-jobs', { href: '/staff/fleet/map', label: 'Fleet map', fns: 'fleet' }, 'checks', { href: '/staff/maintenance', label: 'Maintenance', fns: 'fleet' }, 'listings'] },
-  { key: 'finance', label: 'Finance', items: ['money', 'owner-money', { href: '/staff/tolls', label: 'Tolls and tickets', fns: 'finance' }, { href: '/staff/turo', label: 'Turo trips', fns: 'finance' }, { href: '/staff/maintenance', label: 'Maintenance bills', fns: 'finance' }] },
+  // R50 hotfix 2 (5143, 5144): expenses from receipt photos (Fleet and Finance), ownership permits in bulk (Fleet and customer service)
+  { key: 'fleet', label: 'Fleet', items: ['field-jobs', { href: '/staff/fleet/map', label: 'Fleet map', fns: 'fleet' }, 'checks', { href: '/staff/maintenance', label: 'Maintenance', fns: 'fleet' }, 'listings',
+    { href: '/staff/expenses', label: 'Expenses', fns: 'fleet' }, { href: '/staff/ownership-documents', label: 'Ownership documents', fns: 'fleet' }] },
+  { key: 'finance', label: 'Finance', items: ['money', 'owner-money', { href: '/staff/tolls', label: 'Tolls and tickets', fns: 'finance' }, { href: '/staff/turo', label: 'Turo trips', fns: 'finance' }, { href: '/staff/maintenance', label: 'Maintenance bills', fns: 'finance' },
+    { href: '/staff/expenses', label: 'Expenses', fns: 'finance' }] },
   { key: 'bookings', label: 'Bookings', items: [{ href: '/staff/bookings', label: 'Bookings', fns: OFFICE }, { href: '/staff/calendar', label: 'Calendar', fns: OFFICE }, { href: '/staff/cars', label: 'Find a car', fns: OFFICE },
     { href: '/staff/renters', label: 'Find a renter', fns: 'cs fleet finance' }, { href: '/staff/card-coverage', label: 'Card coverage', fns: OFFICE }] },
   { key: 'me', label: 'Me', items: ['numbers', 'hours', { href: '/staff/townhall', label: 'Townhall', fns: `${OFFICE} field` }, { href: '/staff/field/sales', label: 'My sales', fns: 'field' }, { href: '/staff/field/referrals', label: 'Referrals', fns: 'field' }, { href: '/staff/field/profile', label: 'Profile', fns: 'field' }, { href: '/staff/academy', label: 'Academy', fns: `${OFFICE} field` }, { href: '/staff/bug-reports', label: 'My bug reports', fns: OFFICE }] }

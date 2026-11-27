@@ -19,6 +19,10 @@ export function fakeVision(): VisionModel {
       // an ownership permit (0290): a synthetic car, its VIN with a valid check digit; no real plate or permit
       if (req.purpose === 'permit_read') return { ok: true, model: FAKE_MODEL, usage, tried: [FAKE_MODEL], data: {
         plate: 'ZZZZ 123', vin: '3FAKEPRM5RT000042', year: 2024, make: 'TOYOT', model: 'CRL', body: '4DR', colour: 'GRY', permit_number: 'X0000001', sticker_expiry: '271130', confidence: 86 } };
+      // a receipt (5143): an oil change on the synthetic car's plate, dated today; amounts that add up
+      if (req.purpose === 'receipt_read') return { ok: true, model: FAKE_MODEL, usage, tried: [FAKE_MODEL], data: {
+        vendor: 'Example Quick Lube', date: new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto' }).format(new Date()), subtotal: 85, tax: 11.05, total: 96.05,
+        what: 'Synthetic oil change', plate: 'ZZZZ 123', vin: null, confidence: 90 } };
       // a VIN photo (release 28): the same synthetic VIN, read with an O for the 0 the reader corrects
       if (req.purpose === 'vin_read') return { ok: true, model: FAKE_MODEL, usage, tried: [FAKE_MODEL], data: { vin: '3FAKEPRM5RTOOOO42', other: [] } };
       // a licence photo (release 31): the front, sharp and whole, nothing printed read (the back's barcode carries the

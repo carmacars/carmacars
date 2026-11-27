@@ -20,7 +20,9 @@ export interface Rules {
   trip?: { skip_words?: string[]; statement_fee_words?: string[]; amount?: 'last' | 'first' | 'sum' };
 }
 export interface Profile { id: string; operator: string; name: string; source: 'csv' | 'pdf_text'; notice_kind: Kind; rules: Rules; priority: number; header_signature?: string; mapping?: Record<string, string>; date_format?: string | null; amount_unit?: string }
-export interface TextLine { text: string; page: number; y: number; h?: number }
+/** A run of text on a line with its left and right edge as a fraction of the page width (pdf.js text items; 5140). */
+export interface Cell { text: string; x0: number; x1: number }
+export interface TextLine { text: string; page: number; y: number; h?: number; cells?: Cell[] }
 export interface Box { page: number; y: number; h: number }
 export interface ReadLine {
   kind?: Kind; authority?: string | null; notice_number?: string | null; plate?: string | null; transponder?: string | null;
@@ -65,7 +67,7 @@ export function parseMoney(s: string | null | undefined): number | null {
 
 export interface FoundDate { iso: string; index: number; raw: string; ambiguous: boolean }
 /** The first date in a string: 2026-09-14, 09/14/2026, 14/09/2026, Sep 14, 2026, 14-Sep-2026, 14 September 2026. */
-export function findDate(s: string, order: Rules['date_order'] = 'auto'): FoundDate | null {
+export function findDate(s: string, order: Rules['date_order'] = 'auto', year?: number | null): FoundDate | null {
   const cands: FoundDate[] = [];
   const ok = (y: number, m: number, d: number) => y >= 2000 && y <= 2099 && m >= 1 && m <= 12 && d >= 1 && d <= new Date(Date.UTC(y, m, 0)).getUTCDate();
   const push = (y: number, m: number, d: number, index: number, raw: string, ambiguous = false) => { if (ok(y, m, d)) cands.push({ iso: `${y}-${pad(m)}-${pad(d)}`, index, raw, ambiguous }); };
@@ -85,6 +87,15 @@ export function findDate(s: string, order: Rules['date_order'] = 'auto'): FoundD
   while ((m = mon.exec(s))) push(+m[3]!, MONTHS[m[1]!.toLowerCase()]!, +m[2]!, m.index, m[0]);
   const dmon = /\b(\d{1,2})(?:st|nd|rd|th)?[\s-]+(jan|feb|mar|apr|may|jun|jul|aug|sept?|oct|nov|dec)[a-z]*\.?[\s,-]+(20\d{2})\b/gi;
   while ((m = dmon.exec(s))) push(+m[3]!, MONTHS[m[2]!.toLowerCase()]!, +m[1]!, m.index, m[0]);
+  // 5140: a statement table may print the day without the year ("Nov 03", "03-Nov", "11/03"): the statement's year
+  if (!cands.length && year) {
+    const md = /\b(jan|feb|mar|apr|may|jun|jul|aug|sept?|oct|nov|dec)[a-z]*\.?[\s-]+(\d{1,2})(?:st|nd|rd|th)?\b(?![\s,-]*\d)/gi;
+    while ((m = md.exec(s))) push(year, MONTHS[m[1]!.toLowerCase()]!, +m[2]!, m.index, m[0]);
+    const dm = /\b(\d{1,2})(?:st|nd|rd|th)?[\s-]+(jan|feb|mar|apr|may|jun|jul|aug|sept?|oct|nov|dec)[a-z]*\b(?![\s,-]*\d)/gi;
+    while ((m = dm.exec(s))) push(year, MONTHS[m[2]!.toLowerCase()]!, +m[1]!, m.index, m[0]);
+    const nm = /\b(\d{1,2})[/-](\d{1,2})\b(?![/.-]?\d)/g;
+    while ((m = nm.exec(s))) { const a = +m[1]!, b = +m[2]!; if (order === 'dmy' || a > 12) push(year, b, a, m.index, m[0]); else push(year, a, b, m.index, m[0], b <= 12 && a !== b && order !== 'mdy'); }
+  }
   cands.sort((x, y) => x.index - y.index);
   return cands[0] ?? null;
 }
@@ -162,6 +173,160 @@ export function pickProfile(text: string, profiles: Profile[]): Profile | null {
   return profiles.filter((p) => p.source === 'pdf_text' && !(p.rules.detect ?? []).length).sort((a, b) => a.priority - b.priority)[0] ?? null;
 }
 
+// ---------------------------------------------------------------- columns (5140)
+// A statement is a table. Its header names each column (Date, Time, Entry, Exit, Distance, Plate, Toll, Camera or video
+// charge, Trip toll charge, Total), so each value is read from its own column, never guessed from its place on the line:
+// a distance printed without "km" is not money, the fees are the fee columns, the total is the total column, and a
+// plate printed once above its trips belongs to each of them. The PDF reader gives each run of text its position; a CSV
+// gives its columns. Column words are English as 407 ETR, the cities and Ontario print them.
+export type Col = 'date' | 'time' | 'datetime' | 'entry' | 'exit' | 'plate' | 'transponder' | 'distance' | 'toll' | 'fee' | 'total' | 'ref' | 'place' | 'skip';
+const has = (s: string, re: RegExp) => re.test(s);
+/** What a column header names; null: not a column the reader uses. */
+export function classifyHeader(h: string): Col | null {
+  const s = h.toLowerCase().replace(/[_\s]+/g, ' ').trim();
+  if (!s || s.length > 40) return null;
+  const exitish = has(s, /\b(exit|off|destination|end)\b/), entryish = has(s, /\b(entry|enter|entrance|on|from|origin|start)\b/);
+  if (has(s, /\b(km|kms|distance|kilomet\w*)\b/)) return 'distance';
+  if (has(s, /\b(plate|licen[cs]e)\b/)) return 'plate';
+  if (has(s, /transponder|\btag\b/)) return 'transponder';
+  if (has(s, /date/) && has(s, /time/)) return exitish && !entryish ? 'skip' : 'datetime';
+  if (has(s, /\btime\b/)) return exitish && !entryish ? 'skip' : 'time';
+  if (has(s, /\b(date|day)\b/)) return exitish && !entryish || has(s, /\b(due|posted|statement|payment)\b/) ? 'skip' : 'date';
+  if (has(s, /\b(total|amount due|balance)\b/)) return 'total';
+  if (has(s, /camera|video|trip toll|trip charge|\bfees?\b|admin|surcharge|processing|\bplate charge/)) return 'fee';
+  if (has(s, /\b(toll|tolls|charge|charges|amount|cost|price|fare|fine|penalty)\b/)) return 'toll';
+  if (has(s, /\b(class|axle|type|zone|rate)\b/)) return 'skip';
+  if (exitish || s === 'to') return 'exit';
+  if (entryish || s === 'from') return 'entry';
+  if (has(s, /\b(trip|transaction|reference|ref|notice|invoice|ticket|journey)\b/)) return 'ref';
+  if (has(s, /location|plaza|interchange|description|road|highway|place|gantry|where/)) return 'place';
+  return null;
+}
+const isHeader = (roles: Array<Col | null>) => {
+  const r = roles.filter((x) => x && x !== 'skip') as Col[];
+  return r.length >= 3 && r.some((x) => x === 'date' || x === 'datetime') && r.some((x) => x === 'toll' || x === 'fee' || x === 'total');
+};
+/** The CSV row that is the header (a 407 ETR download starts with the account's details above it); -1: none. */
+export function headerRow(rows: string[][]): number {
+  for (let i = 0; i < Math.min(rows.length, 40); i++) if (isHeader(rows[i]!.map(classifyHeader)) && !rows[i]!.some((c) => findDate(c))) return i;
+  return -1;
+}
+const TARGET: Partial<Record<Col, string>> = { date: 'date', time: 'time', datetime: 'occurred_at', entry: 'entry', exit: 'exit', plate: 'plate', transponder: 'transponder',
+  toll: 'amount', fee: 'fees', total: 'total', ref: 'notice_number', place: 'place' };
+/** The column mapping a header suggests: column index to target; several fee columns all count as fees. */
+export function autoMap(header: string[]): Record<string, string> {
+  const map: Record<string, string> = {};
+  header.forEach((h, i) => {
+    const t = TARGET[classifyHeader(h) ?? 'skip'];
+    if (t && (t === 'fees' || !Object.values(map).includes(t))) map[String(i)] = t;
+  });
+  return map;
+}
+
+const cellsOf = (l: TextLine): Cell[] => l.cells ?? [];
+interface Column { role: Col; x0: number; x1: number; text: string }
+function columnsOf(cells: Cell[]): Column[] {
+  return cells.map((c) => ({ role: classifyHeader(c.text) as Col, x0: c.x0, x1: c.x1, text: c.text })).filter((c) => c.role);
+}
+/** A header printed on two lines ("Trip" over "Toll Charge"): the words of the line under it join the column above them. */
+function mergeHeader(a: Cell[], b: Cell[]): Cell[] {
+  const out = a.map((c) => ({ ...c }));
+  for (const c of b) {
+    const over = out.map((o) => ({ o, w: Math.min(o.x1, c.x1) - Math.max(o.x0, c.x0) })).sort((x, y) => y.w - x.w)[0];
+    if (over && over.w > 0) { over.o.text = `${over.o.text} ${c.text}`; over.o.x0 = Math.min(over.o.x0, c.x0); over.o.x1 = Math.max(over.o.x1, c.x1); } else out.push({ ...c });
+  }
+  return out.sort((x, y) => x.x0 - y.x0);
+}
+const plain = (l: TextLine | undefined) => !!l && !findDate(l.text) && !moneyTokens(l.text).length;
+function columnFor(cols: Column[], c: Cell): Column | null {
+  let best: Column | null = null; let bw = 0;
+  for (const k of cols) { const w = Math.min(k.x1, c.x1) - Math.max(k.x0, c.x0); if (w > bw) { bw = w; best = k; } }
+  if (best) return best;
+  const mid = (c.x0 + c.x1) / 2;
+  return cols.reduce<Column | null>((b, k) => (!b || Math.abs((k.x0 + k.x1) / 2 - mid) < Math.abs((b.x0 + b.x1) / 2 - mid) ? k : b), null);
+}
+const TOTAL_ROW = /^\s*(sub\s?total|total|balance|amount due|page \d|continued)/i;
+
+/** The trips of a statement read by its columns; null when the text has no table header (the line reader then runs). */
+function readTable(lines: TextLine[], o: { kind: Kind; authority: string | null; fleet: Set<string>; tags: Set<string>; order: Rules['date_order']; year: number | null;
+  plateLabels: string[]; feeWords: string[] | undefined; skipWords: string[] | undefined; due: string | null; statementPlate: string | null; statementDate: string | null }): { trips: ReadLine[]; fees: Array<{ text: string; amount_cents: number }>; problems: string[] } | null {
+  // only text with positions (a PDF's text layer) is read by columns; typed or pasted text keeps the line reader
+  if (!lines.some((l) => l.cells?.length)) return null;
+  const trips: ReadLine[] = []; const fees: Array<{ text: string; amount_cents: number }> = []; const problems: string[] = [];
+  let cols: Column[] | null = null; let found = false; let groupPlate: string | null = null;
+  type Rec = { vals: Partial<Record<Col, string[]>>; src: string[]; line: TextLine };
+  let rec: Rec | null = null;
+  const plateLabel = new RegExp(`(^|[^A-Za-z])(${[...o.plateLabels, 'Licence Plate', 'License Plate', 'Plate Number', 'Plate', 'Vehicle'].map(esc).join('|')})(?![A-Za-z])`, 'i');
+  const flush = () => {
+    if (!rec) return;
+    const r = rec; rec = null;
+    const get = (k: Col) => (r.vals[k] ?? []).join(' ').trim();
+    const money = (k: Col) => (r.vals[k] ?? []).map((t) => moneyTokens(t)).flat();
+    const date = findDate(get('date') || get('datetime'), o.order, o.year);
+    if (!date) return;
+    // a day printed without its year that falls after the statement date is from the year before (December on a January statement)
+    if (!/\d{4}/.test(date.raw) && o.statementDate && date.iso > o.statementDate) date.iso = `${Number(date.iso.slice(0, 4)) - 1}${date.iso.slice(4)}`;
+    const time = findTime((get('time') || get('datetime')).replace(date.raw, ' '));
+    const toll = money('toll'), fee = money('fee'), total = money('total');
+    const sum = (t: Array<{ cents: number }>) => t.reduce((n, x) => n + x.cents, 0);
+    if ([...toll, ...fee, ...total].some((t) => t.cents < 0)) { problems.push(`A credit or reversal was left out: ${r.src.join(' ').slice(0, 160)}`); return; }
+    if (!toll.length && !fee.length && !total.length) return;
+    const feeC = fee.length ? sum(fee) : null;
+    let amount = total.length ? total[total.length - 1]!.cents : sum(toll) + (feeC ?? 0);
+    let feesOut = feeC ?? (total.length && toll.length && total[total.length - 1]!.cents > sum(toll) ? total[total.length - 1]!.cents - sum(toll) : null);
+    let base = 95;
+    if (total.length && (toll.length || fee.length) && sum(toll) + (feeC ?? 0) !== amount) { base -= 20; problems.push(`The charges on the line of ${date.iso} add up to ${((sum(toll) + (feeC ?? 0)) / 100).toFixed(2)}, its total says ${(amount / 100).toFixed(2)}`); }
+    if (amount === 0) { amount = sum(toll); feesOut = feeC; }
+    const plateCell = get('plate'); const p = plateCell ? findPlate(plateCell, o.fleet) : null;
+    const tagText = get('transponder').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const tag = tagText ? ([...o.tags].find((t) => t.replace(/[^A-Z0-9]/g, '') === tagText) ?? tagText) : null;
+    const plate = p?.plate ?? (plateCell ? normPlate(plateCell) : null) ?? (tag ? null : groupPlate ?? o.statementPlate);
+    const line: ReadLine = {
+      kind: o.kind, authority: o.authority, notice_number: get('ref') || null, plate, transponder: tag, occurred_at: local(date.iso, time?.hhmm ?? null), time_unknown: !time,
+      entry: get('entry') || null, exit: get('exit') || null, place: get('place') || null, amount_cents: amount, fees_cents: feesOut && feesOut > 0 ? feesOut : null,
+      due_on: o.due, confidence: 0, source_text: r.src.join(' ').replace(/\s+/g, ' ').trim().slice(0, 1000), page: r.line.page, box: { page: r.line.page, y: r.line.y, h: r.line.h ?? 0.02 }
+    };
+    line.confidence = lineConfidence(line, base, { inFleet: plate ? o.fleet.has(normPlate(plate)!) : null, ambiguousDate: date.ambiguous, needsNotice: o.kind !== 'toll_invoice' });
+    trips.push(line);
+  };
+  for (let i = 0; i < lines.length; i++) {
+    const l = lines[i]!; const cells = cellsOf(l);
+    // a header, alone or on two lines; it repeats at the top of each page
+    let head = false;
+    if (plain(l)) for (const cand of [cells, plain(lines[i + 1]) && lines[i + 1]!.page === l.page ? mergeHeader(cells, cellsOf(lines[i + 1]!)) : null]) {
+      if (!cand) continue;
+      const c = columnsOf(cand);
+      if (isHeader(c.map((x) => x.role))) { flush(); cols = c; found = true; head = true; if (cand !== cells) i++; break; }
+    }
+    if (head) continue;
+    if (!cols) {
+      // before the table: "Licence Plate: ABCD 123" heads the trips under it
+      if (plateLabel.test(l.text) && !moneyTokens(l.text).length) { const p = findPlate(l.text.replace(plateLabel, ' '), o.fleet); if (p) groupPlate = p.plate; }
+      continue;
+    }
+    const money = moneyTokens(l.text);
+    if (inWords(l.text, o.feeWords) && money.length) { flush(); fees.push({ text: l.text.trim(), amount_cents: money[money.length - 1]!.cents }); continue; }
+    if (TOTAL_ROW.test(l.text) || (inWords(l.text, o.skipWords) && !findTime(l.text) && !findDate(l.text, o.order, o.year))) { flush(); continue; }
+    // a plate heading inside the table: the trips under it are that car's
+    if (!money.length && !findDate(l.text, o.order, o.year) && plateLabel.test(l.text)) { const p = findPlate(l.text.replace(plateLabel, ' '), o.fleet); if (p) { flush(); groupPlate = p.plate; continue; } }
+    const byCol: Partial<Record<Col, string[]>> = {};
+    for (const c of cells) { const k = columnFor(cols, c); if (k) (byCol[k.role] ??= []).push(c.text); }
+    const dated = !!findDate([...(byCol.date ?? []), ...(byCol.datetime ?? [])].join(' '), o.order, o.year);
+    if (dated) { flush(); rec = { vals: byCol, src: [l.text], line: l }; continue; }
+    // no date: the rest of the trip above (a place name on two lines, or its charges printed under it)
+    if (rec && l.page === rec.line.page) {
+      for (const [k, v] of Object.entries(byCol) as Array<[Col, string[]]>) {
+        const isMoney = k === 'toll' || k === 'fee' || k === 'total';
+        if (isMoney && (rec.vals[k] ?? []).some((t) => moneyTokens(t).length)) continue;
+        (rec.vals[k] ??= []).push(...v);
+      }
+      rec.src.push(l.text);
+    }
+  }
+  flush();
+  return found ? { trips, fees, problems } : null;
+}
+
 // ---------------------------------------------------------------- reading
 function remainder(text: string, cut: Array<string | undefined>): string {
   let r = text;
@@ -215,6 +380,17 @@ export function readText(lines: TextLine[], profile: Profile | null, ctx: Ctx): 
   // statement: every line with a date and an amount is a trip, unless its words say it is a total, a payment or a fee
   const trips: ReadLine[] = [];
   const statementFees: Array<{ text: string; amount_cents: number }> = [];
+  const year = Number((head.statement_date ?? head.due_on ?? ctx.today ?? '').slice(0, 4)) || null;
+  const table = rules.layout !== 'single' ? readTable(lines, { kind, authority, fleet, tags, order: inferOrder(lines.map((l) => l.text), order), year, plateLabels: f.plate ?? [], feeWords: rules.trip?.statement_fee_words,
+    skipWords: rules.trip?.skip_words, due: head.due_on, statementPlate, statementDate: head.statement_date }) : null;
+  if (table && table.trips.length) {
+    const problems = [...table.problems];
+    if (head.total_cents != null) {
+      const sum = table.trips.reduce((n, t) => n + (t.amount_cents ?? 0), 0) + table.fees.reduce((n, x) => n + x.amount_cents, 0);
+      if (sum !== head.total_cents) problems.push(`The lines add up to ${(sum / 100).toFixed(2)}, the statement says ${(head.total_cents / 100).toFixed(2)}`);
+    }
+    return { profile, authority, kind, ...head, lines: table.trips, statement_fees: table.fees, problems, layout: 'statement' };
+  }
   if (rules.layout !== 'single') {
     const pick = rules.trip?.amount ?? 'last';
     for (const l of lines) {
@@ -282,8 +458,8 @@ export function readText(lines: TextLine[], profile: Profile | null, ctx: Ctx): 
 }
 
 // ---------------------------------------------------------------- CSV (0021's column mapping, with the fees)
-export const CSV_TARGETS: Array<[string, string]> = [['plate', 'Plate'], ['transponder', 'Transponder'], ['occurred_at', 'Date and time'], ['date', 'Date only'], ['time', 'Time only'], ['amount', 'Amount ($)'],
-  ['fees', 'Fees ($)'], ['notice_number', 'Notice or transaction number'], ['external_ref', 'Other reference'], ['place', 'Place'], ['entry', 'Entry'], ['exit', 'Exit'], ['due_on', 'Due date']];
+export const CSV_TARGETS: Array<[string, string]> = [['plate', 'Plate'], ['transponder', 'Transponder'], ['occurred_at', 'Date and time'], ['date', 'Date only'], ['time', 'Time only'], ['amount', 'Charge ($)'],
+  ['fees', 'Fee ($), each fee column'], ['total', 'Line total ($)'], ['notice_number', 'Notice or transaction number'], ['external_ref', 'Other reference'], ['place', 'Place'], ['entry', 'Entry'], ['exit', 'Exit'], ['due_on', 'Due date']];
 
 export function parseCsv(text: string): string[][] {
   const out: string[][] = []; let row: string[] = []; let cell = ''; let q = false;
@@ -296,24 +472,61 @@ export function parseCsv(text: string): string[][] {
   return out;
 }
 
-/** CSV rows to lines with a column mapping (column index to target). Dates follow the profile's date format. */
-export function csvLines(rows: string[][], map: Record<string, string>, o: { kind: Kind; authority: string; dateOrder?: Rules['date_order']; plates: string[]; amountUnit?: string }): ReadLine[] {
+/** The order of numeric dates in a file, from any date that can only be read one way (13/11/2026 is day first). */
+export function inferOrder(texts: string[], order: Rules['date_order'] = 'auto'): Rules['date_order'] {
+  if (order && order !== 'auto') return order;
+  for (const t of texts) {
+    const m = /\b(\d{1,2})[-/.](\d{1,2})[-/.](?:20)?\d{2}\b/.exec(t);
+    if (m && +m[1]! > 12 && +m[2]! <= 12) return 'dmy';
+    if (m && +m[2]! > 12 && +m[1]! <= 12) return 'mdy';
+  }
+  return 'auto';
+}
+
+/** CSV rows to lines with a column mapping (column index to target), the rows under the header row (5140). Dates follow the
+ *  profile's date format. A line's amount is what the renter owes for it: the total column, else the charge plus every fee
+ *  column; the fees are the fee columns (or the total less the charge). Rows without a date or a charge (a summary, a
+ *  payment) are left out; a credit is left out and said. */
+export function csvLines(rows: string[][], map: Record<string, string>, o: { kind: Kind; authority: string; dateOrder?: Rules['date_order']; plates: string[]; amountUnit?: string; header?: number }): { lines: ReadLine[]; problems: string[] } {
   const fleet = new Set(o.plates.map((p) => normPlate(p)!).filter(Boolean));
-  return rows.slice(1).map((r) => {
-    const v: Record<string, string> = {};
-    for (const [col, t] of Object.entries(map)) if (t) v[t] = (r[Number(col)] ?? '').trim();
-    const whenText = v.occurred_at || [v.date, v.time].filter(Boolean).join(' ');
-    const date = whenText ? findDate(whenText, o.dateOrder ?? 'auto') : null;
+  const problems: string[] = [];
+  const lines: ReadLine[] = [];
+  const dateCols = Object.entries(map).filter(([, t]) => t === 'date' || t === 'occurred_at').map(([c]) => Number(c));
+  const order = inferOrder(rows.slice((o.header ?? 0) + 1).flatMap((r) => dateCols.map((c) => r[c] ?? '')), o.dateOrder);
+  const money = (s?: string) => {
+    if (!s || !s.trim()) return null;
+    const t = s.trim(); if (o.amountUnit === 'cents' && /^-?\d+$/.test(t)) return Number(t);
+    const neg = /^\(.*\)$/.test(t) || /^-/.test(t.replace(/^\$/, ''));
+    const n = Number(t.replace(/[$,\s()-]/g, '')); return Number.isFinite(n) ? Math.round(n * 100) * (neg ? -1 : 1) : null;
+  };
+  for (const r of rows.slice((o.header ?? 0) + 1)) {
+    const v: Record<string, string[]> = {};
+    for (const [col, t] of Object.entries(map)) if (t) (v[t] ??= []).push((r[Number(col)] ?? '').trim());
+    const one = (k: string) => (v[k] ?? []).filter(Boolean).join(' ');
+    const whenText = one('occurred_at') || [one('date'), one('time')].filter(Boolean).join(' ');
+    const date = whenText ? findDate(whenText, order) : null;
     const time = whenText ? findTime(date ? whenText.replace(date.raw, ' ') : whenText) : null;
-    const money = (s?: string) => { if (!s) return null; if (o.amountUnit === 'cents' && /^\d+$/.test(s.trim())) return Number(s.trim()); const n = Number(s.replace(/[$,\s]/g, '')); return Number.isFinite(n) ? Math.round(n * 100) : null; };
-    const plate = normPlate(v.plate);
+    const charges = (v.amount ?? []).map(money).filter((x): x is number => x != null);
+    const fees = (v.fees ?? []).map(money).filter((x): x is number => x != null);
+    const total = (v.total ?? []).map(money).filter((x): x is number => x != null);
+    if (!date || (!charges.length && !fees.length && !total.length)) continue;
+    if ([...charges, ...fees, ...total].some((x) => x < 0)) { problems.push(`A credit or reversal was left out: ${r.join(', ').slice(0, 160)}`); continue; }
+    const charge = charges.reduce((n, x) => n + x, 0); const fee = fees.length ? fees.reduce((n, x) => n + x, 0) : null;
+    const amount = total.length ? total[total.length - 1]! : charge + (fee ?? 0);
+    const feesOut = fee ?? (total.length && charges.length && amount > charge ? amount - charge : null);
+    if (amount === 0) continue;
+    const p = one('plate') ? findPlate(one('plate'), fleet) : null;
+    const plate = p?.plate ?? normPlate(one('plate'));
     const line: ReadLine = {
-      kind: o.kind, authority: o.authority, notice_number: v.notice_number || v.external_ref || null, plate, transponder: v.transponder || null,
-      occurred_at: date ? local(date.iso, time?.hhmm ?? null) : null, time_unknown: !time, place: v.place || null, entry: v.entry || null, exit: v.exit || null,
-      amount_cents: money(v.amount), fees_cents: money(v.fees), due_on: v.due_on ? findDate(v.due_on, o.dateOrder ?? 'auto')?.iso ?? null : null, confidence: 0,
+      kind: o.kind, authority: o.authority, notice_number: one('notice_number') || one('external_ref') || null, plate, transponder: one('transponder') || null,
+      occurred_at: local(date.iso, time?.hhmm ?? null), time_unknown: !time, place: one('place') || null, entry: one('entry') || null, exit: one('exit') || null,
+      amount_cents: amount, fees_cents: feesOut && feesOut > 0 ? feesOut : null, due_on: one('due_on') ? findDate(one('due_on'), order)?.iso ?? null : null, confidence: 0,
       source_text: r.join(', ').slice(0, 1000)
     };
-    line.confidence = lineConfidence(line, 96, { inFleet: plate ? fleet.has(plate) : null, ambiguousDate: !!date?.ambiguous, needsNotice: o.kind !== 'toll_invoice' });
-    return line;
-  });
+    let base = 96;
+    if (total.length && (charges.length || fees.length) && charge + (fee ?? 0) !== amount) { base -= 20; problems.push(`The charges on the row of ${date.iso} add up to ${((charge + (fee ?? 0)) / 100).toFixed(2)}, its total says ${(amount / 100).toFixed(2)}`); }
+    line.confidence = lineConfidence(line, base, { inFleet: plate ? fleet.has(plate) : null, ambiguousDate: !!date?.ambiguous, needsNotice: o.kind !== 'toll_invoice' });
+    lines.push(line);
+  }
+  return { lines, problems };
 }

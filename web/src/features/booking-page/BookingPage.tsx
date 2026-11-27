@@ -15,6 +15,7 @@ import '@/features/admin/todo/todo.css';
 import { GeneratedFiles } from '@/features/admin/GeneratedFiles';
 import { BookingReview, type B } from '@/features/admin/BookingReview';
 import { BookingAddons } from '@/features/addons/BookingAddons';
+import { WinterTireCard } from '@/features/addons/WinterTireCard';
 import { DriverLinks, ProposeChange, type DriverLinkRow } from '@/features/admin/BookingChanges';
 import { ManualPaymentForm, ManualPaymentList, PaperSignatureList, type ManualRow, type PaperRow } from '@/features/manual/ManualRecords';
 import { $, Badge, Card, Kv, PageHead, Table, Tabs, t, label } from '@/features/admin/ui';
@@ -473,6 +474,9 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
               <div><dt><b>Total at booking</b></dt><dd><b>{$(b.total_due_at_booking_cents)}</b></dd></div></dl>
           </Card>}
           <Card title="Add-ons" testId="booking-addons-card"><BookingAddons items={b.addons ?? []} status={b.status} refresh={[base]} canRemove={can.addonRemove} /></Card>
+          {/* R50 hotfix 2 (5142): the winter tire fee of this rental, insurer rentals too (Admins, Finance; customer service and Sales while Program settings let them change fees) */}
+          {notOwner && (can.admin || fn === 'finance' || fn === 'cs' || fn === 'sales') && !['cancelled', 'declined', 'expired', 'no_show', 'closed'].includes(String(b.status)) &&
+            <Card title="Winter tire fee" testId="booking-winter-card"><WinterTireCard booking={b.booking_number} addons={b.addons ?? []} insurer={insurerBilled} /></Card>}
           <Card title="Open tasks"><Table rows={b.tasks} empty="No open tasks." cols={[{ key: 'title', label: 'Task', className: 'wrap' }, { key: 'queue', label: 'Queue' }, { key: 'due_at', label: 'Due', render: (r) => t(r.due_at) }]} /></Card>
         </div>
       )}

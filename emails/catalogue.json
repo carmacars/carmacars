@@ -55,7 +55,7 @@
       "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
     }
   ],
-  "count": 296,
+  "count": 299,
   "emails": [
     {
       "code": "account_password_reset",
@@ -11841,6 +11841,97 @@
       "template_text": "templates/renter_vehicle_disabled.txt"
     },
     {
+      "code": "renter_winter_tire_changed",
+      "audience": "renter",
+      "category": "transactional",
+      "trigger": "R50 hotfix 2 (5142): staff change the winter tire fee of a confirmed rental the renter pays (the rate a day, or the tires added or removed), with the reason. Not on a rental an insurer pays.",
+      "timing": "Immediate, when the fee is changed",
+      "digest": false,
+      "from": "CarmaCars <bookings@carmacars.ca>",
+      "reply_to": "bookings@carmacars.ca",
+      "subject": "Winter tires on booking {{booking_number}}: {{winter_after}}",
+      "preheader": "The winter tire charge of your rental changed. Your new total is {{total_text}}.",
+      "sample_subject": "Winter tires on booking CC-10482: $84.00",
+      "variables": [
+        {
+          "name": "booking_number",
+          "type": "string",
+          "sample": "CC-10482",
+          "note": "Agreement and booking number shown to the customer."
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Maya",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        },
+        {
+          "name": "total_text",
+          "type": "string",
+          "sample": "$612.45"
+        },
+        {
+          "name": "winter_after",
+          "type": "string",
+          "sample": "$84.00"
+        },
+        {
+          "name": "winter_before",
+          "type": "string",
+          "sample": "$150.00"
+        },
+        {
+          "name": "winter_rate",
+          "type": "string",
+          "sample": "$12.00"
+        }
+      ],
+      "template_html": "templates/renter_winter_tire_changed.html",
+      "template_text": "templates/renter_winter_tire_changed.txt"
+    },
+    {
       "code": "text_fell_back",
       "audience": "renter",
       "category": "transactional",
@@ -13021,6 +13112,113 @@
       ],
       "template_html": "templates/owner_booking_confirmed.html",
       "template_text": "templates/owner_booking_confirmed.txt"
+    },
+    {
+      "code": "owner_car_cost_added",
+      "audience": "owner",
+      "category": "transactional",
+      "trigger": "R50 hotfix 2 (5143): staff log an expense on the owner's car from its receipt, and the owner pays it: it is an owner deduction on the owner's next statement, with the receipt in the owner's documents.",
+      "timing": "Immediate, when the expense is logged",
+      "digest": false,
+      "from": "CarmaCars <billing@carmacars.ca>",
+      "reply_to": "billing@carmacars.ca",
+      "subject": "A cost for your {{vehicle_name}}: {{cost_amount}}",
+      "preheader": "{{cost_description}}. It comes off your next statement.",
+      "sample_subject": "A cost for your 2021 Toyota RAV4: $96.05",
+      "variables": [
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "cost_amount",
+          "type": "string",
+          "sample": "$96.05"
+        },
+        {
+          "name": "cost_date",
+          "type": "string",
+          "sample": "Mon, Nov 23, 2026"
+        },
+        {
+          "name": "cost_description",
+          "type": "string",
+          "sample": "Car service: oil change: Quick Lube"
+        },
+        {
+          "name": "cost_tax",
+          "type": "string",
+          "sample": "$11.05"
+        },
+        {
+          "name": "cost_vendor",
+          "type": "string",
+          "sample": "Quick Lube"
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Daniel",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "payee_name",
+          "type": "string",
+          "sample": "18122211 Canada Inc., operating as CarmaCars",
+          "note": "The payee of the pre-authorized debit as the emails name it (app.owner_email_payee_name, 0128): the legal name, operating as the business name, as the legal review approved (0053). The agreements name the company by its legal name alone (0122); an email never shows the numbered company alone. Named in every owner billing email."
+        },
+        {
+          "name": "receipt_count",
+          "type": "string",
+          "sample": "2"
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        },
+        {
+          "name": "vehicle_name",
+          "type": "string",
+          "sample": "2021 Toyota RAV4",
+          "note": "Year, make, model and trim."
+        }
+      ],
+      "template_html": "templates/owner_car_cost_added.html",
+      "template_text": "templates/owner_car_cost_added.txt"
     },
     {
       "code": "owner_car_delivered",
@@ -16780,6 +16978,82 @@
       ],
       "template_html": "templates/owner_payout_sent.html",
       "template_text": "templates/owner_payout_sent.txt"
+    },
+    {
+      "code": "owner_permit_filed",
+      "audience": "owner",
+      "category": "transactional",
+      "trigger": "R50 hotfix 2 (5144): an ownership permit (vehicle permit) is filed on the owner's car by staff, matched by its VIN, its plate or by hand.",
+      "timing": "Immediate, when the permit is filed",
+      "digest": false,
+      "from": "CarmaCars <owners@carmacars.ca>",
+      "reply_to": "owners@carmacars.ca",
+      "subject": "Ownership permit on file: {{vehicle_name}}",
+      "preheader": "The permit for plate {{plate_text}} is in your documents.",
+      "sample_subject": "Ownership permit on file: 2021 Toyota RAV4",
+      "variables": [
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Daniel",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "plate_text",
+          "type": "string",
+          "sample": "CCAB 123"
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        },
+        {
+          "name": "vehicle_name",
+          "type": "string",
+          "sample": "2021 Toyota RAV4",
+          "note": "Year, make, model and trim."
+        }
+      ],
+      "template_html": "templates/owner_permit_filed.html",
+      "template_text": "templates/owner_permit_filed.txt"
     },
     {
       "code": "owner_recruit_outreach",

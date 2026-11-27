@@ -18,6 +18,10 @@
    {
     "area": "Staff tools",
     "items": [
+     "407 ETR statements (PDF or CSV) are read column by column: each trip's date and time, plate, entry and exit, and the toll with its camera and trip charges, matched to whoever had the car at that minute",
+     "Log an expense from photos of its receipt, on a phone: the amount, tax, date, shop, category and car are read for you, and the car's owner pays it on their statement or CarmaCars does",
+     "Upload many ownership permits at once: each is read for its VIN and plate and filed on its car, and the ones that match no car wait for a quick pick",
+     "Set the winter tire fee of each rental, insurer rentals too, with the reason",
      "**Self-healing**: the site finds its own problems (site checks, errors, Search Console, scheduled jobs, stuck emails and texts, the server), applies the matching fix from its fix library, checks it worked and tells the Admins once only when it cannot fix it safely; Admins save what fixed a problem as a new fix in Site health > Self-healing",
      "Booking pages and other staff and Admin pages show every date and time in Toronto time on the server and in the browser alike, so they load without the \"page error\" flash; booking changes read the times as Toronto time from any browser; the Admin home loads its site health again; a staff or renter policy expiry that is not a real date is said before the upload instead of failing it",
      "The weekly townhall's Platform updates slide lists the week's releases and the staff bug reports fixed that week, each with its reporter named as a shout-out, and the count of bugs still open",
@@ -40,6 +44,7 @@
      "Our location is now 1940 Eglinton Ave E, Toronto, ON M1L 4R1, on the site, in search results and for delivery distances",
      "Every button, form and list answers a press on every page and portal: a tick and \"Saved\" or \"Sent\" on the button, a short shake on a field to fix, \"Copied\" on copy buttons, totals that roll when they change, rows that fold away, sheets you drag down to close on a phone, and the phone's haptics in the app",
      "The earnings calculator now counts the car's year: cars of about the same year when we have them, otherwise the model's average moved for an older or newer car",
+     "The earnings calculator follows our rule for an owner's month: a typical car rented 80% of the month, never under a set floor, more for a newer car or one in higher demand; an older car of a luxury make is no longer priced as a new one",
      "In the CarmaCars app and the site added to a home screen, drag down from the top of any page to refresh it",
      "The discount game now shows to signed-in people too: a renter taps once and the code goes to their account (staff see a preview and get no code)",
      "Every page follows the owner's design rules with no exceptions: every move 300 ms or less with the kit's eases, soft see-through borders, big enough buttons and fields on phones, and copy buttons whose icon turns into a check",

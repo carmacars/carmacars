@@ -1,0 +1,34 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Winter tires]
+The winter tire charge of your rental changed
+
+Hi {{first_name}}, here is what changed on booking {{booking_number}}.
+
+Winter tires a day: {{winter_rate}}
+For the rental, before: {{winter_before}}
+For the rental, now: {{winter_after}}
+Booking total with HST: {{total_text}}
+
+Any difference is settled with your booking's other charges. Everything else in your rental agreement stays the same.
+
+View your booking:
+https://carmacars.ca/account/bookings/{{booking_number}}
+
+Questions about this change? Reply to this email and we will answer.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

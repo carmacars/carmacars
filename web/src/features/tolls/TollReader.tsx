@@ -4,7 +4,7 @@ import { scrollOption } from '@/lib/nav/same-page';
 import { useRouter } from 'next/navigation';
 import { staffDo, staffRead, uploadNotice } from '@/server/actions/staff-tools';
 import { useDoor } from '@/features/admin/door';
-import { CSV_TARGETS, csvLines, parseCsv, pickProfile, readText, type Kind, type Profile, type ReadLine, type Rules } from './parse';
+import { CSV_TARGETS, autoMap, csvLines, headerRow, parseCsv, pickProfile, readText, type Kind, type Profile, type ReadLine, type Rules } from './parse';
 import { normalizeTollVision } from './vision-schema';
 
 import { WhyDisabled } from '@/components/WhyDisabled';
@@ -26,7 +26,7 @@ export function TollReader({ base }: { base: '/admin' | '/staff' }) {
   const [steps, setSteps] = useState<string[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [csv, setCsv] = useState<{ rows: string[][]; map: Record<string, string>; profile: Profile | null; operator: string; kind: Kind; order: Rules['date_order'] } | null>(null);
+  const [csv, setCsv] = useState<{ rows: string[][]; header: number; map: Record<string, string>; profile: Profile | null; operator: string; kind: Kind; order: Rules['date_order'] } | null>(null);
   useEffect(() => { void staffRead<Ctx>('toll_read_context').then((r) => (r.ok ? setCtx(r.data) : setErr(r.message))); }, []);
   const say = (s: string) => setSteps((x) => [...x, s]);
   const textProfiles = (ctx?.profiles ?? []).filter((p) => p.source === 'pdf_text');
@@ -66,14 +66,14 @@ export function TollReader({ base }: { base: '/admin' | '/staff' }) {
       const isCsv = /\.csv$/i.test(file.name) || file.type === 'text/csv';
       if (isCsv) {
         const rows = parseCsv(await file.text());
-        if (rows.length < 2) throw new Error('The CSV file has no rows under its header.');
-        const sig = rows[0]!.map((h) => h.trim().toLowerCase()).join('|');
+        // 5140: the header is the row that names the columns (a 407 ETR download has the account's details above it)
+        const found = headerRow(rows);
+        const header = found < 0 ? 0 : found;
+        if (rows.length - header < 2) throw new Error('The CSV file has no rows under its header.');
+        const sig = rows[header]!.map((h) => h.trim().toLowerCase()).join('|');
         const saved = ctx.profiles.find((p) => p.source === 'csv' && p.header_signature === sig) ?? null;
-        const map: Record<string, string> = saved?.mapping ? { ...saved.mapping } : {};
-        if (!saved) rows[0]!.forEach((x, i) => { const s = x.toLowerCase(); const t = s.includes('plate') ? 'plate' : s.includes('transponder') || s.includes('tag') ? 'transponder' : s.includes('fee') ? 'fees' : s.includes('amount') || s.includes('charge') || s.includes('total') || s.includes('toll') ? 'amount'
-          : s.includes('date') && s.includes('time') ? 'occurred_at' : s.includes('date') ? 'date' : s.includes('time') ? 'time' : s.includes('trip') || s.includes('transaction') || s.includes('notice') ? 'notice_number' : s.includes('entry') ? 'entry' : s.includes('exit') ? 'exit' : s.includes('location') || s.includes('place') ? 'place' : '';
-          if (t && !Object.values(map).includes(t)) map[String(i)] = t; });
-        setCsv({ rows, map, profile: saved, operator: saved?.operator ?? '407 ETR', kind: 'toll_invoice', order: (saved?.date_format as Rules['date_order']) ?? 'auto' });
+        const map: Record<string, string> = saved?.mapping ? { ...saved.mapping } : autoMap(rows[header]!);
+        setCsv({ rows, header, map, profile: saved, operator: saved?.operator ?? '407 ETR', kind: 'toll_invoice', order: (saved?.date_format as Rules['date_order']) ?? 'auto' });
         say(saved ? `The saved column mapping for ${saved.operator} was applied: check it, then read the rows` : 'Match each column, then read the rows');
         setBusy(false);
         return;
@@ -120,8 +120,9 @@ export function TollReader({ base }: { base: '/admin' | '/staff' }) {
       const up = new FormData(); up.set('file', file); up.set('title', file.name);
       const doc = await uploadNotice(up);
       if (!doc.ok) throw new Error(doc.message);
-      const lines = csvLines(csv.rows, csv.map, { kind: csv.kind, authority: csv.operator, dateOrder: csv.order, plates: ctx.plates, amountUnit: csv.profile?.amount_unit });
-      await save(doc.data.id, { method: 'csv', profile_id: csv.profile?.id ?? null, authority: csv.operator, kind: csv.kind, problems: [], lines });
+      const r = csvLines(csv.rows, csv.map, { kind: csv.kind, authority: csv.operator, dateOrder: csv.order, plates: ctx.plates, amountUnit: csv.profile?.amount_unit, header: csv.header });
+      if (!r.lines.length) throw new Error('No row with a date and a charge was found: check the columns.');
+      await save(doc.data.id, { method: 'csv', profile_id: csv.profile?.id ?? null, authority: csv.operator, kind: csv.kind, problems: r.problems, lines: r.lines });
     } catch (e) { setErr(e instanceof Error ? e.message : 'The file could not be read.'); setBusy(false); }
   }
 
@@ -148,15 +149,15 @@ export function TollReader({ base }: { base: '/admin' | '/staff' }) {
             <div className="field ad-field"><label className="label" htmlFor="tr-o">Dates are written</label><select className="select" id="tr-o" value={csv.order ?? 'auto'} onChange={(e) => setCsv({ ...csv, order: e.target.value as Rules['date_order'] })}>
               <option value="auto">Find out from the dates</option><option value="ymd">Year, month, day</option><option value="mdy">Month, day, year</option><option value="dmy">Day, month, year</option></select></div>
           </div>
-          <div className="ad-mapping">{csv.rows[0]!.map((h, i) => (
+          <div className="ad-mapping">{csv.rows[csv.header]!.map((h, i) => (
             <div key={i} className="field"><label className="label" htmlFor={`tr-c${i}`}>{h || `Column ${i + 1}`}</label>
               <select className="select" id={`tr-c${i}`} value={csv.map[String(i)] ?? ''} onChange={(e) => setCsv({ ...csv, map: { ...csv.map, [String(i)]: e.target.value } })}><option value="">Not used</option>{CSV_TARGETS.map(([a, b]) => <option key={a} value={a}>{b}</option>)}</select>
-              <span className="small muted">{csv.rows[1]?.[i]}</span></div>))}</div>
+              <span className="small muted">{csv.rows[csv.header + 1]?.[i]}</span></div>))}</div>
           <div className="row">
-            <button className="btn btn--ghost btn--sm" type="button" disabled={busy} onClick={async () => { const sig = csv.rows[0]!.map((h) => h.trim().toLowerCase()).join('|');
+            <button className="btn btn--ghost btn--sm" type="button" disabled={busy} onClick={async () => { const sig = csv.rows[csv.header]!.map((h) => h.trim().toLowerCase()).join('|');
               const r = await act<{ id: string }>('toll_profile_save', { profile: { operator: csv.operator, name: csv.operator, header_signature: sig, mapping: csv.map, date_format: csv.order } });
               say(r.ok ? `Mapping saved for ${csv.operator}` : r.message); }}>Save this mapping</button>
-            <button className="btn btn--primary btn--sm" type="button" disabled={busy} onClick={readCsv} data-testid="toll-read-csv">{`Read ${csv.rows.length - 1} rows`}</button>
+            <button className="btn btn--primary btn--sm" type="button" disabled={busy} onClick={readCsv} data-testid="toll-read-csv">{`Read ${csv.rows.length - csv.header - 1} rows`}</button>
           </div>
         </section>
       )}
