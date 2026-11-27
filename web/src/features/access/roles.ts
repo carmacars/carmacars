@@ -16,6 +16,21 @@ export const LAST_PORTAL_COOKIE = 'cc_last_portal';
 export const ROLE_LABEL: Record<RoleKey, string> = { admin: 'Admin', cs: 'Customer service', sales: 'Sales', fleet: 'Fleet', finance: 'Finance', field: 'Field work', investor: 'Investor', owner: 'Owner', account: 'My rentals' };
 const OFFICE = ['cs', 'sales', 'fleet', 'finance'] as const;
 
+/** REQ-065 (Nov 27): "VA" is only for remote assistants. The account role `va` opens the office Staff portal; a person who
+ *  works in person (field work, or Sales in person) is never shown as a VA. */
+export interface StaffKindFacts { staff_type?: string | null; functions?: string[] | null; field_function?: string | null; va_function?: string | null; sales_work_mode?: string | null }
+export function worksInPerson(p: StaffKindFacts | null | undefined): boolean {
+  if (!p) return false;
+  const fns = p.functions ?? [];
+  const sales = fns.includes('sales') || p.va_function === 'sales';
+  return p.staff_type === 'field' || fns.includes('field') || !!p.field_function || (sales && p.sales_work_mode === 'in_person');
+}
+const ACCOUNT_ROLE: Record<string, string> = { admin: 'Admin', field: 'Field', investor: 'Investor', owner: 'Owner', renter: 'Renter', staff: 'Staff' };
+/** The account roles in words, for Admin lists: `va` is "VA (remote)" only for a remote assistant, else "Staff". */
+export function accountRoleWords(roles: readonly string[] | null | undefined, p: StaffKindFacts | null | undefined): string {
+  return (roles ?? []).map((r) => (r === 'va' ? (worksInPerson(p) ? 'Staff' : 'VA (remote)') : ACCOUNT_ROLE[r] ?? r)).join(', ');
+}
+
 /** Every role the person has, in one order: Admin, the office functions as held, field work, investor, owner, renting
  *  (never for an Admin: 0720). The same roles as server/portals.ts portalsFor gives portals for, one entry a role. */
 export function rolesFor(r: RoleInfo): RoleLink[] {

@@ -35,7 +35,7 @@ export type StepKey = 'welcome' | 'profile' | 'availability' | 'academy' | 'agre
 export interface WelcomeTask { id: string; title: string; detail: string | null; done: boolean }
 export interface WelcomeStep { key: StepKey; done: boolean; phone?: boolean; phone_verified?: boolean; address?: boolean; passed?: number; sections?: number; /** 5170: the whole academy */ full_passed?: number; full_sections?: number; waived?: boolean; tasks?: WelcomeTask[];
   /** 1060 */ preferred_name?: string | null; /** 1067 */ location?: string | null; state?: 'signed' | 'waived' | 'sent' | 'none'; request_id?: string | null; waiting_for_academy?: boolean; /** 3198: the academy opens once the agreement is signed */ waiting_for_agreement?: boolean; missing?: string[]; open?: boolean; groups?: Array<{ key: string; name: string; url: string; /** 1151 */ joined?: boolean; /** 3191 */ required?: boolean; member_tag?: string; tag_set?: boolean }>; /** 1151: one checkbox a group */ confirm?: boolean;
-  /** 1154: step 4, approved by an Admin or a Fleet VA */ asked_at?: string | null; rejected_at?: string | null; reject_reason?: string | null; approved_by?: string | null;
+  /** 1154: step 4, approved by an Admin or a Fleet team member */ asked_at?: string | null; rejected_at?: string | null; reject_reason?: string | null; approved_by?: string | null;
   /** 1770: field staff, when they can usually work (open from the start; required for the portal) */ slots?: string[]; note?: string | null; required?: boolean;
   /** 2373: the Field Staff Agreement waits for the driver's licence number the person gives here */ needs_licence?: boolean }
 export interface Welcome { name: string; portal: 'va' | 'field'; locked: boolean; steps: WelcomeStep[]; /** 1151 */ onboarding_step?: 'academy' | 'agreement' | 'whatsapp' | 'approval' | 'availability' | 'done' }
@@ -98,7 +98,7 @@ export function stepWords(s: WelcomeStep): string {
       : s.done ? `Basics passed. The rest of your portal is open. Finish the other sections (${s.full_passed ?? 0} of ${s.full_sections ?? 0} passed) before commission and pay are paid out.`
       : `The basics: ${s.passed ?? 0} of ${s.sections ?? 0} sections passed. Passing them opens your portal and work. If a quiz is below the pass mark, fix the wrong answers once; after a failed try, wait 2 minutes.`;
     case 'approval': return s.done ? `Approved${s.approved_by ? ` by ${s.approved_by}` : ''}.` : !s.open ? 'Opens once you confirm the WhatsApp groups.'
-      : s.reject_reason ? `Not approved yet: ${s.reject_reason}. Fix it, then ask again.` : 'Waiting for approval: an Admin or a Fleet VA checks your onboarding and opens your portal.';
+      : s.reject_reason ? `Not approved yet: ${s.reject_reason}. Fix it, then ask again.` : 'Waiting for approval: an Admin or a Fleet team member checks your onboarding and opens your portal.';
     case 'tasks': return !s.tasks?.length ? 'No first-day tasks for you.' : s.done ? 'All done.' : `${s.tasks.filter((t) => !t.done).length} left.`;
   }
 }

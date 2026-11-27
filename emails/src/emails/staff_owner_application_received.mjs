@@ -7,7 +7,7 @@ export default {
   category: 'transactional',
   from: FROM.owners,
   digest: false,
-  trigger: 'An owner vehicle application is submitted (vehicle onboarding row created with status intake), from a new owner or an enrolled owner adding a vehicle. Sent to every active sales VA. Immediate.',
+  trigger: 'An owner vehicle application is submitted (vehicle onboarding row created with status intake), from a new owner or an enrolled owner adding a vehicle. Sent to every active salesperson. Immediate.',
   timing: 'Immediate',
   subject: 'New owner application: {{owner_name}}, {{vehicle_name}}',
   preheader: '{{ownership_summary}}. Reply within 1 business day.',

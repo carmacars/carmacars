@@ -1,5 +1,5 @@
 // The staff onboarding gate (1151): the academy, the agreement, then the WhatsApp groups confirmed, in that order; nothing
-// else opens until all three are done. 1154: then step 4, approved by an Admin or a Fleet VA. Pure, for the pages and the tests.
+// else opens until all three are done. 1154: then step 4, approved by an Admin or a Fleet team member. Pure, for the pages and the tests.
 export type OnboardingStep = 'academy' | 'agreement' | 'whatsapp' | 'approval' | 'done';
 export interface Group { key: string; name: string; url: string; joined?: boolean; /** 3191: false for the Sales group shown to who passed the Sales path */ required?: boolean;
   /** 3191: "Name - Position", what the person sets as their member tag in each group */ member_tag?: string; tag_set?: boolean }
@@ -40,7 +40,7 @@ export function rowWords(r: OnboardingRow): string {
     case 'academy': return `Held at step 1: the academy is not passed yet.${r.state.whatsapp ? ' The WhatsApp groups are already confirmed (only that step).' : ''}`;
     case 'agreement': return `Held at step 2: the staff agreement is not signed yet.${r.state.whatsapp ? ' The WhatsApp groups are already confirmed (only that step).' : ''}`;
     case 'whatsapp': return `Held at step 3: ${g || 'the WhatsApp groups are not confirmed'}.`;
-    case 'approval': return r.state.reject_reason ? `Held at step 4: rejected (${r.state.reject_reason}); they can ask again.` : 'Held at step 4: waiting for an Admin or a Fleet VA to approve.';
+    case 'approval': return r.state.reject_reason ? `Held at step 4: rejected (${r.state.reject_reason}); they can ask again.` : 'Held at step 4: waiting for an Admin or a Fleet team member to approve.';
     default: return 'Onboarded.';
   }
 }

@@ -56,6 +56,7 @@ import type { Tier } from '@/features/rates/lead-time';
 import { profileFunctions as staffFns, STAFF_FN_LABEL } from '@/features/staff/nav';
 import { cardPayments } from '@/server/card-provider';
 import { cardPausedWhy } from '@/features/money/card-pay';
+import { accountRoleWords, type StaffKindFacts } from '@/features/access/roles';
 const googleKeysSet = () => googleKeys() !== null;
 
 export const dynamic = 'force-dynamic';
@@ -577,7 +578,7 @@ export default async function Section({ params, searchParams }: { params: Promis
           {(() => { const x = resigned[String(r.id)]; const b = resignBadge(x, r.status === 'active'); if (!x || !b) return null;
             return <span className="cr-sub small" id={`resign-${String(r.id)}`} data-testid={`resign-${String(r.email)}`}><span className={`ad-flag${b.tone === 'amber' ? ' ad-flag--red' : ''}`}>{b.label}</span>
               {' '}Notice given {dayWords(x.resigned_on)}{x.by_self ? '' : ` (recorded by ${x.recorded_by})`}{x.started_on ? `; started ${dayWords(x.started_on)}` : ''}.{x.reason ? ` Reason: ${x.reason}` : ''}
-              {x.task_id ? <> <Link prefetch={false} className="link" href="/admin/tasks?queue=admin" data-testid={`resign-todo-${String(r.email)}`}>{x.task_open ? 'Offboarding To do' : 'Offboarding To do (done)'}</Link></> : null}</span>; })()}</> }, { key: 'email', label: 'Email' }, { key: 'roles', label: 'Roles', render: (r) => (r.roles as string[] | null)?.join(', ') },
+              {x.task_id ? <> <Link prefetch={false} className="link" href="/admin/tasks?queue=admin" data-testid={`resign-todo-${String(r.email)}`}>{x.task_open ? 'Offboarding To do' : 'Offboarding To do (done)'}</Link></> : null}</span>; })()}</> }, { key: 'email', label: 'Email' }, { key: 'roles', label: 'Roles', render: (r) => accountRoleWords(r.roles as string[] | null, r.profile as StaffKindFacts | null) },
         { key: 'fn', label: 'Functions', render: (r) => { const p = r.profile as R | null; if (!p) return ''; return staffFns(p).map((f) => `${STAFF_FN_LABEL[f]}${f === 'sales' && p.sales_work_mode ? ` (${p.sales_work_mode === 'remote' ? 'remote' : 'in person'})` : ''}${f === 'field' && p.field_function ? ` (${label(p.field_function)})` : ''}`).join(', '); } }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'last_sign_in_at', label: 'Last sign-in', render: (r) => t(r.last_sign_in_at ?? access[String(r.id)]?.last_active_at ?? null) },
         { key: 'limits', label: 'Limits', render: (r) => { const p = r.profile as R | null; return p ? `${$(p.single_limit_cents)} / ${$(p.dual_approval_threshold_cents)}` : ''; } },
         { key: 'academy', label: 'Academy', render: (r) => { const a = academy?.get(String(r.id)); return a && a.sections ? <Link prefetch={false} className="link" href={`/admin/academy/staff/${String(r.id)}`} data-testid={`academy-${String(r.email)}`}>{a.done ? 'Passed' : `${a.passed} of ${a.sections}`}</Link> : ''; } },

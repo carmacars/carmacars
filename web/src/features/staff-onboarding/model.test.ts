@@ -26,7 +26,7 @@ test('the groups left to tick, and who the bulk Mark joined marks (signed, not c
 });
 
 test('1154: step 4, approval: in words, and who Approve all approves (never the Admin themselves)', () => {
-  assert.match(rowWords(row({ state: { member: true, step: 'approval', done: false } })), /step 4: waiting for an Admin or a Fleet VA/);
+  assert.match(rowWords(row({ state: { member: true, step: 'approval', done: false } })), /step 4: waiting for an Admin or a Fleet team member/);
   assert.match(rowWords(row({ state: { member: true, step: 'approval', done: false, reject_reason: 'Use your work number' } })), /rejected \(Use your work number\)/);
   assert.match(rowWords(row({ onboarded: true, state: { member: true, step: 'done', done: true, approved_by: 'Fay Fleet' } })), /approved by Fay Fleet/);
   const a = { functions: ['sales'], asked_at: null, rejected_at: null, reject_reason: null };

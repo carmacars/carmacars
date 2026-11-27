@@ -35,10 +35,10 @@ select test.eq('A after the academy: still no approval asked', pg_temp.asked('r3
 update staff_profiles set agreement_waived_at = now(), agreement_waived_by = test.id('r38_admin'), agreement_waived_reason = 'Signed on paper' where user_id = test.id('r38_hire');
 select test.eq('A after the agreement: the early WhatsApp counts, waiting for approval', pg_temp.st('r38_hire') ->> 'step', 'approval');
 select test.eq('A after the agreement: the approval is asked once', pg_temp.asked('r38_hire'), 1::bigint);
-select test.eq('A waiting on: the approval', pg_temp.st('r38_hire') -> 'waiting_on', '["Approval by an Admin or a Fleet VA"]'::jsonb);
+select test.eq('A waiting on: the approval', pg_temp.st('r38_hire') -> 'waiting_on', '["Approval by an Admin or a Fleet team member"]'::jsonb);
 select test.ok('A Fleet sees the person with what is missing',
   exists (select 1 from jsonb_array_elements(pg_temp.dr('r38_fleet', 'va_read', 'staff_onboarding_approvals')) x
-           where x ->> 'user_id' = test.id('r38_hire')::text and x ->> 'step' = 'approval' and x -> 'waiting_on' ? 'Approval by an Admin or a Fleet VA'));
+           where x ->> 'user_id' = test.id('r38_hire')::text and x ->> 'step' = 'approval' and x -> 'waiting_on' ? 'Approval by an Admin or a Fleet team member'));
 
 -- taken back at the approval step: back to the WhatsApp step, the earlier steps kept
 select pg_temp.dr('r38_admin', 'ops_do', 'staff_whatsapp_mark', jsonb_build_object('user', test.id('r38_hire'), 'joined', false));
