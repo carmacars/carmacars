@@ -16,11 +16,27 @@ export const opensBeforeSigning = (path: string) => SIGN_FIRST_OPEN.test(path);
 export const ONBOARDING_OPEN = AGREEMENT_OPEN;
 export const opensWhileOnboarding = (path: string) => ONBOARDING_OPEN.test(path);
 
+/** 5171: the section a page waits for: the first one required for the page's area (the area and the pages under it; a portal
+ *  home, /staff or /staff/field, is that page only). The onboarding pages (AGREEMENT_OPEN: the academy, the guide, the profile,
+ *  the documents to sign, Welcome) always open, so a person signing their agreement is never sent round in a loop. */
+export function requiredFor<T extends { area: string; href: string }>(required: T[] | undefined, path: string): T | null {
+  if (!required?.length || AGREEMENT_OPEN.test(path)) return null;
+  const p = path.split('?')[0]!.replace(/\/+$/, '') || '/staff';
+  return required.find((r) => (r.area === '/staff' || r.area === '/staff/field') ? p === r.area : p === r.area || p.startsWith(`${r.area}/`)) ?? null;
+}
+
+/** 5171: the area of a page for an academy assignment: its route pattern up to the first id. */
+export function areaOf(pattern: string): string {
+  const segs = pattern.split('?')[0]!.split('/').filter(Boolean);
+  const i = segs.findIndex((x) => x.startsWith('['));
+  return '/' + (i < 0 ? segs : segs.slice(0, i)).join('/');
+}
+
 export type StepKey = 'welcome' | 'profile' | 'availability' | 'academy' | 'agreement' | 'team' | 'approval' | 'tasks';
 export interface WelcomeTask { id: string; title: string; detail: string | null; done: boolean }
-export interface WelcomeStep { key: StepKey; done: boolean; phone?: boolean; phone_verified?: boolean; address?: boolean; passed?: number; sections?: number; waived?: boolean; tasks?: WelcomeTask[];
+export interface WelcomeStep { key: StepKey; done: boolean; phone?: boolean; phone_verified?: boolean; address?: boolean; passed?: number; sections?: number; /** 5170: the whole academy */ full_passed?: number; full_sections?: number; waived?: boolean; tasks?: WelcomeTask[];
   /** 1060 */ preferred_name?: string | null; /** 1067 */ location?: string | null; state?: 'signed' | 'waived' | 'sent' | 'none'; request_id?: string | null; waiting_for_academy?: boolean; /** 3198: the academy opens once the agreement is signed */ waiting_for_agreement?: boolean; missing?: string[]; open?: boolean; groups?: Array<{ key: string; name: string; url: string; /** 1151 */ joined?: boolean; /** 3191 */ required?: boolean; member_tag?: string; tag_set?: boolean }>; /** 1151: one checkbox a group */ confirm?: boolean;
-  /** 1154: step 4, approved by an Admin or a Fleet VA */ asked_at?: string | null; rejected_at?: string | null; reject_reason?: string | null; approved_by?: string | null;
+  /** 1154: step 4, approved by an Admin or a Fleet team member */ asked_at?: string | null; rejected_at?: string | null; reject_reason?: string | null; approved_by?: string | null;
   /** 1770: field staff, when they can usually work (open from the start; required for the portal) */ slots?: string[]; note?: string | null; required?: boolean;
   /** 2373: the Field Staff Agreement waits for the driver's licence number the person gives here */ needs_licence?: boolean }
 export interface Welcome { name: string; portal: 'va' | 'field'; locked: boolean; steps: WelcomeStep[]; /** 1151 */ onboarding_step?: 'academy' | 'agreement' | 'whatsapp' | 'approval' | 'availability' | 'done' }
@@ -79,19 +95,24 @@ export function stepWords(s: WelcomeStep): string {
       : 'It is being prepared from your record. An Admin has been told if anything is missing.';
     case 'team': return !s.open ? 'Opens once the agreement is signed and the academy is passed.' : !s.groups?.length ? 'No group to join.' : s.done ? 'Joined.'
       : `Join ${s.groups.map((g) => g.name).join(' and ')} on WhatsApp, then tick each group you joined. Your portal opens once every group is ticked.`;
-    case 'academy': return s.waived ? 'An Admin waived the academy for you.' : s.waiting_for_agreement && !s.done ? 'Opens once your staff agreement is signed.' : s.done ? 'Passed. The rest of your portal is open.' : `${s.passed ?? 0} of ${s.sections ?? 0} sections passed. Each quiz passes at 90%; after a failed try, wait 30 minutes (3 tries a day).`;
+    case 'academy': return s.waived ? 'An Admin waived the academy for you.' : s.waiting_for_agreement && !s.done ? 'Opens once your staff agreement is signed.'
+      : s.done ? `Basics passed. The rest of your portal is open. Finish the other sections (${s.full_passed ?? 0} of ${s.full_sections ?? 0} passed) before held pay is paid out (commission, bonuses, referral fees, and pay for hours for Field, customer service, Fleet and Finance).`
+      : `The basics: ${s.passed ?? 0} of ${s.sections ?? 0} sections passed. Passing them opens your portal and work. If a quiz is below the pass mark, fix the wrong answers once; after a failed try, wait 2 minutes.`;
     case 'approval': return s.done ? `Approved${s.approved_by ? ` by ${s.approved_by}` : ''}.` : !s.open ? 'Opens once you confirm the WhatsApp groups.'
-      : s.reject_reason ? `Not approved yet: ${s.reject_reason}. Fix it, then ask again.` : 'Waiting for approval: an Admin or a Fleet VA checks your onboarding and opens your portal.';
+      : s.reject_reason ? `Not approved yet: ${s.reject_reason}. Fix it, then ask again.` : 'Waiting for approval: an Admin or a Fleet team member checks your onboarding and opens your portal.';
     case 'tasks': return !s.tasks?.length ? 'No first-day tasks for you.' : s.done ? 'All done.' : `${s.tasks.filter((t) => !t.done).length} left.`;
   }
 }
 
 /** The gate of one person for Admin (app.academy_gate_state). */
-export interface GateState { user_id: string; locked: boolean; done: boolean; passed: number; sections: number; lock_from: string | null; waiver: { reason: string; at: string; by: string | null } | null }
+export interface GateState { user_id: string; locked: boolean; done: boolean; passed: number; sections: number; lock_from: string | null; waiver: { reason: string; at: string; by: string | null } | null;
+  /** 5170: the whole academy, and why payouts are held */ full_passed?: number; full_sections?: number; pay_hold?: string | null;
+  /** 5171: sections to pass before continuing an area */ required?: Array<{ id: string; area: string; title: string; href: string; reason: string; at: string }> }
 
 export function gateWords(g: GateState): string {
   if (g.waiver) return `Waived by ${g.waiver.by ?? 'an Admin'}: ${g.waiver.reason}. Their portal is open (${g.passed} of ${g.sections} sections passed).`;
-  if (g.done) return `Passed: ${g.passed} of ${g.sections} sections. Their portal is open.`;
-  if (g.locked) return `Held: ${g.passed} of ${g.sections} sections passed. Until they pass, they open only the academy, the guide, their profile and Welcome.`;
+  const full = g.full_sections !== undefined ? ` Whole academy: ${g.full_passed ?? 0} of ${g.full_sections}${g.pay_hold ? ', so their pay is held' : ''}.` : '';
+  if (g.done) return `Basics passed: ${g.passed} of ${g.sections} sections. Their portal is open.${full}`;
+  if (g.locked) return `Held: ${g.passed} of ${g.sections} basics sections passed. Until they pass the basics, they open only the academy, the guide, their profile and Welcome.${full}`;
   return `${g.passed} of ${g.sections} sections passed. ${g.lock_from ? `Not held yet (the hold starts ${new Date(g.lock_from).toLocaleDateString('en-CA', { timeZone: 'America/Toronto', month: 'short', day: 'numeric' })}).` : 'Not held: only a hire from one-step Hire or a person an Admin enrolled is held.'}`;
 }

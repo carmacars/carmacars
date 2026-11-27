@@ -76,10 +76,10 @@ select test.eq('booking: the warning names the handover on the day nobody holds 
   (select (w ->> 'leg') || '/' || (w ->> 'day') || '/' || (w ->> 'work_day') from jsonb_array_elements(app.field_no_shift_days(test.id('booking:R35T-1'))) w limit 1),
   'handover/' || (app.today() + 3)::text || '/' || (app.today() + 3)::text);
 select test.eq('booking: the Fleet read gives the same', jsonb_array_length(public.door(test.id('r35t_fleet'), null, 'ops_read', 'field_no_shift_days', jsonb_build_object('booking', test.id('booking:R35T-1')))) >= 1, true);
-select test.eq('booking: the handover job keeps the real time and waits on day 3''s open shift with nobody (1051)',
+select test.eq('booking: the handover job keeps the real time and goes to the shift somebody works the day before (5173: a worked shift before an open one)',
   (select coalesce(string_agg((j.assigned_to is null)::text || '/' || coalesce(j.work_day::text, 'own day') || '/' || (j.scheduled_at = test.r35t_at(3, 10))::text, ','), 'none')
      from field_jobs j where j.booking_id = test.id('booking:R35T-1') and j.kind = 'handover'),
-  'true/own day/true');
+  'false/' || (app.today() + 2)::text || '/true');
 select test.mk_booking('R35T-2', 'R35TA', 'r35t_r', app.today()::text || ' 23:30', (app.today() + 1)::text || ' 12:00', 'confirmed', 30000);
 select test.eq('booking: a handover that comes in on a day without shifts goes to the next day with shifts, at its real time',
   (select (j.assigned_to = test.id('r35t_ok'))::text || '/' || j.work_day::text || '/' || (j.scheduled_at = ((app.today()::text || ' 23:30')::timestamp at time zone 'America/Toronto'))::text

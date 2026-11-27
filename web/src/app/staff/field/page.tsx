@@ -89,9 +89,15 @@ export default async function FieldToday({ searchParams }: { searchParams: Promi
         : <div className="fd-empty" data-testid="no-jobs"><FdIcon name="car" className="fd-empty__ico" /><p className="fd-empty__h">No pickups or returns {tomorrow ? 'tomorrow yet' : 'today'}.</p>
           <p className="small">{t.on_shift || tomorrow ? 'New work shows up here as bookings come in.' : 'Jobs go to people on a shift: claim one on My shifts.'}</p></div>}
       {(t.mates?.length ?? 0) > 0 && <section aria-labelledby="mates-t" className="fp-stack" data-testid="shift-mates">
-        <h2 className="fp-group-h" id="mates-t">Also on your shift<span className="small">{t.mates!.length}</span></h2>
+        <h2 className="fp-group-h" id="mates-t">Also today<span className="small">{t.mates!.length}</span></h2>
         <ul className="fp-plan">{t.mates!.map((m) => <li key={m.id} data-testid="mate-job">{clockText(m.at)} {cardTitle({ type: 'job', kind: m.kind })}: {m.vehicle}{m.booking ? `, ${m.booking}` : ''}{m.who ? ` (${m.who})` : ' (nobody yet)'}
           {['scheduled', 'acknowledged'].includes(m.status) && <FieldButton action="job_take" payload={{ job: m.id }} label="Take it" testId={`take-job-${m.id}`} />}</li>)}</ul>
+      </section>}
+      {/* 5173: what comes before the next shift, so the cars are ready */}
+      {!tomorrow && (t.ahead?.length ?? 0) > 0 && <section aria-labelledby="ahead-t" className="fp-stack" data-testid="shift-ahead">
+        <h2 className="fp-group-h" id="ahead-t">Before the next shift<span className="small">{t.ahead!.length}</span></h2>
+        <p className="small">Prep these cars now: clean, fuel and photos, so each one is ready on time.</p>
+        <ul className="fp-plan">{t.ahead!.map((a) => <li key={a.id} data-testid="ahead-job">{dayLabel(a.at)}, {clockText(a.at)} {cardTitle({ type: 'job', kind: a.kind })}: {a.vehicle}{a.plate ? `, ${a.plate}` : ''}{a.booking ? `, ${a.booking}` : ''}{a.who ? ` (${a.who})` : ' (nobody yet)'}</li>)}</ul>
       </section>}
       {spare.length > 0 && <>
         <h2 className="fp-group-h">When you have time<span className="small">{spare.length}</span></h2>

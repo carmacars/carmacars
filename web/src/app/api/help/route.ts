@@ -3,6 +3,7 @@ import { currentUser } from '@/server/portal/data';
 import { viewAs } from '@/server/view-as';
 import type { GuideData } from '@/server/guides';
 import { isGuidePortal } from '@/server/guides';
+import { assignStuck } from '@/server/academy-stuck';
 
 // "Stuck?" help (migration 0510) for the signed-in person's browser (StuckHelp.tsx):
 //   GET  /api/help                    the settings (on, minutes, errors)
@@ -35,5 +36,7 @@ export async function POST(req: Request) {
   const str = (v: unknown, n: number) => (typeof v === 'string' ? v.slice(0, n) : null);
   const p = { portal: str(b.portal, 20), route: str(b.route, 200)?.replace(/[^A-Za-z0-9/_[\].-]/g, '') ?? null, tab: str(b.tab, 60), trigger: str(b.trigger, 10), action: str(b.action, 10) };
   await rpc('help_stuck_log', { p_by: user.id, p }, SR).catch(() => undefined);
+  // 5171: the prompt shown to a staff member: the page's academy section is required before they continue that area
+  if (p.action === 'shown' && p.trigger && p.route && (p.portal === 'va' || p.portal === 'field')) await assignStuck(user.id, p.route, p.tab, `stuck_${p.trigger}`);
   return new Response(null, { status: 204 });
 }

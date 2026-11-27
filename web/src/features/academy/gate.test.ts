@@ -3,22 +3,25 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { agreementWaiting, opensBeforeSigning, currentStep, gateWords, opensWhileHeld, opensWhileOnboarding, opensWhileUnsigned, profileHref, signHref, stepWords, type GateState, type WelcomeStep } from './gate.ts';
+import { areaOf, requiredFor, agreementWaiting, opensBeforeSigning, currentStep, gateWords, opensWhileHeld, opensWhileOnboarding, opensWhileUnsigned, profileHref, signHref, stepWords, type GateState, type WelcomeStep } from './gate.ts';
 
 // The academy gate (0802): what a held person still opens, the Welcome steps of a new hire, the Admin's words for the gate,
 // and the content of releases 33 and 34 (supabase/seed/academy/r34.mjs): a quiz per section, on every role that uses it,
 // written from guide chapters that exist, the migration block up to date.
-test('a held person opens only the academy, the guide, the profile and Welcome', () => {
+test('a held person opens only the academy and the onboarding pages (agreement, documents, pay details); the rest sends them to the academy', () => {
+  for (const p of ['/staff/documents', '/staff/sign/x', '/staff/field/pay', '/staff/profile']) assert.ok(opensWhileUnsigned(p), p);
   for (const p of ['/staff/academy', '/staff/academy/cs/trip-rules', '/staff/guide', '/staff/profile', '/staff/field/profile', '/staff/welcome', '/staff/no-access', '/staff/field/training', '/staff/field/pay']) assert.ok(opensWhileHeld(p), p);
   for (const p of ['/staff', '/staff/tasks', '/staff/bookings/CC-1', '/staff/renters', '/staff/welcomeback', '/staff/field']) assert.ok(!opensWhileHeld(p), p);
-  assert.match(readFileSync(new URL('../../server/door.ts', import.meta.url), 'utf8'), /academy_locked && !ACADEMY_OPEN\.test\(next\)\) redirect\('\/staff\/welcome'\)/);
+  assert.match(readFileSync(new URL('../../server/door.ts', import.meta.url), 'utf8'), /academy_locked && !AGREEMENT_OPEN\.test\(next\)\) redirect\('\/staff\/academy'\)/);
 });
 
 test('Welcome: the step to do now, in order', () => {
   const steps: WelcomeStep[] = [{ key: 'welcome', done: true }, { key: 'profile', done: false, address: false, phone: true, preferred_name: 'Sam' }, { key: 'academy', done: false, passed: 2, sections: 9 }, { key: 'tasks', done: false, tasks: [{ id: 't', title: 'Read your guide', detail: null, done: false }] }];
   assert.equal(currentStep(steps), 'profile');
   assert.equal(stepWords(steps[1]!), 'Add your home address.');
-  assert.equal(stepWords(steps[2]!), '2 of 9 sections passed. Each quiz passes at 90%; after a failed try, wait 30 minutes (3 tries a day).');
+  assert.equal(stepWords(steps[2]!), 'The basics: 2 of 9 sections passed. Passing them opens your portal and work. If a quiz is below the pass mark, fix the wrong answers once; after a failed try, wait 2 minutes.');
+  // 5170: the basics passed opens the portal; the rest is for the payouts
+  assert.match(stepWords({ key: 'academy', done: true, passed: 5, sections: 5, full_passed: 7, full_sections: 30 }), /^Basics passed\..*7 of 30 passed\) before held pay is paid out/);
   assert.equal(stepWords(steps[3]!), '1 left.');
   assert.equal(currentStep(steps.map((s) => ({ ...s, done: true }))), null);
   assert.equal(profileHref('field'), '/staff/field/profile');
@@ -44,7 +47,8 @@ test('the Admin\'s words for the gate', () => {
   const g: GateState = { user_id: 'u', locked: true, done: false, passed: 3, sections: 10, lock_from: null, waiver: null };
   assert.match(gateWords(g), /^Held: 3 of 10/);
   assert.match(gateWords({ ...g, locked: false, waiver: { reason: 'Experienced', at: '2026-11-08T12:00:00Z', by: 'Ada' } }), /^Waived by Ada: Experienced\./);
-  assert.match(gateWords({ ...g, locked: false, done: true, passed: 10 }), /^Passed: 10 of 10/);
+  assert.match(gateWords({ ...g, locked: false, done: true, passed: 10 }), /^Basics passed: 10 of 10/);
+  assert.match(gateWords({ ...g, locked: false, done: true, passed: 5, sections: 5, full_passed: 9, full_sections: 30, pay_hold: 'Academy not finished' }), /Whole academy: 9 of 30, so their pay is held\.$/);
 });
 
 test('the content of releases 33 and 34: a quiz per section, every role, real guide chapters, no vendor names', async () => {
@@ -99,4 +103,24 @@ test('Welcome: the agreement says what it waits for, who gives it and how soon i
   assert.equal(agreementWaiting({ key: 'agreement', done: false, state: 'sent', needs_licence: true, missing: ['Start Date'] }, profile), null);
   assert.equal(agreementWaiting({ key: 'agreement', done: true, state: 'signed' }, profile), null);
   assert.ok(!JSON.stringify(a).match(/[A-Z]\d{4}-\d{5}/));
+});
+
+test('5171: a section required for an area holds that area only, never the academy', () => {
+  const r = [{ area: '/staff/bookings', href: '/staff/academy/cs/cs-requests' }, { area: '/staff/field', href: '/staff/academy/field/field-handover' }];
+  assert.equal(requiredFor(r, '/staff/bookings')?.href, '/staff/academy/cs/cs-requests');
+  assert.equal(requiredFor(r, '/staff/bookings/CC-10600')?.href, '/staff/academy/cs/cs-requests');
+  assert.equal(requiredFor(r, '/staff/bookings-board'), null);
+  assert.equal(requiredFor(r, '/staff/field')?.href, '/staff/academy/field/field-handover');
+  assert.equal(requiredFor(r, '/staff/field/jobs'), null, 'a portal home holds itself only');
+  assert.equal(requiredFor(r, '/staff/academy/cs/cs-requests'), null);
+  assert.equal(requiredFor(undefined, '/staff/bookings'), null);
+  assert.equal(areaOf('/staff/bookings/[id]'), '/staff/bookings');
+  assert.equal(areaOf('/staff/field/jobs'), '/staff/field/jobs');
+  assert.equal(areaOf('/staff'), '/staff');
+});
+
+test('review: the onboarding pages never wait for a stuck section (no loop from the documents to sign)', () => {
+  const r = [{ area: '/staff', href: '/staff/academy/cs/cs-requests' }, { area: '/staff/documents', href: '/staff/academy/cs/cs-requests' }];
+  for (const p of ['/staff/documents', '/staff/documents/abc', '/staff/sign/xyz', '/staff/field/sign/1', '/staff/welcome', '/staff/profile']) assert.equal(requiredFor(r, p), null, p);
+  assert.match(readFileSync(new URL('../../server/door.ts', import.meta.url), 'utf8'), /roles\.agreement_locked \? null : requiredFor\(/);
 });

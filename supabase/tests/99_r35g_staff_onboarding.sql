@@ -58,7 +58,7 @@ select pg_temp.dr('go_harman', 'ops_do', 'staff_whatsapp_confirm', '{"team": tru
 select test.eq('one group of two: still held', app.staff_fully_onboarded(test.id('go_harman')), false);
 select test.eq('one group of two: Team confirmed', (select whatsapp_joined from staff_profiles where user_id = test.id('go_harman')), array['team']);
 select pg_temp.dr('go_harman', 'ops_do', 'staff_whatsapp_confirm', '{"sales": true, "tag_set": true}');
--- 1154: step 4, an Admin or a Fleet VA approves
+-- 1154: step 4, an Admin or a Fleet team member approves
 select test.eq('both groups: waiting for approval', pg_temp.st('go_harman'), 'approval');
 select test.eq('both groups: not yet onboarded', app.staff_fully_onboarded(test.id('go_harman')), false);
 select pg_temp.dr('go_admin', 'ops_do', 'staff_onboarding_approve', jsonb_build_object('user', test.id('go_harman')));

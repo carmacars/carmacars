@@ -111,5 +111,5 @@ select test.eq('the policy copy: a branded email to the staff member, in-app and
     (select count(*) from notifications n where n.code = 'staff_location_policy' and n.user_id = test.id('mp_fleet')),
     (select push_topic || '/' || user_can_mute::text || '/' || category from notification_catalogue where code = 'staff_location_policy'),
     (select count(*) from notification_outbox o where o.code = 'staff_location_policy' and o.recipient_user_id = test.id('mp_field'))), '1 1 documents/false/transactional 1');
-select test.eq('the guides and the academy section are published', format('%s %s', (select count(*) from academy_sections where slug = 'r48-map-people'),
-  (select count(*) from academy_questions q join academy_sections s on s.id = q.section_id where s.slug = 'r48-map-people')), '1 5');
+select test.eq('the guides and the academy section are published (5172 removed its untaught fifth question)', format('%s %s', (select count(*) from academy_sections where slug = 'r48-map-people'),
+  (select count(*) from academy_questions q join academy_sections s on s.id = q.section_id where s.slug = 'r48-map-people')), '1 4');

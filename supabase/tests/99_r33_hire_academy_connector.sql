@@ -78,8 +78,9 @@ select test.ok('an existing enrollment never holds, even past its date (0840: on
 select test.eq('the new sections end each role''s path', (select string_agg(ps.path_code || ':' || s.slug, ' ' order by ps.path_code) from academy_path_sections ps join academy_sections s on s.id = ps.section_id
   where s.slug = 'new-bookings-r28-r32' and ps.sort = (select max(x.sort) - 1 from academy_path_sections x join academy_sections y on y.id = x.section_id where x.path_code = ps.path_code and ps.path_code in ('cs', 'field') and y.slug not like 'new-r3%' and y.slug not like 'new-r4%' and y.slug not like 'r48-%' and y.slug not like 'r49-%' and y.slug not like 'r50-%')), 'cs:new-bookings-r28-r32 field:new-bookings-r28-r32');
 select test.eq('every role has a new section', (select count(distinct ps.path_code) from academy_path_sections ps join academy_sections s on s.id = ps.section_id where s.slug like 'new-%-r28-r32'), 7::bigint);
-select test.eq('9 lessons and 20 questions, every answer one of the options', (select count(*) from academy_lessons l join academy_sections s on s.id = l.section_id where s.slug like 'new-%-r28-r32' and l.title <> 'See it')
-  || '/' || (select count(*) from academy_questions q join academy_sections s on s.id = q.section_id where s.slug like 'new-%-r28-r32' and q.answer < jsonb_array_length(q.options)), '9/20');
+-- 5172: one repeat removed (new-bookings-r28-r32 2 asked prices-and-deposits 2 again)
+select test.eq('9 lessons and 19 questions, every answer one of the options', (select count(*) from academy_lessons l join academy_sections s on s.id = l.section_id where s.slug like 'new-%-r28-r32' and l.title <> 'See it')
+  || '/' || (select count(*) from academy_questions q join academy_sections s on s.id = q.section_id where s.slug like 'new-%-r28-r32' and q.answer < jsonb_array_length(q.options)), '9/19');
 select test.throws('the order holds: a new section is closed until the one before it is passed', format($$select app.academy_section(%L, '{"path": "cs", "section": "new-documents-r28-r32"}')$$, test.id('rqg_hana')), '%Pass the section before%');
 
 -- ================================================================ 5. the connector's Admin actions
