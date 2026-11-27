@@ -6,6 +6,48 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 export type Database = {
   public: {
     Tables: {
+      academy_assignments: {
+        Row: {
+          id: string;
+          user_id: string;
+          section_id: string;
+          path_code: string;
+          area: string;
+          reason: string;
+          created_at: string;
+          done_at: string | null;
+          done_attempt: string | null;
+          cleared_by: string | null;
+          clear_reason: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          section_id: string;
+          path_code: string;
+          area: string;
+          reason: string;
+          created_at?: string;
+          done_at?: string | null;
+          done_attempt?: string | null;
+          cleared_by?: string | null;
+          clear_reason?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          section_id?: string;
+          path_code?: string;
+          area?: string;
+          reason?: string;
+          created_at?: string;
+          done_at?: string | null;
+          done_attempt?: string | null;
+          cleared_by?: string | null;
+          clear_reason?: string | null;
+        };
+        Relationships: [];
+      };
       academy_attempts: {
         Row: {
           id: string;
@@ -210,18 +252,21 @@ export type Database = {
           title: string;
           blurb: string;
           sort: number;
+          core_count: number;
         };
         Insert: {
           code: string;
           title: string;
           blurb?: string;
           sort?: number;
+          core_count?: number;
         };
         Update: {
           code?: string;
           title?: string;
           blurb?: string;
           sort?: number;
+          core_count?: number;
         };
         Relationships: [];
       };
@@ -6823,6 +6868,8 @@ export type Database = {
           quality_flags: Json | null;
           purge_after: string | null;
           angle: string | null;
+          added_later_at: string | null;
+          client_key: string | null;
         };
         Insert: {
           id?: string;
@@ -6842,6 +6889,8 @@ export type Database = {
           quality_flags?: Json | null;
           purge_after?: string | null;
           angle?: string | null;
+          added_later_at?: string | null;
+          client_key?: string | null;
         };
         Update: {
           id?: string;
@@ -6861,6 +6910,8 @@ export type Database = {
           quality_flags?: Json | null;
           purge_after?: string | null;
           angle?: string | null;
+          added_later_at?: string | null;
+          client_key?: string | null;
         };
         Relationships: [];
       };
@@ -9641,6 +9692,7 @@ export type Database = {
           adjustment_note: string | null;
           clock_minutes: number;
           currency: string;
+          academy_held_at: string | null;
         };
         Insert: {
           id?: string;
@@ -9676,6 +9728,7 @@ export type Database = {
           adjustment_note?: string | null;
           clock_minutes?: number;
           currency?: string;
+          academy_held_at?: string | null;
         };
         Update: {
           id?: string;
@@ -9711,6 +9764,7 @@ export type Database = {
           adjustment_note?: string | null;
           clock_minutes?: number;
           currency?: string;
+          academy_held_at?: string | null;
         };
         Relationships: [];
       };
@@ -22814,6 +22868,12 @@ export type Database = {
           owner_stage_uvip_url: string;
           calls_mode: string;
           staff_notice_days: number;
+          listing_showroom_ai_call_microusd: number;
+          listing_photo_r48_daily_tries: number;
+          listing_photo_r48_max_calls_per_pass: number;
+          listing_photo_r48_extras: number;
+          listing_photo_r48_paused_at: string | null;
+          listing_photo_r48_pause_why: string | null;
           lead_gen_flat_cents: number;
           owner_calc_typical_cents: number;
           owner_calc_floor_cents: number;
@@ -22830,6 +22890,11 @@ export type Database = {
           hiring_ai_reminder_hours: number[];
           hiring_ai_reminder_last_hours: number;
           hiring_ai_self_renewals: number;
+          academy_hold_hours: boolean;
+          old_photos_days: number;
+          old_photos_match_hours: number;
+          old_photos_group_minutes: number;
+          old_photos_plate_daily: number;
         };
         Insert: {
           id?: string;
@@ -23822,6 +23887,12 @@ export type Database = {
           owner_stage_uvip_url?: string;
           calls_mode?: string;
           staff_notice_days?: number;
+          listing_showroom_ai_call_microusd?: number;
+          listing_photo_r48_daily_tries?: number;
+          listing_photo_r48_max_calls_per_pass?: number;
+          listing_photo_r48_extras?: number;
+          listing_photo_r48_paused_at?: string | null;
+          listing_photo_r48_pause_why?: string | null;
           lead_gen_flat_cents?: number;
           owner_calc_typical_cents?: number;
           owner_calc_floor_cents?: number;
@@ -23838,6 +23909,11 @@ export type Database = {
           hiring_ai_reminder_hours?: number[];
           hiring_ai_reminder_last_hours?: number;
           hiring_ai_self_renewals?: number;
+          academy_hold_hours?: boolean;
+          old_photos_days?: number;
+          old_photos_match_hours?: number;
+          old_photos_group_minutes?: number;
+          old_photos_plate_daily?: number;
         };
         Update: {
           id?: string;
@@ -24830,6 +24906,12 @@ export type Database = {
           owner_stage_uvip_url?: string;
           calls_mode?: string;
           staff_notice_days?: number;
+          listing_showroom_ai_call_microusd?: number;
+          listing_photo_r48_daily_tries?: number;
+          listing_photo_r48_max_calls_per_pass?: number;
+          listing_photo_r48_extras?: number;
+          listing_photo_r48_paused_at?: string | null;
+          listing_photo_r48_pause_why?: string | null;
           lead_gen_flat_cents?: number;
           owner_calc_typical_cents?: number;
           owner_calc_floor_cents?: number;
@@ -24846,6 +24928,11 @@ export type Database = {
           hiring_ai_reminder_hours?: number[];
           hiring_ai_reminder_last_hours?: number;
           hiring_ai_self_renewals?: number;
+          academy_hold_hours?: boolean;
+          old_photos_days?: number;
+          old_photos_match_hours?: number;
+          old_photos_group_minutes?: number;
+          old_photos_plate_daily?: number;
         };
         Relationships: [];
       };
@@ -25062,6 +25149,8 @@ export type Database = {
           created_at: string;
           units: number | null;
           unit: string | null;
+          vehicle_photo_id: string | null;
+          created_by: string | null;
         };
         Insert: {
           id?: string;
@@ -25077,6 +25166,8 @@ export type Database = {
           created_at?: string;
           units?: number | null;
           unit?: string | null;
+          vehicle_photo_id?: string | null;
+          created_by?: string | null;
         };
         Update: {
           id?: string;
@@ -25092,6 +25183,8 @@ export type Database = {
           created_at?: string;
           units?: number | null;
           unit?: string | null;
+          vehicle_photo_id?: string | null;
+          created_by?: string | null;
         };
         Relationships: [];
       };
@@ -35046,6 +35139,7 @@ export type Database = {
           ai_generated: boolean;
           r45: Json | null;
           r48: boolean;
+          r48_source: string | null;
         };
         Insert: {
           id?: string;
@@ -35097,6 +35191,7 @@ export type Database = {
           ai_generated?: boolean;
           r45?: Json | null;
           r48?: boolean;
+          r48_source?: string | null;
         };
         Update: {
           id?: string;
@@ -35148,6 +35243,7 @@ export type Database = {
           ai_generated?: boolean;
           r45?: Json | null;
           r48?: boolean;
+          r48_source?: string | null;
         };
         Relationships: [];
       };
@@ -38028,6 +38124,7 @@ export type Database = {
       };
     };
     Functions: {
+      academy_assign_stuck: { Args: { p_by: string; p: Json }; Returns: Json };
       addons_for_car: { Args: { p_vehicle: string; p_pickup?: string; p_return?: string }; Returns: Json };
       admin_account_index: { Args: { p_admin: string }; Returns: Json };
       admin_account_link: { Args: { p_admin: string; p_user: string; p_kind?: string }; Returns: Json };

@@ -469,6 +469,8 @@
      "Fleet and customer service see Agreements before cars on the owner page and can send the reminder",
      "Fleet gets a To do for every confirmed rental whose pickup was not recorded",
      "Field staff choose whose money paid each expense; what is owed to you is on My shifts and paid back on the payroll",
+     "Field staff on shift see every pickup and return of the day under Also today and the cars to prep under Before the next shift",
+     "The Academy: pass the basics and your portal opens; finish the rest before your payouts",
      "Check-in visits (Fleet: Checks; customer service: Renters; field work: Today): do the monthly visit of a long rental with the checklist; you are told when a renter picks a time and the morning of a visit. Guide me: Do a check-in visit walks you through it",
      "Record pickup at the booked time on a booking whose pickup was never recorded, and a renter's return report records it by itself: Admin and Fleet are told, and Fleet gets a To do with what is still owed and the documents to review. Approving a licence on one booking now approves it on the renter's other bookings"
     ],
