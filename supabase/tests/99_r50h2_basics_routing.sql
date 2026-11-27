@@ -197,7 +197,7 @@ select pg_temp.job('job:bas_tmr_ret', 'return_check_in', pg_temp.at(1, 10));    
 select pg_temp.job('job:bas_tmr_pick', 'handover', pg_temp.at(1, 9));                                  -- tomorrow morning, no shift
 select set_config('app.fx_no_slot', 'off', false);
 -- the routing run of a moment inside today's shift (the hourly job passes now)
-select test.eq('the run routes the open work', app.field_route_run(pg_temp.at(0, 12)), '5 field job(s) routed to a shift, 0 with no shift');
+select test.eq('the run routes the open work', app.field_route_run(pg_temp.at(0, 12)), '5 field job(s) routed to a shift, 0 with no shift anybody works');
 create function pg_temp.where_is(p_label text) returns text language sql as $$
   select coalesce((select case j.shift_slot_id when test.id('slot:bas_today') then 'today' when test.id('slot:bas_d2') then 'd2' when test.id('slot:bas_yday') then 'yday' else 'other' end
                      || ':' || coalesce(split_part(u.full_name, ' ', 2), 'nobody')
@@ -232,12 +232,12 @@ select test.eq('(a) carried over to the shift after', pg_temp.where_is('job:bas_
 select test.ok('the hourly job runs the routing', app.job_field_shift_plan(now()) like '%field job(s) routed to a shift%');
 -- review 2: never onto a shift nobody works; a job left on one moves; with no shift anybody works, unassigned and one Fleet To do
 select pg_temp.shift('slot:bas_empty', null, 3);
-select test.eq('a shift nobody works is never chosen (a return on its day goes to the worked shift before)', app.fx_route_slot('return_check_in', pg_temp.at(3, 12), pg_temp.at(0, 18)), test.id('slot:bas_d2'));
+select test.eq('a shift somebody works comes first (a return on the day of an empty shift goes to the worked shift before)', app.fx_route_slot('return_check_in', pg_temp.at(3, 12), pg_temp.at(0, 18)), test.id('slot:bas_d2'));
 select set_config('app.fx_no_slot', 'on', false);
 select pg_temp.job('job:bas_onempty', 'handover', pg_temp.at(3, 12), test.id('slot:bas_empty'));
 select pg_temp.job('job:bas_far', 'handover', pg_temp.at(30, 12), test.id('slot:bas_empty'));
 select set_config('app.fx_no_slot', 'off', false);
-select test.eq('the run: a job on a shift nobody works moves; one with no worked shift near it is left unassigned', app.field_route_run(pg_temp.at(0, 18)), '1 field job(s) routed to a shift, 1 with no shift');
+select test.eq('the run: a job on a shift nobody works moves; one with no worked shift near it is left unassigned', app.field_route_run(pg_temp.at(0, 18)), '1 field job(s) routed to a shift, 1 with no shift anybody works');
 select test.eq('moved to the worked shift', pg_temp.where_is('job:bas_onempty'), 'd2:Field2');
 select test.eq('no worked shift: unassigned, off the empty shift', (select coalesce(shift_slot_id::text, 'none') || '/' || coalesce(assigned_to::text, 'nobody') from field_jobs where id = test.id('job:bas_far')), 'none/nobody');
 select app.field_route_run(pg_temp.at(0, 18));
