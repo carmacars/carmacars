@@ -188,10 +188,10 @@ for (const f of [...walk('src'), 'build.mjs', 'shots.mjs', 'check.mjs']) written
   for (const [f, s] of outputs) {
     if (!f.startsWith('dist/') || !f.endsWith('.html')) continue;
     const n = (s.match(/class="btn"/g) || []).length;
-    if (n !== 1 && !/renter_vehicle_disabled|renter_breakdown_help|investor_notice_received|renter_signing_code|document_signing_code|insurance_staff_message/.test(f)) p.push(`${f}: ${n} primary buttons`);
+    if (n !== 1 && !/renter_vehicle_disabled|renter_breakdown_help|investor_notice_received|renter_signing_code|document_signing_code|insurance_staff_message|insurer_payment_received/.test(f)) p.push(`${f}: ${n} primary buttons`);
     if (n > 1) p.push(`${f}: more than one primary button`);
   }
-  check('one primary button per rendered email (six emails have none by design: car disabled, breakdown help, investor notice received, the two signing codes, the insurance message)', p);
+  check('one primary button per rendered email (seven emails have none by design: car disabled, breakdown help, investor notice received, the two signing codes, the insurance message, the insurer payment receipt)', p);
 }
 
 // 10. Marketing emails carry unsubscribe and the mailing address; transactional ones do not carry unsubscribe.
@@ -247,6 +247,28 @@ for (const f of [...walk('src'), 'build.mjs', 'shots.mjs', 'check.mjs']) written
     for (const need of ['contact@carmacars.ca', '289-312-5991', 'Open 24 hours', 'within 2 hours', 'https://instagram.com/carmacars.ca', 'https://tiktok.com/@carmacars.ca']) if (!t.includes(need)) p.push(`${e.code}: footer lacks ${need}`);
   }
   check('no info@ or rent@ anywhere; every customer email carries contact@, the phone, hours, reply time and Instagram and TikTok', p);
+}
+
+// 12b. Emails to insurers and adjusters never name CarmaCars (the owner's rule for insurer email), rendered from the
+// templates with the production mailing address and phone as company_address and support_phone (5190). Allowed until the
+// owner's Blind Spot domain exists: the sender mailbox (blindspotcarrental@carmacars.ca) and the 7-day file link (/d/).
+{
+  const p = [];
+  const { render, renderText } = await import('./src/engine.mjs');
+  const { GLOBALS } = await import('./src/brand.mjs');
+  const live = { ...GLOBALS, company_address: '2967 Dundas St W, Unit 208B, Toronto, ON M6P 1Z2', support_phone: '289-312-5991' };
+  for (const e of cat.emails.filter((x) => x.audience === 'insurer')) {
+    const mod = (await import(`./src/emails/${e.code}.mjs`)).default;
+    const values = { ...live, ...(mod.sample || {}) };
+    for (const [kind, f] of [['html', e.template_html], ['txt', e.template_text]]) {
+      const src = read(f);
+      const out = kind === 'html' ? render(src, values, { strict: false }) : renderText(src, values, { strict: false });
+      const left = out.replace(/[a-z0-9.-]*@carmacars\.ca/gi, '').replace(/https:\/\/carmacars\.ca\/d\/[^\s"<)]+/g, '');
+      const m = left.match(/.{0,40}carma.{0,40}/i);
+      if (m) p.push(`${e.code}.${kind}: names CarmaCars: ${m[0].replace(/\s+/g, ' ')}`);
+    }
+  }
+  check('insurer emails, rendered with the live footer values, never name CarmaCars (sender mailbox and file link excepted)', p);
 }
 
 // 13. Gallery links every email.

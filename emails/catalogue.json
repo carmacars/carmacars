@@ -55,7 +55,7 @@
       "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
     }
   ],
-  "count": 296,
+  "count": 297,
   "emails": [
     {
       "code": "account_password_reset",
@@ -26503,6 +26503,102 @@
       ],
       "template_html": "templates/insurer_invoice.html",
       "template_text": "templates/insurer_invoice.txt"
+    },
+    {
+      "code": "insurer_payment_received",
+      "audience": "insurer",
+      "category": "transactional",
+      "trigger": "Finance or an Admin records a payment on an insurer invoice (app.record_insurer_payment, migration 5190): a receipt to the adjuster on the booking, or the insurer's billing contact, with the amount, what is left to pay, or that the invoice is paid in full. One email per payment.",
+      "timing": "When the payment is recorded",
+      "digest": false,
+      "from": "Blind Spot Car Rental <blindspotcarrental@carmacars.ca>",
+      "reply_to": "blindspotcarrental@carmacars.ca",
+      "subject": "Payment received: invoice {{invoice_number}}, {{amount_paid}}",
+      "preheader": "Claim {{claim_number}}. {{balance_line}}",
+      "sample_subject": "Payment received: invoice INS-1004, $339.00",
+      "variables": [
+        {
+          "name": "amount_paid",
+          "type": "string",
+          "sample": "$339.00"
+        },
+        {
+          "name": "balance",
+          "type": "string",
+          "sample": "$0.00"
+        },
+        {
+          "name": "balance_line",
+          "type": "string",
+          "sample": "Paid in full."
+        },
+        {
+          "name": "claim_number",
+          "type": "string",
+          "sample": "CL-2026-77812"
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Clara",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "insurer_name",
+          "type": "string",
+          "sample": "Northbridge Mutual"
+        },
+        {
+          "name": "invoice_number",
+          "type": "string",
+          "sample": "INS-1004"
+        },
+        {
+          "name": "invoice_total",
+          "type": "string",
+          "sample": "$339.00"
+        },
+        {
+          "name": "paid_in_full",
+          "type": "boolean",
+          "sample": true
+        },
+        {
+          "name": "paid_on",
+          "type": "string",
+          "sample": "Mon, Nov 30, 2026"
+        },
+        {
+          "name": "paid_to_date",
+          "type": "string",
+          "sample": "$339.00"
+        },
+        {
+          "name": "renter_name",
+          "type": "string",
+          "sample": "Maya Chen"
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        }
+      ],
+      "template_html": "templates/insurer_payment_received.html",
+      "template_text": "templates/insurer_payment_received.txt"
     },
     {
       "code": "applicant_ai_interview",

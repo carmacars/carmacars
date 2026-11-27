@@ -1,0 +1,37 @@
+Blind Spot Car Rental  |  Invoice {{invoice_number}}
+
+========================================
+
+[Payment received]
+Thank you, {{first_name}}
+
+We received a payment from {{insurer_name}} on invoice {{invoice_number}}.
+
+Paid: {{amount_paid}}
+Received {{paid_on}}.
+
+Invoice: {{invoice_number}}
+Claim number: {{claim_number}}
+Renter: {{renter_name}}
+Invoice total: {{invoice_total}}
+Paid to date: {{paid_to_date}}
+Balance: {{balance}}
+
+{{#if paid_in_full}}
+This invoice is now paid in full. There is nothing more to pay.
+{{else}}
+The balance of {{balance}} is still due. Please quote the invoice number with your payment.
+{{/if}}
+
+Questions about this payment or the invoice: reply to this email.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you are the billing contact for a claim with a replacement rental from Blind Spot Car Rental.
+
+Questions about this rental or invoice: reply to this email.
+
+Blind Spot Car Rental
+{{#if company_address}}{{company_address}}{{/if}}
