@@ -1,3 +1,4 @@
+import { localRedirect } from '@/lib/http/local-redirect';
 import { rpc } from '@/lib/db/repo';
 import { storage, type Bucket } from '@/integrations/storage';
 import { currentUser } from '@/server/portal/data';
@@ -9,7 +10,7 @@ export const dynamic = 'force-dynamic';
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const id = (await params).id;
   const user = await currentUser();
-  if (!user) return Response.redirect(new URL('/sign-in', req.url), 302);
+  if (!user) return localRedirect('/sign-in', 302);
   if (!/^[0-9a-f-]{36}$/.test(id)) return new Response('Not found', { status: 404 });
   const d = (await rpc('my_sign_document', { p_by: user.id, p_document: id }, { role: 'service_role' }).catch(() => null)) as unknown as { bucket: string; path: string; title: string | null } | null;
   if (!d) return new Response('Not found', { status: 404 });
