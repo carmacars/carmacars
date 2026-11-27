@@ -1,5 +1,21 @@
 [
  {
+  "release": "r51",
+  "title": "Release 51",
+  "date": "2026-11-27",
+  "seq": 0,
+  "summary": "New staff finish onboarding from one checklist with a button for every step, starting with signing their agreement at once.",
+  "areas": [
+   {
+    "area": "Staff tools",
+    "items": [
+     "Welcome is one checklist for every new staff member: a big button for each step left, done steps ticked, and the portal opens when the list is done",
+     "**Sign my agreement now** makes the staff agreement at once and opens it to sign; if something is missing, the page says what and an Admin is told"
+    ]
+   }
+  ]
+ },
+ {
   "release": "r50",
   "title": "Release 50",
   "date": "2026-11-24",

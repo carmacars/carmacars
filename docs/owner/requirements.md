@@ -655,8 +655,8 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 
 ### REQ-135 Easy onboarding: every blocking screen has its next button
 - Status: in progress
-- Proof: branch r51-staff (not on main)
-- Test: to be added with the work
+- Proof: branch r51-staff (not on main, not live): docs/changes/2026-11-27-r51-staff.md; migration 5304 (app.staff_agreement_now clears the agreements job's wait and 5-try stop; staff_agreement_help alerts the Admins; staff_welcome gains the pay step and next); web/src/app/staff/welcome/page.tsx (a big button per step, stepAction in features/academy/gate.ts), features/staff-onboarding/SignNow.tsx, server/actions/onboarding-now.ts; guides 5305. Why production Jamal had no agreement (waiting, failed or stopped) is not readable through the connector
+- Test: supabase/tests/99_r51_easy_onboarding.sql; web/src/features/academy/gate.test.ts
 - Asked: Nov 27 17:45
 - Owner: "jamal got the academy waived for him and now it says your agreement first and theres no buttons to click anywhere other than resign. this is bad ui, he needs to have things to click to finish up his profile so he can start using his portal. he needs extremely easy steps to follow for getting access to portals. all staff should have easy flows."
 - Rule: the agreement step always offers Sign now: it makes the agreement at once when there is none (also after the automatic job gave up) and opens it to sign; if it still waits for something, the page says exactly what, with a button for what the person gives and an alert to Admin for what only Admin gives. Welcome is one checklist for every staff role: each remaining step is one big button (Sign agreement, Set availability, Join the WhatsApp group and Confirm, Pay details), done steps ticked, and the portal opens when the list is done. No blocking screen is a dead end.

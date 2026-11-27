@@ -32,16 +32,17 @@ export function areaOf(pattern: string): string {
   return '/' + (i < 0 ? segs : segs.slice(0, i)).join('/');
 }
 
-export type StepKey = 'welcome' | 'profile' | 'availability' | 'academy' | 'agreement' | 'team' | 'approval' | 'tasks';
+export type StepKey = 'welcome' | 'profile' | 'availability' | 'academy' | 'agreement' | 'team' | 'approval' | 'pay' | 'tasks';
 export interface WelcomeTask { id: string; title: string; detail: string | null; done: boolean }
 export interface WelcomeStep { key: StepKey; done: boolean; phone?: boolean; phone_verified?: boolean; address?: boolean; passed?: number; sections?: number; /** 5170: the whole academy */ full_passed?: number; full_sections?: number; waived?: boolean; tasks?: WelcomeTask[];
   /** 1060 */ preferred_name?: string | null; /** 1067 */ location?: string | null; state?: 'signed' | 'waived' | 'sent' | 'none'; request_id?: string | null; waiting_for_academy?: boolean; /** 3198: the academy opens once the agreement is signed */ waiting_for_agreement?: boolean; missing?: string[]; open?: boolean; groups?: Array<{ key: string; name: string; url: string; /** 1151 */ joined?: boolean; /** 3191 */ required?: boolean; member_tag?: string; tag_set?: boolean }>; /** 1151: one checkbox a group */ confirm?: boolean;
   /** 1154: step 4, approved by an Admin or a Fleet team member */ asked_at?: string | null; rejected_at?: string | null; reject_reason?: string | null; approved_by?: string | null;
   /** 1770: field staff, when they can usually work (open from the start; required for the portal) */ slots?: string[]; note?: string | null; required?: boolean;
   /** 2373: the Field Staff Agreement waits for the driver's licence number the person gives here */ needs_licence?: boolean }
-export interface Welcome { name: string; portal: 'va' | 'field'; locked: boolean; steps: WelcomeStep[]; /** 1151 */ onboarding_step?: 'academy' | 'agreement' | 'whatsapp' | 'approval' | 'availability' | 'done' }
+export interface Welcome { name: string; portal: 'va' | 'field'; locked: boolean; steps: WelcomeStep[]; /** 1151 */ onboarding_step?: 'academy' | 'agreement' | 'whatsapp' | 'approval' | 'availability' | 'done';
+  /** 5304 (REQ-135): the first step left the person can do now */ next?: StepKey | null }
 
-export const STEP_TITLE: Record<StepKey, string> = { welcome: 'Welcome', profile: 'Your profile and phone', availability: 'When you can work', academy: 'The academy', agreement: 'Your staff agreement', team: 'Join the WhatsApp groups', approval: 'Approval', tasks: 'Your first tasks' };
+export const STEP_TITLE: Record<StepKey, string> = { welcome: 'Welcome', profile: 'Your profile and phone', availability: 'When you can work', academy: 'The academy', agreement: 'Your staff agreement', team: 'Join the WhatsApp groups', approval: 'Approval', pay: 'Your pay details', tasks: 'Your first tasks' };
 
 /** How often the agreements job runs: the Worker's five-minute tick (custom-worker.ts), when the database says an agreement is due. */
 export const AGREEMENT_JOB_WORDS = 'within about 5 minutes';
@@ -100,6 +101,7 @@ export function stepWords(s: WelcomeStep): string {
       : `The basics: ${s.passed ?? 0} of ${s.sections ?? 0} sections passed. Passing them opens your portal and work. If a quiz is below the pass mark, fix the wrong answers once; after a failed try, wait 2 minutes.`;
     case 'approval': return s.done ? `Approved${s.approved_by ? ` by ${s.approved_by}` : ''}.` : !s.open ? 'Opens once you confirm the WhatsApp groups.'
       : s.reject_reason ? `Not approved yet: ${s.reject_reason}. Fix it, then ask again.` : 'Waiting for approval: an Admin or a Fleet team member checks your onboarding and opens your portal.';
+    case 'pay': return s.done ? 'On file.' : 'Add the account your pay goes to. Your portal does not wait for it; your first pay does.';
     case 'tasks': return !s.tasks?.length ? 'No first-day tasks for you.' : s.done ? 'All done.' : `${s.tasks.filter((t) => !t.done).length} left.`;
   }
 }
@@ -115,4 +117,22 @@ export function gateWords(g: GateState): string {
   if (g.done) return `Basics passed: ${g.passed} of ${g.sections} sections. Their portal is open.${full}`;
   if (g.locked) return `Held: ${g.passed} of ${g.sections} basics sections passed. Until they pass the basics, they open only the academy, the guide, their profile and Welcome.${full}`;
   return `${g.passed} of ${g.sections} sections passed. ${g.lock_from ? `Not held yet (the hold starts ${new Date(g.lock_from).toLocaleDateString('en-CA', { timeZone: 'America/Toronto', month: 'short', day: 'numeric' })}).` : 'Not held: only a hire from one-step Hire or a person an Admin enrolled is held.'}`;
+}
+
+/** 5304 (REQ-135): what the one button of a step does. Every step left has a button or the form itself on the page, so
+ *  onboarding has no dead end: 'link' opens a page, 'sign_now' makes the agreement if needed and opens it, 'here' is a form
+ *  in the step (the WhatsApp groups, when you can work, the licence number), 'wait' is someone else's step (approval). */
+export type StepAction = { kind: 'link'; label: string; href: string } | { kind: 'sign_now'; label: string } | { kind: 'here'; label: string } | { kind: 'wait'; label: string } | { kind: 'none' };
+export function stepAction(s: WelcomeStep, portal: 'va' | 'field'): StepAction {
+  if (s.done || s.key === 'welcome' || s.key === 'tasks') return { kind: 'none' };
+  switch (s.key) {
+    case 'profile': return { kind: 'link', label: 'Finish my profile', href: profileHref(portal) };
+    case 'agreement': return s.needs_licence ? { kind: 'here', label: 'Add my driver\'s licence number' }
+      : s.state === 'sent' ? { kind: 'link', label: 'Sign my agreement', href: signHref(portal) } : { kind: 'sign_now', label: 'Sign my agreement now' };
+    case 'academy': return s.waiting_for_agreement ? { kind: 'sign_now', label: 'Sign my agreement first' } : { kind: 'link', label: 'Open the academy', href: '/staff/academy' };
+    case 'availability': return { kind: 'here', label: 'Set when I can work' };
+    case 'team': return s.open === false ? { kind: 'wait', label: 'Opens after the agreement and the academy' } : { kind: 'here', label: 'Join the group and confirm' };
+    case 'pay': return { kind: 'link', label: 'Add my pay details', href: `${portal === 'field' ? '/staff/field/pay' : '/staff/profile'}#pay` };
+    case 'approval': return s.reject_reason ? { kind: 'here', label: 'Ask again' } : { kind: 'wait', label: 'Waiting for an Admin or Fleet to approve' };
+  }
 }

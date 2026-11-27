@@ -161,6 +161,7 @@
   "todo.urgent": {"staff_admin": "rule:escalation", "staff_va_cs": "rule:escalation_duty", "staff_va_fleet": "rule:escalation_duty", "staff_va_finance": "rule:escalation_duty", "staff_va_sales": "rule:escalation_duty"},
   "staff.bug_report_closed": {"staff_va_cs": "rule:bug_report_closed", "staff_va_sales": "rule:bug_report_closed", "staff_va_fleet": "rule:bug_report_closed", "staff_va_finance": "rule:bug_report_closed", "staff_field": "rule:bug_report_closed"},
   "staff.clock_in_reminder": {"staff_va_cs": "rule:staff_clock_reminder", "staff_va_fleet": "rule:staff_clock_reminder", "staff_va_finance": "rule:staff_clock_reminder"},
+  "staff.agreement_stuck": {"staff_admin": "rule:staff_agreement_stuck"},
   "staff.academy": {"staff_va_cs": "rule:academy_nudge", "staff_va_sales": "rule:academy_nudge", "staff_va_fleet": "rule:academy_nudge", "staff_va_finance": "rule:academy_nudge", "staff_field": "rule:academy_nudge", "staff_admin": ["rule:academy_certified", "rule:academy_quiz_failed_twice"]},
   "staff.payroll_ready": {"staff_admin": "rule:payroll_ready"},
   "townhall.reminder": {"staff_va_cs": "rule:townhall_reminder", "staff_va_sales": "rule:townhall_reminder", "staff_va_fleet": "rule:townhall_reminder", "staff_va_finance": "rule:townhall_reminder", "staff_field": "rule:townhall_reminder", "staff_admin": "rule:townhall_absent"},
