@@ -329,6 +329,24 @@ email() {
   if [ -n "${GITHUB_ACTIONS:-}" ]; then echo "::notice title=deploy-vps::inbound email: $n rule(s) now send mail to the Worker $want"; else say "inbound email: $n rule(s) -> $want"; fi
 }
 
+# email_report: read only (deploy-vps action=test): the zone's Email Routing state and every rule as matcher -> action type
+# and Worker name (forward destinations are masked), the catch-all, and the cron triggers of both Workers. r50 hotfix2: the
+# switch logged "0 rule(s) now send mail to the Worker carmacars-email-forwarder" (deploy-vps 45973781031)
+email_report() {
+  local zone acc="${CLOUDFLARE_ACCOUNT_ID:-}" w
+  declare -F cfapi > /dev/null || . "$HERE/lib.sh"
+  zone=$(cfapi GET "/zones?name=${DOMAIN:-carmacars.ca}" 2>/dev/null | jq -r '.result[0].id // empty') || zone=""
+  [ -n "$zone" ] || { echo "[email] the token cannot read the zone"; return 0; }
+  echo "[email] routing: $(cfapi GET "/zones/$zone/email/routing" 2>&1 | jq -c '.result | {enabled, status, name}' 2>/dev/null)"
+  local mask='def m: if type == "string" then (if test("@") then (split("@") | "***@" + .[1]) else . end) else . end;'
+  cfapi GET "/zones/$zone/email/routing/rules?per_page=50" 2>&1 | jq -r "$mask"' .result[]? | "[email] rule \(.priority) enabled=\(.enabled) \([.matchers[]? | "\(.type):\(.field // ""):\(.value // "")"] | join(",")) -> \([.actions[]? | "\(.type):\([.value[]? | m] | join("|"))"] | join(","))"' || echo "[email] rules: unreadable"
+  cfapi GET "/zones/$zone/email/routing/rules/catch_all" 2>&1 | jq -r "$mask"' .result | "[email] catch-all enabled=\(.enabled) -> \([.actions[]? | "\(.type):\([.value[]? | m] | join("|"))"] | join(","))"' || echo "[email] catch-all: unreadable"
+  for w in carmacars-prod carmacars-email-forwarder; do
+    echo "[email] Worker $w cron: $(cfapi GET "/accounts/$acc/workers/scripts/$w/schedules" 2>&1 | jq -c '[.result.schedules[]?.cron]' 2>/dev/null)"
+  done
+  echo "[email] Worker custom domains: $(cfapi GET "/accounts/$acc/workers/domains" 2>&1 | jq -c '[.result[]? | "\(.hostname)=\(.service)"]' 2>/dev/null)"
+}
+
 cmd="${1:-}"; shift || true
 case "$cmd" in
   envfile) envfile "$@" ;;
@@ -337,6 +355,7 @@ case "$cmd" in
   forwarder) forwarder ;;
   switch) switch ;;
   tls-report) tls_report ;;
+  email-report) email_report ;;
   email) email "$@" ;;
   *) die "usage: web-vps.sh envfile <out> | ship <image.tgz> <web.env> | rollback | forwarder | email forwarder|worker" ;;
 esac

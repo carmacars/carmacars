@@ -56,6 +56,9 @@ cf() {
   else
     code=$(curl -sS -o "$out" -w '%{http_code}' -X "$m" "$CF_API$p" -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" || echo 000)
   fi
+  # a 204 (a delete) has no body: it is a success (r50 hotfix2: the switch removed both Worker domains, HTTP 204, and warned
+  # that the token lacked the permission, deploy-vps 45973781031)
+  if [ "$code" = 204 ] && [ ! -s "$out" ]; then echo '{"success":true,"result":null}' > "$out"; fi
   if [ "$(jq -r '.success // false' "$out" 2>/dev/null)" != true ]; then
     CF_ERR="HTTP $code $(jq -c '[.errors[]? | "\(.code) \(.message)"]' "$out" 2>/dev/null | head -c 400)"
     say "$m $p: $CF_ERR"

@@ -130,6 +130,8 @@ jobs:
         run: scripts/deploy/cf-site.sh records || true
       - name: Certificates on the server (read)
         run: scripts/deploy/web-vps.sh tls-report
+      - name: Inbound email rules and Worker cron (read)
+        run: scripts/deploy/web-vps.sh email-report
 
   deploy-vps:
     needs: node-smoke
