@@ -1,0 +1,593 @@
+{
+ "batch": "2026-11-27",
+ "items": [
+  {
+   "kind": "car",
+   "id": "4fa54526-a98a-4db0-87f3-815a43315f19",
+   "copy": {
+    "intro": "Black 2018 Cayenne Platinum Edition with a 3.6 L engine, all-wheel drive and five seats. Roomy enough for a family weekend or a week of errands.",
+    "highlights": [
+     "All-wheel drive",
+     "Automatic high beams",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Family weekends away",
+     "Snowy days with all-wheel drive",
+     "Weekly and monthly rentals"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the Cayenne?",
+      "answer": "It has 5 seats."
+     },
+     {
+      "question": "Does the Cayenne have all-wheel drive?",
+      "answer": "Yes. All-wheel drive helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "How many kilometres a day are included?",
+      "answer": "200 km a day are included. Extra kilometres cost $0.35 each."
+     },
+     {
+      "question": "Can I rent the Cayenne at 18?",
+      "answer": "Yes. Drivers 18 and older with an Ontario G or G2 licence can rent it. A young driver fee applies at ages 18 to 20 and 21 to 25."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "43ac2392-e578-4e9a-84e7-7cf6a712adb1",
+   "copy": {
+    "intro": "Silver 2020 GLA250 4MATIC with a turbocharged 2.0 L engine, a dual-clutch automatic and a backup camera for tight city parking spots.",
+    "highlights": [
+     "Backup camera",
+     "Turbocharged engine",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "City driving and parking",
+     "Airport runs",
+     "Weekly rentals"
+    ],
+    "faq": [
+     {
+      "question": "How many seats does the GLA250 have?",
+      "answer": "It has 5 seats."
+     },
+     {
+      "question": "Does the GLA250 have a backup camera?",
+      "answer": "Yes. A backup camera is listed in its equipment, along with Bluetooth and cruise control."
+     },
+     {
+      "question": "Can you deliver the GLA250 to me?",
+      "answer": "Yes. We deliver to any address. The delivery fee is $75 plus a charge for distance. You can also collect it from us at no charge."
+     },
+     {
+      "question": "What do I need to rent the GLA250?",
+      "answer": "You need an Ontario G or G2 licence and a credit card in your name. We check your licence and identity before pickup."
+     }
+    ],
+    "alt_texts": {
+     "exterior_more": "Silver Mercedes-Benz GLA250 4MATIC, more exterior view",
+     "front_left": "Silver Mercedes-Benz GLA250 4MATIC, front left view",
+     "rear": "Silver Mercedes-Benz GLA250 4MATIC, rear view",
+     "rear_left": "Silver Mercedes-Benz GLA250 4MATIC, rear left view",
+     "right": "Silver Mercedes-Benz GLA250 4MATIC, right side view"
+    }
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "32d509c4-d28b-4458-8981-6252d383f8ca",
+   "copy": {
+    "intro": "A black Rolls-Royce Ghost with all-wheel drive and seats for five. Book it for a wedding day, an anniversary dinner or a milestone night.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Weddings and anniversaries",
+     "Formal evenings out",
+     "Special occasion arrivals"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the Ghost?",
+      "answer": "It has 5 seats."
+     },
+     {
+      "question": "How many kilometres a day are included?",
+      "answer": "200 km a day are included. Extra kilometres cost $0.75 each."
+     },
+     {
+      "question": "What do I need to rent the Ghost?",
+      "answer": "You need an Ontario G or G2 licence and a credit card in your name. We check your licence and identity before pickup."
+     },
+     {
+      "question": "Is the Ghost an automatic?",
+      "answer": "Yes. It is an automatic with all-wheel drive, and it runs on gas."
+     }
+    ],
+    "alt_texts": {
+     "exterior_more": "Black Rolls-Royce Ghost sedan, more exterior view",
+     "front_left": "Black Rolls-Royce Ghost sedan, front left view",
+     "left": "Black Rolls-Royce Ghost sedan, left side view",
+     "other": "Black Rolls-Royce Ghost sedan, additional view",
+     "rear_left": "Black Rolls-Royce Ghost sedan, rear left view"
+    }
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "4067c332-8d2b-4263-be3f-23f12c7b40ca",
+   "copy": {
+    "intro": "Ferrari California T convertible with rear-wheel drive and a dual-clutch automatic. Four seats and Bluetooth for the playlist on a sunny Sunday.",
+    "highlights": [
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Birthdays and anniversaries",
+     "Sunny weekend drives"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the California T?",
+      "answer": "It has 4 seats."
+     },
+     {
+      "question": "Is the California T rear-wheel drive?",
+      "answer": "Yes. It is rear-wheel drive with a dual-clutch automatic transmission."
+     },
+     {
+      "question": "How many kilometres a day are included?",
+      "answer": "200 km a day are included. Extra kilometres cost $0.75 each."
+     },
+     {
+      "question": "Can I rent the California T at 18?",
+      "answer": "Yes. Drivers 18 and older with an Ontario G or G2 licence can rent it. A young driver fee applies at ages 18 to 20 and 21 to 25."
+     }
+    ],
+    "alt_texts": {
+     "front_left": "Ferrari California T convertible, front left view",
+     "other": "Ferrari California T convertible, additional view"
+    }
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "4135f403-719c-4c12-b589-4c1bf0fce277",
+   "copy": {
+    "intro": "White S580 sedan from Mercedes-Benz with all-wheel drive, a backup camera and seats for five. Suits a wedding party, a client dinner or an airport transfer.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Wedding parties",
+     "Business dinners",
+     "Airport transfers"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the S580?",
+      "answer": "It has 5 seats."
+     },
+     {
+      "question": "Does the S580 have all-wheel drive?",
+      "answer": "Yes. It has all-wheel drive and an automatic transmission, and it runs on gas."
+     },
+     {
+      "question": "Can the S580 be delivered to my address?",
+      "answer": "Yes. We deliver to any address. The delivery fee is $75 plus a charge for distance. You can also collect it from us at no charge."
+     },
+     {
+      "question": "How do I book the S580?",
+      "answer": "Send a request with no payment. You pay after we confirm the booking."
+     }
+    ],
+    "alt_texts": {
+     "exterior_more": "White Mercedes-Benz S580 sedan, more exterior view",
+     "front_left": "White Mercedes-Benz S580 sedan, front left view"
+    }
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "41bbbd37-ff62-47cc-acb3-e7dd6f8b9373",
+   "copy": {
+    "intro": "Black G63 AMG with four-wheel drive and seats for five. A boxy SUV that gets noticed at the curb and suits a snowy week.",
+    "highlights": [
+     "Four-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Winter weekends",
+     "Nights out in the city",
+     "Photo days and events"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the G63 AMG?",
+      "answer": "It has 5 seats."
+     },
+     {
+      "question": "Does the G63 AMG have four-wheel drive?",
+      "answer": "Yes. Four-wheel drive helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "How many kilometres a day are included?",
+      "answer": "200 km a day are included. Extra kilometres cost $0.75 each."
+     },
+     {
+      "question": "What do I need to rent the G63 AMG?",
+      "answer": "You need an Ontario G or G2 licence and a credit card in your name. We check your licence and identity before pickup."
+     }
+    ],
+    "alt_texts": {
+     "exterior_more": "Black Mercedes-Benz G63 AMG, more exterior view",
+     "front": "Black Mercedes-Benz G63 AMG, front view",
+     "front_right": "Black Mercedes-Benz G63 AMG, front right view",
+     "other": "Black Mercedes-Benz G63 AMG, additional view",
+     "rear": "Black Mercedes-Benz G63 AMG, rear view",
+     "rear_left": "Black Mercedes-Benz G63 AMG, rear left view"
+    }
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "426ec2c5-1e4c-4d27-b387-3b8e5c3555b4",
+   "copy": {
+    "intro": "Infiniti Q60 coupe with all-wheel drive, a backup camera and four seats. A weekend car that still has a back seat for friends.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Weekend drives",
+     "Date nights",
+     "Winter trips with all-wheel drive"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the Q60?",
+      "answer": "It has 4 seats."
+     },
+     {
+      "question": "Is the Q60 an automatic?",
+      "answer": "Yes. It is an automatic with all-wheel drive, and it runs on gas."
+     },
+     {
+      "question": "Can I rent the Q60 for a month?",
+      "answer": "Yes. Monthly rentals are offered. Ask in your request and we will confirm the dates."
+     },
+     {
+      "question": "Can I rent the Q60 at 18?",
+      "answer": "Yes. Drivers 18 and older with an Ontario G or G2 licence can rent it. A young driver fee applies at ages 18 to 20 and 21 to 25."
+     }
+    ],
+    "alt_texts": {
+     "exterior_more": "Infiniti Q60 coupe, more exterior view",
+     "front_left": "Infiniti Q60 coupe, front left view",
+     "rear": "Infiniti Q60 coupe, rear view"
+    }
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "49e77105-a57f-4efb-97b4-e367370cdf49",
+   "copy": {
+    "intro": "Porsche 911 Turbo S coupe with all-wheel drive and a dual-clutch automatic. Four seats and a backup camera for a day trip or a special evening.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Special evenings out",
+     "Weekend day trips"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the 911 Turbo S?",
+      "answer": "It has 4 seats."
+     },
+     {
+      "question": "What transmission does the 911 Turbo S have?",
+      "answer": "It has a dual-clutch automatic and all-wheel drive."
+     },
+     {
+      "question": "How many kilometres a day are included?",
+      "answer": "200 km a day are included. Extra kilometres cost $0.75 each."
+     },
+     {
+      "question": "How do I request the 911 Turbo S?",
+      "answer": "Send a request with no payment. You pay after we confirm. Your licence and identity are checked before pickup."
+     }
+    ],
+    "alt_texts": {
+     "rear_right": "Porsche 911 Turbo S coupe, rear right view"
+    }
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "54847b71-9c56-4f1c-bdf9-b97d3029bc7a",
+   "copy": {
+    "intro": "White Porsche 718 Boxster convertible with two seats, rear-wheel drive and a dual-clutch automatic. Made for a sunny drive out of the city.",
+    "highlights": [
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Sunny drives for two",
+     "Short getaways",
+     "Photo shoots and events"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the 718 Boxster?",
+      "answer": "It has 2 seats."
+     },
+     {
+      "question": "Is the 718 Boxster rear-wheel drive?",
+      "answer": "Yes. It is rear-wheel drive with a dual-clutch automatic transmission."
+     },
+     {
+      "question": "How many kilometres a day are included?",
+      "answer": "200 km a day are included. Extra kilometres cost $0.75 each."
+     },
+     {
+      "question": "Can I collect the 718 Boxster from you?",
+      "answer": "Yes. Collect it at our location at no charge, or have it delivered for the delivery fee plus distance."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "748cfc6c-562d-4dee-9503-6c101f09dba2",
+   "copy": {
+    "intro": "Green Lamborghini Urus SUV with all-wheel drive, a backup camera and room for five. A bold pick for a wedding, a milestone or a weekend away.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Weddings and milestones",
+     "Weekend trips",
+     "Big days out"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the Urus?",
+      "answer": "It has 5 seats."
+     },
+     {
+      "question": "Does the Urus have all-wheel drive?",
+      "answer": "Yes. All-wheel drive helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "What do I need to rent the Urus?",
+      "answer": "You need an Ontario G or G2 licence and a credit card in your name. We check your licence and identity before pickup."
+     },
+     {
+      "question": "How many kilometres a day are included?",
+      "answer": "200 km a day are included. Extra kilometres cost $0.75 each."
+     }
+    ],
+    "alt_texts": {
+     "other": "Green Lamborghini Urus SUV, additional view"
+    }
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "924e000b-8055-4be0-ad94-1dc78cf6cb6e",
+   "copy": {
+    "intro": "Black C300 Cabriolet with four seats and all-wheel drive. Roof down for a summer evening, with a backup camera for the parking afterwards.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Summer evenings",
+     "Weekend drives",
+     "Couples and small groups"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the C300 Cabriolet?",
+      "answer": "It has 4 seats."
+     },
+     {
+      "question": "Is the C300 Cabriolet all-wheel drive?",
+      "answer": "Yes. It has all-wheel drive and an automatic transmission, and it runs on gas."
+     },
+     {
+      "question": "Can I rent the C300 Cabriolet by the week?",
+      "answer": "Yes. Weekly rentals are offered. Ask in your request and we will confirm the dates."
+     },
+     {
+      "question": "Can I rent the C300 Cabriolet at 18?",
+      "answer": "Yes. Drivers 18 and older with an Ontario G or G2 licence can rent it. A young driver fee applies at ages 18 to 20 and 21 to 25."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "b6addcc3-925a-4915-b494-fce1acbd585c",
+   "copy": {
+    "intro": "Black Porsche Cayenne with five seats, all-wheel drive and cruise control. A steady pick for highway trips and snowy days.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Highway trips",
+     "Snowy days",
+     "Airport runs"
+    ],
+    "faq": [
+     {
+      "question": "How many seats does this Cayenne have?",
+      "answer": "It has 5 seats."
+     },
+     {
+      "question": "Does this Cayenne have a backup camera?",
+      "answer": "Yes. A backup camera is listed in its equipment, along with Bluetooth and cruise control."
+     },
+     {
+      "question": "How many kilometres a day are included?",
+      "answer": "200 km a day are included. Extra kilometres cost $0.75 each."
+     },
+     {
+      "question": "What do I need to rent this Cayenne?",
+      "answer": "You need an Ontario G or G2 licence and a credit card in your name. We check your licence and identity before pickup."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "d11bcd10-104f-453a-991c-2bbda3c26adb",
+   "copy": {
+    "intro": "A white X5 M Sport with five seats and all-wheel drive. Suits a ski weekend, a week of school runs or a drive to meet clients.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Ski weekends",
+     "Family trips",
+     "Client visits"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the X5 M Sport?",
+      "answer": "It has 5 seats."
+     },
+     {
+      "question": "Is the X5 M Sport all-wheel drive?",
+      "answer": "Yes. It has all-wheel drive and an automatic transmission, and it runs on gas."
+     },
+     {
+      "question": "Can the X5 M Sport be delivered to my address?",
+      "answer": "Yes. We deliver to any address. The delivery fee is $75 plus a charge for distance."
+     },
+     {
+      "question": "Can I rent the X5 M Sport at 18?",
+      "answer": "Yes. Drivers 18 and older with an Ontario G or G2 licence can rent it. A young driver fee applies at ages 18 to 20 and 21 to 25."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "f1b6d16a-ec77-4d92-ab3d-ed5074dbe1c4",
+   "copy": {
+    "intro": "Grey X6 M with all-wheel drive and seats for five. A sporty-looking SUV for a night out, a drive to the lake or a winter weekend.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Nights out",
+     "Winter weekends",
+     "Drives out of the city"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the X6 M?",
+      "answer": "It has 5 seats."
+     },
+     {
+      "question": "Does the X6 M have all-wheel drive?",
+      "answer": "Yes. All-wheel drive helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "How many kilometres a day are included?",
+      "answer": "200 km a day are included. Extra kilometres cost $0.75 each."
+     },
+     {
+      "question": "How do I book the X6 M?",
+      "answer": "Send a request with no payment. You pay after we confirm the booking."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  }
+ ]
+}
