@@ -41,7 +41,7 @@ select app.academy_enroll(test.id('r48a_hire'), test.id('r48a_admin'), 'hire', n
 select test.eq('a hire is enrolled on The renter''s side, gated', (select string_agg(path_code || ':' || gate, ',' order by path_code) from academy_enrollments where user_id = test.id('r48a_hire')), 'cs:true,renter_side:true');
 insert into academy_attempts (user_id, section_id, correct, total, score_bps, passed)
 select test.id('r48a_hire'), ps.section_id, 1, 1, 10000, true from academy_path_sections ps where ps.path_code = 'cs';
-select test.eq('the hire''s own path passed: the portal opens (5170: the basics), the whole academy waits for The renter''s side', app.academy_locked(test.id('r48a_hire')) || '/' || app.academy_done(test.id('r48a_hire')) || '/' || app.academy_full_done(test.id('r48a_hire')), 'false/true/false');
+select test.eq('the hire''s own path passed: customer service still held by The renter''s side (the full academy opens the portal)', app.academy_locked(test.id('r48a_hire')) || '/' || app.academy_done(test.id('r48a_hire')) || '/' || app.academy_full_done(test.id('r48a_hire')), 'true/false/false');
 insert into academy_attempts (user_id, section_id, correct, total, score_bps, passed)
 select test.id('r48a_hire'), ps.section_id, 1, 1, 10000, true from academy_path_sections ps where ps.path_code = 'renter_side';
 select test.eq('both passed: the whole academy is done', app.academy_locked(test.id('r48a_hire')) || '/' || app.academy_full_done(test.id('r48a_hire')), 'false/true');

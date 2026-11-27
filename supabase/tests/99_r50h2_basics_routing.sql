@@ -51,10 +51,17 @@ select test.eq('customer service with the basics only: not onboarded, the portal
 select test.ok('customer service: every section counts toward the portal', (select (c ->> 'core_total')::int = (c ->> 'total')::int from (select app.academy_counts(test.id('bas_cs')) c) x));
 -- Sales: the basics open the portal and the leads
 create temp table bas_sp as select (app.academy_paths_of(test.id('bas_sales')))[1] as p;
-select test.eq('the basics of Sales, passed one by one', (select bool_and(pg_temp.pass('bas_sales', s.slug))
-  from academy_path_sections ps join academy_sections s on s.id = ps.section_id join academy_paths ap on ap.code = ps.path_code
-  where ps.path_code = (select p from bas_sp) and ps.sort <= ap.core_count), true);
+create temp table bas_spass (sort int, ok boolean);
+do $$ declare r record; begin
+  for r in select ps.sort, s.slug from academy_path_sections ps join academy_sections s on s.id = ps.section_id join academy_paths ap on ap.code = ps.path_code
+            where ps.path_code = (select p from bas_sp) and ps.sort <= ap.core_count order by ps.sort loop
+    insert into bas_spass values (r.sort, pg_temp.pass('bas_sales', r.slug));
+  end loop; end $$;
+select test.eq('the basics of Sales, passed one by one, in order', (select bool_and(ok) and count(*) = (select core_count from academy_paths where code = (select p from bas_sp)) from bas_spass), true);
 select test.eq('Sales basics passed: not locked, done, the whole academy not', app.academy_locked(test.id('bas_sales')) || '/' || app.academy_done(test.id('bas_sales')) || '/' || app.academy_full_done(test.id('bas_sales')), 'false/true/false');
+-- Sales also joins the Sales WhatsApp group (1151)
+update staff_profiles set whatsapp_joined = array['team', 'sales'] where user_id = test.id('bas_sales');
+update staff_profiles set onboarding_approved_at = now(), onboarding_approved_by = test.id('bas_admin') where user_id = test.id('bas_sales');
 select app.staff_onboarding_refresh(test.id('bas_sales'));
 select test.eq('Sales basics passed: fully onboarded (portal and work open), leads gate cleared', app.staff_fully_onboarded(test.id('bas_sales')) || '/' || app.staff_academy_cleared(test.id('bas_sales')), 'true/true');
 select test.eq('my_roles: the portal is open', (app.my_roles(test.id('bas_sales')) ->> 'onboarding_locked'), 'false');

@@ -49,9 +49,14 @@ select test.eq('passing: 3 of 5 right (60%) is not a pass', (select (x ->> 'pass
 select test.eq('passing: still held after a failed quiz', test.zag_locked('zag_cs'), true);
 select test.eq('passing: 4 of 5 (80%) is under the 90% mark (1154)', (select (x ->> 'passed') || '/' || (x ->> 'score_bps') from test.zag_quiz(4) x), 'false/8000');
 select test.eq('passing: a retake with 5 of 5 passes', (select (x ->> 'passed') || '/' || (x ->> 'score_bps') from test.zag_quiz(5) x), 'true/10000');
-select test.eq('passing: every basics section passed opens the portal (5170)', test.zag_locked('zag_cs'), false);
+select test.eq('passing: the basics alone keep customer service held (the owner, Nov 27 15:05: the full academy)', test.zag_locked('zag_cs'), true);
 -- 5070: the 3 of 5 was a first check held for its one fix; the 4 of 5 was that fix (graded), then the 5 of 5
 select test.eq('passing: the two graded attempts are kept', (select count(*) from academy_attempts a join academy_sections s on s.id = a.section_id where a.user_id = test.id('zag_cs') and s.slug = 'documents-and-signing'), 2::bigint);
+
+insert into academy_attempts (user_id, section_id, correct, total, score_bps, passed)
+select test.id('zag_cs'), ps.section_id, 1, 1, 10000, true from academy_path_sections ps where ps.path_code = any (app.academy_paths_of(test.id('zag_cs')))
+   and not app.academy_passed(test.id('zag_cs'), ps.section_id);
+select test.eq('passing: the full academy passed opens the portal', test.zag_locked('zag_cs'), false);
 
 -- ================================================================ 4. the waiver
 select test.throws('waiver: staff cannot waive', format($$ select app.door(%L, 'aal2', 'admin_do', 'academy_waive', jsonb_build_object('user_id', %L, 'reason', 'experienced')) $$, test.id('zag_other'), test.id('zag_field')), '%Admin%');
