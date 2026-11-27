@@ -11,6 +11,9 @@
 --    while every other AI gate lets a free provider answer once that share is used (app.ai_allow, 3095: the server's own
 --    model, or Gemini for what is not private). The live share is used most days by the photo and copy work, so every
 --    question was skipped ("the free Workers AI allowance of the day is used"). The gate now asks app.ai_allow('faq_reply').
+--    A renter's message is private by default: faq_reply joins app.ai_private (3095), so past Workers AI's share only the
+--    server's own model answers it, never Gemini's free tier (Google may use free-tier requests). To let Gemini answer
+--    too, remove faq_reply from app.ai_private and from PRIVATE_PURPOSES (web/src/integrations/ai/chain.ts).
 -- No applied migration is edited: functions are replaced with the same signatures (grants kept) or patched in place.
 set local check_function_bodies = off;
 
@@ -43,3 +46,10 @@ select pg_temp.patch_fn('public.server_auto_reply_gate(jsonb)'::regprocedure,
   $n$  -- 5091: Workers AI's live share, or a free provider when that share is used (app.ai_allow, 3095)
   v_b := app.ai_allow('faq_reply', 400);
   if v_b is null or not coalesce((v_b ->> 'ok')::boolean, false) then$n$);
+
+-- ================================================================ 3. a renter's message stays private (only our own models answer it)
+create or replace function app.ai_private(p_purpose text) returns boolean
+language sql immutable as $$
+  select p_purpose in ('licence_read', 'permit_read', 'interview_transcribe', 'call_transcribe', 'phone_summary', 'interview_followup', 'interview_score',
+                       'faq_reply')
+$$;

@@ -46,8 +46,10 @@ insert into app.ai_local_status (id, text_ready, at) values (true, true, now());
 select test.ok('Workers AI''s share used, the server''s model ready: the question is answered',
   (public.server_auto_reply_gate('{"channel": "email", "sender": "zrh5.ask@example.test"}') ->> 'allowed')::boolean);
 update app.ai_local_status set text_ready = false, gemini_ready = true where id;
-select test.ok('...or Gemini (an FAQ answer is not private)',
-  (public.server_auto_reply_gate('{"channel": "email", "sender": "zrh5.ask@example.test"}') ->> 'allowed')::boolean);
+-- review fix: a renter's message is private by default (faq_reply in app.ai_private): never Gemini's free tier
+select test.eq('an auto-reply is private', app.ai_private('faq_reply'), true);
+select test.eq('...so with only Gemini ready, no automatic answer',
+  coalesce((public.server_auto_reply_gate('{"channel": "email", "sender": "zrh5.ask@example.test"}') ->> 'allowed')::boolean, false), false);
 update program_settings set auto_reply_email = false where true;
 select test.eq('a channel switched off still answers nothing', public.server_auto_reply_gate('{"channel": "email", "sender": "zrh5.ask@example.test"}') ->> 'reason', 'off in Program settings');
 update program_settings set auto_reply_email = true where true;

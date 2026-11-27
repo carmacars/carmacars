@@ -5,7 +5,8 @@ import { acceptCookies, db, noOverflow } from './helpers';
 // R50 hotfix 2: the call screen (VoiceDock). Twilio is mocked in the page: the token, the call's start on our server and the
 // Voice SDK itself (a fake Device whose call connects, mutes and disconnects like the real one). An Admin opens the keypad,
 // dials a number, the call connects (name, number, timer), Mute and Hold toggle, End ends it; End also works while the call
-// is still starting (the owner: "no way to hang up once a call starts"), and leaving the page ends the call. 5092: the
+// is still starting (the owner: "no way to hang up once a call starts"), and pagehide (a phone switching apps) leaves a
+// connected call on. 5092: the
 // contacts tab calls a person by their record.
 const PW = 'correct horse battery';
 const hash = (pw: string) => { const salt = randomBytes(16); return `scrypt$${salt.toString('base64')}$${scryptSync(pw, salt, 64).toString('base64')}`; };
@@ -65,7 +66,7 @@ async function mockTwilio(page: Page) {
   return { calls, searches };
 }
 
-test('call screen: dial any number, connect, mute, hold, keypad, end; End while starting; page leave ends it', async ({ page }) => {
+test('call screen: dial any number, connect, mute, hold, keypad, end; End while starting; pagehide keeps a connected call', async ({ page }) => {
   const sql = db();
   const id = randomUUID(); const email = `admin.vc.${Date.now()}.${randomBytes(3).toString('hex')}@example.test`;
   await sql`insert into local_auth.users (id, email, password_hash) values (${id}, ${email}, ${hash(PW)})`;
@@ -129,15 +130,18 @@ test('call screen: dial any number, connect, mute, hold, keypad, end; End while 
     await expect(page.getByTestId('voice-dock')).toHaveCount(0);
     expect(await page.evaluate(() => (window as unknown as { __voice: { disconnects: number } }).__voice.disconnects)).toBe(2);
 
-    // leaving the page ends a call that is on
+    // pagehide (a phone switching apps) leaves a connected call on
     await page.evaluate(() => { (window as unknown as { __voiceSlow: boolean }).__voiceSlow = false; });
     await page.getByTestId('voice-launch').click();
     await page.getByTestId('voice-number').fill('6475550125');
     await page.getByTestId('voice-call').click();
     await expect(page.getByTestId('voice-dock')).toHaveAttribute('data-phase', 'in_call');
     const before = await page.evaluate(() => (window as unknown as { __voice: { disconnects: number } }).__voice.disconnects);
-    await page.evaluate(() => dispatchEvent(new PageTransitionEvent('pagehide')));
-    expect(await page.evaluate(() => (window as unknown as { __voice: { disconnects: number } }).__voice.disconnects)).toBe(before + 1);
+    await page.evaluate(() => dispatchEvent(new PageTransitionEvent('pagehide', { persisted: false })));
+    await expect(page.getByTestId('voice-dock')).toHaveAttribute('data-phase', 'in_call');
+    expect(await page.evaluate(() => (window as unknown as { __voice: { disconnects: number } }).__voice.disconnects)).toBe(before);
+    await page.getByTestId('voice-hangup').click();
+    await expect(page.getByTestId('voice-launch')).toBeVisible();
 
     // contacts (5092): the people called last, a search, and a tap that calls by the record (the masked number and the lead)
     await page.getByTestId('voice-launch').click();

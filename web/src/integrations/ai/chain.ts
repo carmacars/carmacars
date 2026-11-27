@@ -17,8 +17,10 @@ export type Route = 'auto' | 'no_gemini' | 'local_first' | 'workers_ai_only' | '
 export const ROUTES: readonly Route[] = ['auto', 'no_gemini', 'local_first', 'workers_ai_only', 'local_only'];
 
 /** Never sent to Gemini's free tier (Google may use free-tier requests): a person's identity documents, the recordings, and
- *  the text made from them (call summaries, interview follow-ups and scores). */
-export const PRIVATE_PURPOSES: ReadonlySet<string> = new Set(['licence_read', 'permit_read', 'interview_transcribe', 'call_transcribe', 'phone_summary', 'interview_followup', 'interview_score']);
+ *  the text made from them (call summaries, interview follow-ups and scores); r50 hotfix 2 (5091): the auto-replies to a
+ *  renter's message (faq_reply). Same list as app.ai_private. */
+export const PRIVATE_PURPOSES: ReadonlySet<string> = new Set(['licence_read', 'permit_read', 'interview_transcribe', 'call_transcribe', 'phone_summary', 'interview_followup', 'interview_score',
+  'faq_reply']);
 
 /** The providers a purpose is asked, in order, for a route. */
 export function providerOrder(route: Route | string | null | undefined, purpose: string): Provider[] {

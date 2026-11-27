@@ -30,6 +30,8 @@ test('the order: Workers AI, the server, Gemini; a private feature never reaches
   assert.deepEqual(providerOrder('local_first', 'seo_car'), ['local', 'workers_ai', 'gemini']);
   assert.deepEqual(providerOrder('no_gemini', 'chat'), ['workers_ai', 'local']);
   assert.deepEqual(providerOrder('workers_ai_only', 'chat'), ['workers_ai']);
+  // r50 hotfix 2 (5091): an auto-reply reads a renter's message, so it is private by default
+  assert.deepEqual(providerOrder('auto', 'faq_reply'), ['workers_ai', 'local']);
   assert.deepEqual(providerOrder('local_only', 'chat'), ['local']);
   for (const p of ['licence_read', 'permit_read', 'interview_transcribe', 'call_transcribe', 'phone_summary', 'interview_followup', 'interview_score']) {
     assert.ok(!providerOrder('auto', p).includes('gemini'), p);

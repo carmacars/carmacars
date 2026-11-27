@@ -4,7 +4,7 @@
 // and keeps it; a Sales person never receives a number masked for them (the call goes by its id).
 // One phone a page: this module keeps it and its state; VoiceDock shows it, the Call buttons start calls through it.
 
-import { voiceErrorText } from './twilio';
+import { voiceErrorText } from './twilio.ts';
 
 export const VOICE_SDK = '/vendor/twilio-voice-sdk-2.18.5/twilio.min.js';
 
@@ -46,8 +46,9 @@ let current: TwilioCall | null = null;
 let incoming: TwilioCall | null = null;
 let beat: ReturnType<typeof setInterval> | null = null;
 let ringing = false;
-// r50 hotfix 2: End pressed before the call was connected (the server, the microphone prompt or Twilio still on their way)
-let cancelled = false;
+// r50 hotfix 2: each call placed gets the next number; End adds one, so a call still on its way (the server, the
+// microphone prompt or Twilio) that is not the newest stops at its next step and never connects
+let attempt = 0;
 
 function loadSdk(): Promise<DeviceCtor> {
   const w = window as unknown as { Twilio?: { Device?: DeviceCtor } };
@@ -80,9 +81,15 @@ const whoOf = (c: TwilioCall) => c.customParameters?.get('who') || 'A caller';
 
 function watch(c: TwilioCall, who: string, number?: string) {
   c.on('accept', () => set({ phase: 'in_call', who, number, since: Date.now(), muted: false, held: false, ring: ringing }));
-  const end = () => { if (current === c) current = null; if (incoming === c) incoming = null; if (state.phase !== 'problem') set({ phase: 'idle', ring: ringing }); };
+  // only the call on the screen changes the screen (a call that already ended never closes the next one)
+  const end = (): boolean => {
+    const mine = current === c || incoming === c;
+    if (current === c) current = null; if (incoming === c) incoming = null;
+    if (mine && state.phase !== 'problem') set({ phase: 'idle', ring: ringing });
+    return mine;
+  };
   c.on('disconnect', end); c.on('cancel', end); c.on('reject', end);
-  c.on('error', (e: unknown) => { end(); set({ phase: 'problem', message: problemText(e), ring: ringing }); });
+  c.on('error', (e: unknown) => { if (end()) set({ phase: 'problem', message: problemText(e), ring: ringing }); });
   c.on('mute', (m: unknown) => { if (!state.held) set({ ...state, muted: !!m }); });
 }
 
@@ -131,28 +138,29 @@ export function startVoice(): void {
 
 /** A call to a person, placed in the browser with the CarmaCars number as caller ID. */
 export async function placeCall(o: { number: string; booking?: string | null; name?: string | null; lead?: string | null; renter?: string | null }): Promise<void> {
-  if (current || incoming) return;
-  cancelled = false;
+  // one call at a time: a second tap while one starts, rings or is on does nothing
+  if (current || incoming || state.phase === 'starting' || state.phase === 'calling' || state.phase === 'in_call') return;
+  const my = ++attempt;
   // the number shown under the name: never a number masked for Sales in full (it stays as given)
   const shown = o.number;
   set({ phase: 'starting', who: o.name?.trim() || shown || 'the customer', number: shown, ring: ringing });
   let r: Record<string, unknown>;
   try { r = await post('phone_call', { via: 'browser', number: o.number, ...(o.booking ? { booking_number: o.booking } : {}), ...(o.name ? { name: o.name } : {}),
     ...(o.lead ? { lead: o.lead } : {}), ...(o.renter ? { renter: o.renter } : {}) }); }
-  catch { if (!cancelled) set({ phase: 'problem', message: 'The server did not answer. Try again in a moment.', ring: ringing }); return; }
-  if (cancelled) return;
+  catch { if (my === attempt) set({ phase: 'problem', message: 'The server did not answer. Try again in a moment.', ring: ringing }); return; }
+  if (my !== attempt) return;
   if (r.ok !== true || typeof r.id !== 'string' || typeof r.t !== 'string') {
     set({ phase: 'problem', message: String(r.message ?? r.error ?? 'The call did not start. Try again in a moment.'), ring: ringing }); return;
   }
   const who = typeof r.who === 'string' && r.who ? r.who : o.name?.trim() || shown || 'the customer';
   const d = await ensureDevice();
-  if (!d || cancelled) return;
+  if (!d || my !== attempt) return;
   try {
     const c = await d.connect({ params: { call: r.id, t: r.t } });
-    if (cancelled) { c.disconnect(); return; }
+    if (my !== attempt) { c.disconnect(); return; }
     current = c; watch(c, who, shown);
     set({ phase: 'calling', who, number: shown, ring: ringing });
-  } catch (e) { if (!cancelled) set({ phase: 'problem', message: problemText(e), ring: ringing }); }
+  } catch (e) { if (my === attempt) set({ phase: 'problem', message: problemText(e), ring: ringing }); }
 }
 
 export function answer(): void { if (incoming) { current = incoming; incoming = null; current.accept(); } }
@@ -162,13 +170,18 @@ export function hangUp(): void {
   const c = current ?? incoming;
   if (c) { try { c.disconnect(); } catch { /* already gone */ } }
   if (state.phase === 'starting' || state.phase === 'calling' || state.phase === 'in_call') {
-    if (!c || state.phase === 'starting') cancelled = true;
+    attempt++;
     current = null; incoming = null;
     set({ phase: 'idle', ring: ringing });
   }
 }
-// leaving or closing the page ends the call (Twilio's own leave warning asks first while it is on)
-if (typeof window !== 'undefined') addEventListener('pagehide', () => { if (current || state.phase === 'starting') hangUp(); });
+// Closing the page ends a call that is not connected yet. A connected call is left alone: on a phone, switching apps
+// can fire pagehide, and a page kept for going back (persisted) keeps its call; Twilio's leave warning asks first.
+export function onPageHide(e: { persisted?: boolean }): void {
+  if (e.persisted || state.phase === 'in_call') return;
+  if (state.phase === 'starting' || state.phase === 'calling') hangUp();
+}
+if (typeof window !== 'undefined') addEventListener('pagehide', (e) => onPageHide(e as PageTransitionEvent));
 export function toggleMute(): void { if (current && !state.held) current.mute(!current.isMuted()); }
 export function sendDigit(d: string): void { if (current && /^[0-9*#]$/.test(d)) current.sendDigits(d); }
 export function dismiss(): void { if (state.phase === 'problem' || state.phase === 'dialing') set({ phase: 'idle', ring: ringing }); }

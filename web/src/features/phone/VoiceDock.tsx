@@ -71,11 +71,11 @@ export function VoiceDock({ quiet, dialer }: { quiet?: boolean; dialer?: boolean
           <label className="vh" htmlFor="vc-number">Number to call</label>
           <input id="vc-number" className="vc-num" type="tel" inputMode="tel" autoComplete="off" autoFocus value={typed} placeholder="Enter a number"
             onChange={(e) => setTyped(e.target.value.replace(/[^0-9+*#()\s.-]/g, '').slice(0, 20))} data-testid="voice-number" />
-          <p className="vc-hint small muted">{typed && !e164(typed) ? 'A Canadian or US number, or + and the country code.' : 'They see the CarmaCars number.'}</p>
+          <p id="vc-number-hint" className="vc-hint small muted">{typed && !e164(typed) ? 'A Canadian or US number, or + and the country code.' : 'They see the CarmaCars number.'}</p>
           {keypad('voice-keypad')}
           <div className="vc-row">
             <span className="vc-spacer" />
-            <button type="submit" className="vc-round vc-round--go" disabled={!e164(typed)} aria-label="Call" data-testid="voice-call"><Ic d={PHONE} /></button>
+            <button type="submit" className="vc-round vc-round--go" disabled={!e164(typed)} aria-describedby="vc-number-hint" aria-label="Call" data-testid="voice-call"><Ic d={PHONE} /></button>
             {typed ? <button type="button" className="vc-round vc-round--plain" onClick={() => setTyped((t) => t.slice(0, -1))} aria-label="Delete the last digit"><Ic d={BACK} /></button> : <span className="vc-spacer" />}
           </div>
         </form>}
@@ -88,7 +88,7 @@ export function VoiceDock({ quiet, dialer }: { quiet?: boolean; dialer?: boolean
           <p className="vc-status" role="status" data-testid="voice-status">{status}</p>
         </div>
         {st.phase === 'in_call' && (pad ? keypad('voice-dtmf') : <div className="vc-ctrls">
-          <Ctl label={st.muted && !st.held ? 'Unmute' : 'Mute'} on={!!st.muted && !st.held} d={st.muted && !st.held ? MIC_OFF : MIC} onClick={toggleMute} disabled={!!st.held} testId="voice-mute" />
+          <Ctl label={st.muted && !st.held ? 'Unmute' : 'Mute'} on={!!st.muted && !st.held} d={st.muted && !st.held ? MIC_OFF : MIC} onClick={toggleMute} disabled={!!st.held} why="Press Resume first" testId="voice-mute" />
           <Ctl label="Keypad" d={PAD} onClick={() => setPad(true)} testId="voice-pad" />
           <Ctl label="Speaker" on={!!audio} d={SPEAKER} onClick={() => setAudio(audio ? null : audioDevices())} testId="voice-audio" />
           <Ctl label={st.held ? 'Resume' : 'Hold'} on={!!st.held} d={HOLD} onClick={toggleHold} testId="voice-hold" />
@@ -146,18 +146,18 @@ function Contacts() {
   );
 }
 
-function Ctl({ label, d, onClick, on, disabled, testId }: { label: string; d: string; onClick: () => void; on?: boolean; disabled?: boolean; testId: string }) {
+function Ctl({ label, d, onClick, on, disabled, why, testId }: { label: string; d: string; onClick: () => void; on?: boolean; disabled?: boolean; why?: string; testId: string }) {
   return (
-    <button type="button" className={`vc-ctl${on ? ' is-on' : ''}`} onClick={onClick} aria-pressed={on} disabled={disabled} data-testid={testId}>
+    <button type="button" className={`vc-ctl${on ? ' is-on' : ''}`} onClick={onClick} aria-pressed={on} disabled={disabled} title={disabled ? why : undefined} data-testid={testId}>
       <span className="vc-ctl__b"><Ic d={d} /></span><span className="vc-ctl__t">{label}</span>
     </button>
   );
 }
 
-function Round({ kind, label, onClick, disabled, testId }: { kind: 'go' | 'end'; label: string; onClick: () => void; disabled?: boolean; testId: string }) {
+function Round({ kind, label, onClick, testId }: { kind: 'go' | 'end'; label: string; onClick: () => void; testId: string }) {
   return (
     <span className="vc-roundwrap">
-      <button type="button" className={`vc-round vc-round--${kind}`} onClick={onClick} disabled={disabled} aria-label={label} data-testid={testId}>
+      <button type="button" className={`vc-round vc-round--${kind}`} onClick={onClick} aria-label={label} data-testid={testId}>
         <span className={kind === 'end' ? 'vc-end' : ''}><Ic d={PHONE} /></span>
       </button>
       <span className="vc-ctl__t" aria-hidden="true">{label}</span>

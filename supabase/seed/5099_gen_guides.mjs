@@ -4,6 +4,8 @@
 // Admin's earlier text stays in the history, with Revert).
 //   node supabase/seed/5099_gen_guides.mjs           rewrites the block in the migration
 //   node supabase/seed/5099_gen_guides.mjs --check   exits 1 if the block is out of date (needs git)
+// After a merge of the integration branch, set GUIDES_BASE to that branch's commit (GUIDES_BASE=<r50-hotfix2 sha>), or
+// the chapters the merge brought in are published here a second time.
 import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';

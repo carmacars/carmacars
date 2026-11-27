@@ -52,7 +52,24 @@ insert into outbound_calls (staff_user_id, to_number, staff_number, lead_id, via
 values (test.id('zrc5_sales'), '+14165550281', 'browser', test.id('zrc5_lead_mine'), 'browser', now());
 select test.eq('with no search, the people called last',
   (select string_agg(c ->> 'name', ',') from jsonb_array_elements(public.server_voice_contacts(test.id('zrc5_sales'), '{}')) c), 'Zrcfive Mine');
-select test.throws('a renter has no contacts', $$select public.server_voice_contacts(test.id('zrc5_renter'), '{}')$$, '%staff%');
+select test.throws('a renter has no contacts', $$select public.server_voice_contacts(test.id('zrc5_renter'), '{}')$$, '%Texts and calls%');
+-- review fix: only the phone staff (Admins, customer service, Sales and Fleet; 0970) may search, as phone_renter_search
+select test.mk_user('zrc5_fin', 'va', 'finance');
+select test.mk_user('zrc5_field', 'field');
+select test.throws('a finance VA (no phone function) cannot search the contacts', $$select public.server_voice_contacts(test.id('zrc5_fin'), '{"q": "zrcfive"}')$$, '%Texts and calls%');
+select test.throws('a field user cannot search the contacts', $$select public.server_voice_contacts(test.id('zrc5_field'), '{"q": "zrcfive"}')$$, '%Texts and calls%');
+-- review fix: %, _ and \ in a search are plain characters, not wildcards
+select test.eq('a search of %% finds nobody', public.server_voice_contacts(test.id('zrc5_cs'), '{"q": "%%"}'), '[]'::jsonb);
+select test.eq('a search of __ finds nobody', public.server_voice_contacts(test.id('zrc5_cs'), '{"q": "__"}'), '[]'::jsonb);
+select test.eq('a search of \\ finds nobody', public.server_voice_contacts(test.id('zrc5_cs'), jsonb_build_object('q', 'Zrcfive' || chr(92))), '[]'::jsonb);
+-- review fix: a name that holds a number is masked for Sales too
+insert into leads (id, kind, name, phone, source) values (test.id('zrc5_lead_digits'), 'contact', 'Zrcdigits 416-555-0291', '(416) 555-0283', 'web');
+insert into lead_claims (lead_id, claimed_by, expires_at, cap_at) values (test.id('zrc5_lead_digits'), test.id('zrc5_sales'), now() + interval '10 minutes', now() + interval '1 hour');
+select test.eq('Sales see a number inside a name masked',
+  (select (position('0291' in (c ->> 'name')) = 0 and (c ->> 'name') like 'Zrcdigits %' and (c ->> 'number') not like '%0283')::text
+     from jsonb_array_elements(public.server_voice_contacts(test.id('zrc5_sales'), '{"q": "zrcdigits"}')) c), 'true');
+select test.eq('customer service see the name as it is',
+  (select string_agg(c ->> 'name', ',') from jsonb_array_elements(public.server_voice_contacts(test.id('zrc5_cs'), '{"q": "zrcdigits"}')) c), 'Zrcdigits 416-555-0291');
 select test.eq('only the server calls it',
   (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
     where n.nspname in ('public', 'app') and p.proname in ('server_voice_contacts', 'voice_contacts', 'jsonb_arg')

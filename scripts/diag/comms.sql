@@ -39,6 +39,7 @@ select jsonb_build_object(
        c.via, c.status, left(regexp_replace(coalesce(c.error, c.outcome, ''), '[0-9]{4,}', '#', 'g'), 140) e, count(*) n, max(c.started_at) last
        from outbound_calls c where c.started_at > now() - interval '7 days' group by 1, 2, 3, 4, 5 order by 7 desc limit 40) r),
   'voice_presence_rows', (select jsonb_agg(jsonb_build_object('staff', left(md5(v.user_id::text), 8), 'online', v.online, 'seen', v.seen_at)) from voice_presence v),
-  'voice_settings', (select app.server_voice_settings() - 'caller_id'),
+  -- only the switches and the ring time: never a number or the message text
+  'voice_settings', (select jsonb_build_object('calls', v -> 'calls', 'inbound', v -> 'inbound', 'own_mobile', v -> 'own_mobile', 'seconds', v -> 'seconds') from app.server_voice_settings() v),
   'push_outbox_7d', (select jsonb_agg(r) from (select status, left(coalesce(last_error, ''), 120) e, count(*) n from push_outbox where created_at > now() - interval '7 days' group by 1, 2 order by 3 desc limit 12) r)
 ) as d;

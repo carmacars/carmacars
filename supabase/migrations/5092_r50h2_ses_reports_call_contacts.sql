@@ -10,11 +10,15 @@
 --    people a staff member may call: with no search, the people they called last; with a search (2 letters or digits),
 --    renters and leads by name or number. Sales (0970) see only their own leads and the masked number, and the call goes
 --    by the record (lead or renter id), so the full number never reaches their browser; a masked number shown without a
---    record is kept in phone_masks so the server finds it (as every other masked number, 0970).
+--    record is kept in phone_masks so the server finds it (as every other masked number, 0970). Only the phone staff
+--    (app.assert_phone_staff, 0970: Admins, customer service, Sales and Fleet) may search, as phone_renter_search; a
+--    name shown to Sales is masked too (a name that holds a number never shows it in full); %, _ and \ in a search are
+--    plain characters.
+-- Re-run safe: every function is create or replace.
 set local check_function_bodies = off;
 
 -- ================================================================ 1. a report given as a JSON string is read as its object
-create function app.jsonb_arg(p jsonb) returns jsonb
+create or replace function app.jsonb_arg(p jsonb) returns jsonb
 language plpgsql immutable set search_path = public, app, pg_temp as $$
 begin
   if jsonb_typeof(p) = 'string' then
@@ -29,15 +33,17 @@ create or replace function public.server_cf_email_result(p jsonb) returns jsonb
 language sql security definer set search_path = public, app, pg_temp as $$ select app.server_cf_email_result(app.jsonb_arg(p)) $$;
 
 -- ================================================================ 2. contacts for the call screen
-create function app.voice_contacts(p_user uuid, p jsonb) returns jsonb
+create or replace function app.voice_contacts(p_user uuid, p jsonb) returns jsonb
 language plpgsql volatile security definer set search_path = public, app, pg_temp as $$
 declare
   q text := left(nullif(btrim(coalesce(p ->> 'q', '')), ''), 60);
   d text := regexp_replace(coalesce(q, ''), '[^0-9]', '', 'g');
+  -- the search as ilike text: %, _ and the escape character \ match only themselves
+  v_like text := '%' || replace(replace(replace(coalesce(q, ''), '\', '\\'), '%', '\%'), '_', '\_') || '%';
   v_sales boolean := app.user_sales_only(p_user);
   v jsonb;
 begin
-  if not app.voice_staff_ok(p_user) then raise exception 'Sign in as staff first' using errcode = '42501'; end if;
+  perform app.assert_phone_staff(p_user);
   if q is not null and length(q) < 2 then return '[]'::jsonb; end if;
   with found as (
     -- the people this person called last (no search)
@@ -50,13 +56,13 @@ begin
     -- a search: leads (Sales: their own only)
     select l.name, app.phone_e164(l.phone), l.id, null::uuid, l.updated_at, 2 from leads l
      where q is not null and app.phone_e164(l.phone) is not null and l.merged_into is null and l.do_not_contact_at is null
-       and (l.name ilike '%' || q || '%' or (length(d) >= 3 and regexp_replace(coalesce(l.phone, ''), '[^0-9]', '', 'g') like '%' || d || '%'))
+       and (l.name ilike v_like or (length(d) >= 3 and regexp_replace(coalesce(l.phone, ''), '[^0-9]', '', 'g') like '%' || d || '%'))
        and (not v_sales or app.lead_is_mine(l.id, l.sourced_by, l.assigned_to, l.payload, l.sales_outcome_by, p_user))
     union all
     -- a search: renters (not for Sales, who work their leads)
     select r.legal_name, app.phone_e164(r.mobile), null::uuid, r.id, r.created_at, 3 from renters r
      where q is not null and not v_sales and app.phone_e164(r.mobile) is not null
-       and (r.legal_name ilike '%' || q || '%' or (length(d) >= 3 and regexp_replace(coalesce(r.mobile, ''), '[^0-9]', '', 'g') like '%' || d || '%'))
+       and (r.legal_name ilike v_like or (length(d) >= 3 and regexp_replace(coalesce(r.mobile, ''), '[^0-9]', '', 'g') like '%' || d || '%'))
   ), picked as (
     select distinct on (f.number) f.*, (v_sales and not app.phone_unlocked_for(p_user, f.number)) as masked
       from found f order by f.number, f.k, f.at desc nulls last
@@ -67,14 +73,15 @@ begin
     on conflict (user_id, number) do update set seen_at = excluded.seen_at, display = excluded.display
     returning 1)
   select coalesce(jsonb_agg(jsonb_build_object(
-           'name', coalesce(nullif(btrim(t.name), ''), case when t.masked then app.phone_mask_display(t.number) else app.phone_display(t.number) end),
+           'name', case when t.masked then coalesce(app.mask_phone_text(p_user, nullif(btrim(t.name), ''), null), app.phone_mask_display(t.number))
+                        else coalesce(nullif(btrim(t.name), ''), app.phone_display(t.number)) end,
            'number', case when t.masked then app.phone_mask_display(t.number) else t.number end,
            'shown', case when t.masked then app.phone_mask_display(t.number) else app.phone_display(t.number) end,
            'lead', t.lead_id, 'renter', t.renter_id) order by t.at desc nulls last), '[]'::jsonb)
     into v from top t, (select count(*) from kept) k;
   return v;
 end $$;
-create function public.server_voice_contacts(p_user uuid, p jsonb) returns jsonb
+create or replace function public.server_voice_contacts(p_user uuid, p jsonb) returns jsonb
 language sql volatile security definer set search_path = public, app, pg_temp as $$ select app.voice_contacts(p_user, p) $$;
 
 -- ================================================================ grants

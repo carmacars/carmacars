@@ -13,10 +13,11 @@
 --      of falling back to email at once; the probe (one text every text_retry_paused_minutes) that goes ends the pause
 --      and the waiting texts go on the next run. A text that waited that long falls back to email as before.
 -- No applied migration is edited: functions are replaced with the same signatures (grants kept) or wrapped (_pre5090).
+-- Re-run safe: create or replace, and the rename to _pre5090 happens only once.
 -- SCHEMA_MARKER 5090.
 set local check_function_bodies = off;
 
-create function pg_temp.copy_grants(p_new regprocedure, p_old regprocedure) returns void
+create or replace function pg_temp.copy_grants(p_new regprocedure, p_old regprocedure) returns void
 language plpgsql as $$
 declare g text;
 begin
@@ -31,7 +32,7 @@ create index if not exists phone_outbox_sent_at_idx on phone_outbox (sent_at) wh
 create index if not exists auth_sms_log_sent_idx on app.auth_sms_log (created_at) where status = 'sent';
 
 -- ================================================================ 1. the newest text Quo's API took
-create function app.quo_last_sent(p_now timestamptz default now()) returns timestamptz
+create or replace function app.quo_last_sent(p_now timestamptz default now()) returns timestamptz
 language sql stable security definer set search_path = public, app, pg_temp as $$
   select greatest(
     (select max(o.sent_at) from phone_outbox o where o.status = 'sent' and o.sent_at > p_now - interval '7 days' and o.sent_at <= p_now),
@@ -56,8 +57,13 @@ language sql stable security definer set search_path = public, app, pg_temp as $
 $$;
 
 -- ================================================================ 2. sign-in codes pause and resume the texts too
-alter function app.server_auth_sms_result(jsonb) rename to server_auth_sms_result_pre5090;
-create function app.server_auth_sms_result(p jsonb) returns jsonb
+do $$
+begin
+  if to_regprocedure('app.server_auth_sms_result_pre5090(jsonb)') is null then
+    alter function app.server_auth_sms_result(jsonb) rename to server_auth_sms_result_pre5090;
+  end if;
+end $$;
+create or replace function app.server_auth_sms_result(p jsonb) returns jsonb
 language plpgsql security definer set search_path = public, app, pg_temp as $$
 declare
   r jsonb := app.server_auth_sms_result_pre5090(p);
