@@ -97,7 +97,7 @@ export function OfferComposer({ base, initialCar = null, initialFrom = null, ini
   // an add-on taken off: its price set by hand goes with it
   const changeAddons = (v: AddonChoice[]) => { setAddons(v); setF((s) => ({ ...s, fees: liveFees(s.fees, { addons: v.map((a) => a.code) }) })); };
   const [addonOptions, setAddonOptions] = useState<AddonOption[]>([]);
-  const [priced, setPriced] = useState<{ booking: Priced; available: boolean } | null>(null);
+  const [priced, setPriced] = useState<{ booking: Priced; available: boolean; blocker?: string | null } | null>(null);
   // the payload the price on screen was worked out for (an older one shows as updating)
   const [pricedKey, setPricedKey] = useState('');
   // 2026-10-27: amounts typed before or after tax (remembered on this device), and the total the renter pays (after tax)
@@ -207,11 +207,11 @@ export function OfferComposer({ base, initialCar = null, initialFrom = null, ini
     const n = ++seq.current;
     if (!form || need.length) { setPriced(null); setProblem(null); return; }
     const t = setTimeout(async () => {
-      const r = await offersRead<{ ok: boolean; error?: string; booking: Priced; available: boolean }>('offer_preview', payload);
+      const r = await offersRead<{ ok: boolean; error?: string; booking: Priced; available: boolean; blocker?: string | null }>('offer_preview', payload);
       if (n !== seq.current) return;
       if (!r.ok) { setProblem(r.message); setPriced(null); return; }
       if (!r.data.ok) { setProblem((r.data.error ?? 'The database refused this offer.').replace(/^.*?ERROR:\s*/, '')); setPriced(null); return; }
-      setProblem(null); setPriced({ booking: r.data.booking, available: r.data.available }); setPricedKey(JSON.stringify({ ...payload, expires_at: null }));
+      setProblem(null); setPriced({ booking: r.data.booking, available: r.data.available, blocker: r.data.blocker ?? null }); setPricedKey(JSON.stringify({ ...payload, expires_at: null }));
     }, 450);
     return () => clearTimeout(t);
   }, [payload, form, need.length]);
@@ -598,7 +598,7 @@ export function OfferComposer({ base, initialCar = null, initialFrom = null, ini
             <div><dt>HST</dt><dd>{fmt(hstShown)}</dd></div>
             <div><dt><span className="oc-dt">Deposit<Info text={lineHelp('deposit')} label="About the deposit" /></span></dt><dd data-testid="oc-sum-deposit">{f.deposit_pay === 'none' ? 'No deposit' : `${fmt(b.deposit_cents)} (${DEPOSIT_PAY.find(([v]) => v === f.deposit_pay)?.[1].toLowerCase()})`}</dd></div>
           </dl>) : <p className="small muted" data-testid="oc-price-wait">{need.length ? `To work out the price: ${missingList.filter((m) => m.field !== 'choice').map((m) => m.short).join(', ') || need.join(', ')}.` : 'Working out the price…'}</p>}
-          {b && <p className="small">{priced?.available ? 'The car is free for these dates.' : <b className="ad-late">The car is not free for these dates.</b>}</p>}
+          {b && <p className="small" data-testid="oc-free">{priced?.available ? 'The car is free for these dates.' : <b className="ad-late">The car is not free for these dates{priced?.blocker ? `: blocked by ${priced.blocker}` : ''}.</b>}</p>}
           {b?.price_flags?.length ? <p className="small"><b>Flagged for an Admin:</b> {b.price_flags.map((x) => (x === 'below_floor' ? 'under the price floor' : 'past the discount limit')).join(', ')}.</p> : null}
           {difference && <p className="alert alert--warn" role="alert" data-testid="oc-total-diff"><span>{difference} Check the amounts before you send.</span></p>}
         </div>

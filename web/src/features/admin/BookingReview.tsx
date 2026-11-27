@@ -146,7 +146,7 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
   });
   // r35a: one save or send at a time (a double tap sent the offer twice)
   const busy = useRef(false);
-  const [preview, setPreview] = useState<{ booking: B; available: boolean } | null>(null);
+  const [preview, setPreview] = useState<{ booking: B; available: boolean; blocker?: string | null } | null>(null);
   // the choice once per booking (0058): a request a staff member entered already carries it
   const needChoice = !b.sales_choice && !b.sales_claim_by;
   const [choice, setChoice] = useState<Choice>('');
@@ -271,11 +271,11 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
     const n = ++seq.current;
     const t = setTimeout(async () => {
       if (!dirty) { setPreview(null); setProblem(null); return; }
-      const r = await adminPreview<{ ok: boolean; error?: string; booking: B; available: boolean }>('booking_preview', payload);
+      const r = await adminPreview<{ ok: boolean; error?: string; booking: B; available: boolean; blocker?: string | null }>('booking_preview', payload);
       if (n !== seq.current) return;
       if (!r.ok) { setProblem(r.message || 'The price could not be worked out: check the dates and the car.'); return; }
       if (!r.data.ok) { setProblem(r.data.error || 'The database refused this change.'); setPreview(null); return; }
-      setProblem(null); setPreview({ booking: r.data.booking, available: r.data.available }); setPreviewKey(JSON.stringify(payload));
+      setProblem(null); setPreview({ booking: r.data.booking, available: r.data.available, blocker: r.data.blocker ?? null }); setPreviewKey(JSON.stringify(payload));
     }, 350);
     return () => clearTimeout(t);
   }, [payload, dirty, adminPreview]);
@@ -584,7 +584,7 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
             <div><dt><b>Due at booking</b></dt><dd className="pt-total" data-testid="review-total">{money(total, { cents: true })}{!fresh && <span className="small muted"> updating</span>}</dd></div>
           </dl>
           {difference && <p className="alert alert--warn" role="alert" data-testid="review-total-diff"><span>{difference} Check the amounts before you save.</span></p>}
-          <p className="small">{(preview?.available ?? true) ? 'The car is free for these dates.' : <b className="ad-late">The car is not free for these dates.</b>}</p>
+          <p className="small" data-testid="review-free">{(preview?.available ?? true) ? 'The car is free for these dates.' : <b className="ad-late">The car is not free for these dates{preview?.blocker ? `: blocked by ${preview.blocker}` : ''}.</b>}</p>
         </div>
         <aside className="ad-renter-view" aria-label="The offer as the renter sees it" data-testid="renter-preview">
           <p className="pt-kicker">The offer as the renter sees it</p>

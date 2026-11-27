@@ -1236,6 +1236,18 @@
     "test": "GAP"
   },
   {
+    "id": "REQ-129",
+    "title": "\"Not available\" never blocks a free car, and always says why",
+    "area": "15. Infrastructure and quality",
+    "status": "in progress",
+    "asked": "Nov 27 15:43, 15:50, 16:51 (CC-10674)",
+    "owner_quote": "\"Trying to put this booking through, but it says ... the car is not available. Force the booking.\"; \"Make sure that stops happening, because whatever is causing that has happened before, and that has become a regular issue.\"; \"Why the fuck is it marked cleaning it's already available and put that booking into the Kia forte. Do it for me. And make sure that doesn't happen again\"",
+    "rule": "a car is refused only for a real overlap (another booking that holds it, or a calendar block), never for a past trip left open. Every refusal names the exact booking (number, status, dates) or block (reason, source, dates). The connector moves an offer to another car with the checks of Admin > Edit the offer.",
+    "done_when": "production runs 5111 and 5195; an offer moves to a car whose last rental was never closed and is booked; a refused car names its blocker on every screen and in the connector.",
+    "proof": "migration 5195 (app.vehicle_blocker; every \"not available\" or \"not free\" refusal ends with \"blocked by\" the booking or calendar block; offer_revise takes vehicle_id); 5111 (an ended booking never blocks) ships with it. Cause of CC-10674: the live database (build 97e9b615) has 3810 but not 5111, so the Kia Forte stayed \"presumed out\" behind CC-10602 (confirmed, pickup never recorded, return Nov 26).",
+    "test": "supabase/tests/99_r50h2_avail.sql"
+  },
+  {
     "id": "REQ-092",
     "title": "Corporation, shares and shareholder money",
     "area": "16. Earlier decisions (Oct to Nov 12, from the chat extraction)",
