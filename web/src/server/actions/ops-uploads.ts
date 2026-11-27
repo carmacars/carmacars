@@ -20,7 +20,7 @@ async function me() {
   return { user, aal: await sessionAal() };
 }
 type Stored = { path: string; mime: string; sha256: string };
-async function store(file: unknown, folder: 'expenses' | 'permits'): Promise<Stored> {
+async function store(file: unknown, folder: 'expenses' | 'permits', owner?: string): Promise<Stored> {
   if (!(file instanceof Blob) || file.size === 0) throw new Error('Choose a photo or a PDF.');
   if (file.size > MAX) throw new Error('Each file must be under 15 MB.');
   const bytes = new Uint8Array(await file.arrayBuffer());
@@ -28,7 +28,8 @@ async function store(file: unknown, folder: 'expenses' | 'permits'): Promise<Sto
   const pdf = bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46;
   if (!jpg && !png && !pdf) throw new Error('Use a photo (JPEG or PNG) or a PDF.');
   const [ext, mime] = pdf ? ['pdf', 'application/pdf'] : jpg ? ['jpg', 'image/jpeg'] : ['png', 'image/png'];
-  const path = `${folder}/${new Date().getUTCFullYear()}/${crypto.randomUUID()}.${ext}`;
+  // a receipt is kept under its uploader's id: expense_log files only the caller's own fresh uploads (5143)
+  const path = `${folder}/${new Date().getUTCFullYear()}/${owner ? `${owner}/` : ''}${crypto.randomUUID()}.${ext}`;
   const { storage } = await import('@/integrations/storage');
   await (await storage()).put('documents', path, bytes, mime);
   return { path, mime, sha256: await sha256Hex(bytes) };
@@ -49,15 +50,17 @@ export async function logExpense(form: FormData): Promise<R<{ id: string; payer:
     if (files.length > 10) return { ok: false, code: 'invalid', message: 'At most 10 photos for one expense.' };
     let fields: Record<string, unknown>;
     try { fields = JSON.parse(String(form.get('expense') ?? '{}')) as Record<string, unknown>; } catch { return { ok: false, code: 'invalid', message: 'The expense could not be read.' }; }
-    for (const f of files) stored.push(await store(f, 'expenses'));
-    const data = await door<{ id: string; payer: string; vehicle_name: string | null; total_cents: number }>(user.id, 'ops_do', 'expense_log', { ...fields, photos: stored }, aal);
+    for (const f of files) stored.push(await store(f, 'expenses', user.id));
+    const data = await door<{ id: string; payer: string; vehicle_name: string | null; total_cents: number; replayed?: boolean }>(user.id, 'ops_do', 'expense_log', { ...fields, photos: stored }, aal);
+    // the same expense sent again (a double tap, a retry): the one already logged comes back; this call's copies are removed
+    if (data.replayed) await unstore(stored.map((s) => s.path));
     for (const p of ['/admin/expenses', '/staff/expenses']) revalidatePath(p);
     return { ok: true, data };
   } catch (e) { await unstore(stored.map((s) => s.path)); return fail(e); }
 }
 
 /** One ownership permit file with what the permit reader read from it (vin, plate, read as JSON). */
-export async function filePermit(form: FormData): Promise<R<{ upload: string; status: 'filed' | 'unmatched'; vehicle_name?: string; matched_by?: string; note?: string | null }>> {
+export async function filePermit(form: FormData): Promise<R<{ upload: string; status: 'filed' | 'unmatched'; vehicle_name?: string; matched_by?: string; note?: string | null; suggested_vehicle_id?: string | null }>> {
   let stored: Stored | null = null;
   try {
     const { user, aal } = await me();
@@ -65,7 +68,7 @@ export async function filePermit(form: FormData): Promise<R<{ upload: string; st
     stored = await store(file, 'permits');
     let read: unknown = {};
     try { read = JSON.parse(String(form.get('read') ?? '{}')); } catch { read = {}; }
-    const data = await door<{ upload: string; status: 'filed' | 'unmatched'; vehicle_name?: string; matched_by?: string; note?: string | null }>(user.id, 'ops_do', 'permit_file', {
+    const data = await door<{ upload: string; status: 'filed' | 'unmatched'; vehicle_name?: string; matched_by?: string; note?: string | null; suggested_vehicle_id?: string | null }>(user.id, 'ops_do', 'permit_file', {
       path: stored.path, mime: stored.mime, sha256: stored.sha256, file_name: file instanceof File ? file.name.slice(0, 200) : null,
       vin: String(form.get('vin') ?? '') || null, plate: String(form.get('plate') ?? '') || null, read }, aal);
     for (const p of ['/admin/ownership-documents', '/staff/ownership-documents']) revalidatePath(p);

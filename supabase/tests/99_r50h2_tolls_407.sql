@@ -15,7 +15,9 @@ select test.mk_renter('rt7_rana');
 select test.mk_renter('rt7_raj');
 select test.mk_booking('RT7-1', 'RT7A', 'rt7_rana', '2026-11-02 10:00', '2026-11-04 10:00', 'closed');
 select test.mk_booking('RT7-2', 'RT7A', 'rt7_raj', '2026-11-04 12:00', '2026-11-06 10:00', 'closed');
-select test.eq('margin: Program settings say 30 minutes around a rental''s start and end', (select toll_boundary_margin_minutes from app.settings()), 30);
+-- the margin this test runs at (30 minutes), the setting before it kept and put back at the end (99_ tests stay independent)
+create table test.rt7_margin as select toll_boundary_margin_minutes as m from program_settings where id = (select id from app.settings());
+update program_settings set toll_boundary_margin_minutes = 30 where id = (select id from app.settings());
 
 insert into test.rt7 select 'doc', (app.toll_read_document(test.id('rt7_fin'), jsonb_build_object('storage_path', 'tolls/2026/rt7-statement.pdf', 'mime_type', 'application/pdf', 'title', '2026-11-18 Statement.pdf')) ->> 'id')::uuid;
 -- the lines as web/src/features/tolls/parse.ts reads the 407 PDF (parse.test.ts, "407 PDF"): amount = toll + camera + trip charge
@@ -69,3 +71,25 @@ select test.eq('ticket: matched to the renter who had the car and charged with t
   (select t.matched_to || '/' || (select booking_number from bookings b where b.id = t.booking_id) || '/' || (t.amount_line_item_id is not null) || '/' ||
           (select count(*) from booking_line_items li where li.booking_id = t.booking_id and li.charge_type = 'ticket_admin_fee' and li.voided_at is null)
      from toll_tickets t join toll_notice_read_lines l on l.toll_ticket_id = t.id where l.read_id = test.rt7('t')), 'renter/RT7-2/true/1');
+
+-- 5147 (review fix): a statement with a credit left out, or lines that do not add up, charges nothing by itself
+insert into test.rt7 select 'doc3', (app.toll_read_document(test.id('rt7_fin'), jsonb_build_object('storage_path', 'tolls/2026/rt7-held.pdf', 'mime_type', 'application/pdf', 'title', 'Held statement.pdf')) ->> 'id')::uuid;
+insert into test.rt7 select 'h', (app.toll_read_save(test.id('rt7_fin'), jsonb_build_object(
+  'method', 'pdf_text', 'document_id', test.rt7('doc3'), 'file_name', 'Held statement.pdf', 'authority', '407 ETR', 'kind', 'toll_invoice', 'statement_number', 'ST-0000000002',
+  'hold', jsonb_build_array('A credit or reversal was left out: 2026-11-07 Reversal -$7.00', 'The lines add up to 26.58, the statement says 19.58'),
+  'lines', jsonb_build_array(jsonb_build_object('plate', (select plate from vehicles where id = test.id('vehicle:RT7A')), 'occurred_at', '2026-11-03T13:15:00', 'amount_cents', 2658, 'fees_cents', 525, 'confidence', 95)))) ->> 'id')::uuid;
+select test.eq('hold: saved with the read', (select cardinality(charge_hold) from toll_notice_reads where id = test.rt7('h')), 2);
+select app.toll_read_confirm(test.id('rt7_fin'), jsonb_build_object('read', test.rt7('h'), 'charge', true));
+select test.eq('hold: the line is matched and imported, nothing charged, a Finance To do lists both items',
+  (select t.matched_to || '/' || (t.amount_line_item_id is null) from toll_tickets t join toll_notice_read_lines l on l.toll_ticket_id = t.id where l.read_id = test.rt7('h')) || '/' ||
+  (select queue || ':' || array_length(string_to_array(detail, E'\n'), 1) from tasks where dedupe_key = 'toll_read_hold:' || test.rt7('h') and status = 'open'), 'renter/true/finance:2');
+insert into test.rt7 select 'h2', (app.toll_read_save(test.id('rt7_fin'), jsonb_build_object(
+  'method', 'pdf_text', 'document_id', test.rt7('doc3'), 'file_name', 'Held statement.pdf', 'authority', '407 ETR', 'kind', 'toll_invoice', 'statement_number', 'ST-0000000003',
+  'hold', jsonb_build_array('The lines add up to 12.25, the statement says 20.00'),
+  'lines', jsonb_build_array(jsonb_build_object('plate', (select plate from vehicles where id = test.id('vehicle:RT7A')), 'occurred_at', '2026-11-03T14:15:00', 'amount_cents', 1225, 'fees_cents', 525, 'confidence', 95)))) ->> 'id')::uuid;
+select app.toll_read_confirm(test.id('rt7_fin'), jsonb_build_object('read', test.rt7('h2'), 'charge', true, 'release_hold', true));
+select test.eq('release: a person who checked the items confirms with release_hold; it charges, the release is in the audit log',
+  (select (t.amount_line_item_id is not null)::text from toll_tickets t join toll_notice_read_lines l on l.toll_ticket_id = t.id where l.read_id = test.rt7('h2')) || '/' ||
+  (select count(*) from audit_log a where a.action = 'toll_read_hold_release' and a.entity_id = test.rt7('h2')::text), 'true/1');
+
+update program_settings set toll_boundary_margin_minutes = (select m from test.rt7_margin) where id = (select id from app.settings());

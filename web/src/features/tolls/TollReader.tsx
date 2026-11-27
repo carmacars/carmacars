@@ -15,7 +15,7 @@ import { WhyDisabled } from '@/components/WhyDisabled';
 type Ctx = { profiles: Profile[]; plates: string[]; transponders: string[]; settings: { min_confidence: number; auto_charge: boolean; max_pages: number; vision: boolean };
   vision: { allowed?: boolean; used: number; limit: number } };
 type Save = { method: 'csv' | 'pdf_text' | 'vision' | 'manual'; profile_id?: string | null; authority?: string | null; kind: Kind; statement_number?: string | null; account_number?: string | null;
-  statement_date?: string | null; due_on?: string | null; total_cents?: number | null; page_count?: number | null; model?: string | null; neurons?: number; problems: string[]; lines: ReadLine[] };
+  statement_date?: string | null; due_on?: string | null; total_cents?: number | null; page_count?: number | null; model?: string | null; neurons?: number; problems: string[]; hold?: string[]; lines: ReadLine[] };
 
 export function TollReader({ base }: { base: '/admin' | '/staff' }) {
   const router = useRouter();
@@ -96,7 +96,7 @@ export function TollReader({ base }: { base: '/admin' | '/staff' }) {
           if (r.lines.length) {
             await save(doc.data.id, { method: 'pdf_text', profile_id: profile?.id ?? null, authority: r.authority, kind: r.kind, statement_number: r.statement_number, account_number: r.account_number,
               statement_date: r.statement_date, due_on: r.due_on, total_cents: r.total_cents, page_count: t.pages,
-              problems: [...r.problems, ...r.statement_fees.map((f) => `Not a trip, left out: ${f.text}`)], lines: r.lines });
+              problems: [...r.problems, ...r.statement_fees.map((f) => `Not a trip, left out: ${f.text}`)], hold: r.hold, lines: r.lines });
             return;
           }
           say('No lines were found in the text: trying the vision model');
@@ -122,7 +122,7 @@ export function TollReader({ base }: { base: '/admin' | '/staff' }) {
       if (!doc.ok) throw new Error(doc.message);
       const r = csvLines(csv.rows, csv.map, { kind: csv.kind, authority: csv.operator, dateOrder: csv.order, plates: ctx.plates, amountUnit: csv.profile?.amount_unit, header: csv.header });
       if (!r.lines.length) throw new Error('No row with a date and a charge was found: check the columns.');
-      await save(doc.data.id, { method: 'csv', profile_id: csv.profile?.id ?? null, authority: csv.operator, kind: csv.kind, problems: r.problems, lines: r.lines });
+      await save(doc.data.id, { method: 'csv', profile_id: csv.profile?.id ?? null, authority: csv.operator, kind: csv.kind, problems: r.problems, hold: r.hold, lines: r.lines });
     } catch (e) { setErr(e instanceof Error ? e.message : 'The file could not be read.'); setBusy(false); }
   }
 

@@ -14,6 +14,10 @@
 --    expense (company_expense_guard), as before. The owner is told when a cost goes on their statement
 --    (owner_car_cost_added, 5145). app.expense_context: the categories, the cars with their owner, the vision switch.
 --    app.expense_entries_json: the last entries, with their photos.
+--    Review fixes: each save carries the client's entry id (one per expense on the screen); the same person sending it again
+--    (a double tap, a retry) gets the expense already logged back, never a second bill or email (unique per person and id,
+--    under a lock). A receipt path must be the caller's own upload of this or last year (expenses/<year>/<user id>/<uuid>)
+--    and not a document already: no one attaches another person's file or a file twice.
 -- No applied migration is edited. SCHEMA_MARKER 5143.
 set local check_function_bodies = off;
 
@@ -32,8 +36,10 @@ create table expense_entries (
   company_expense_id uuid references company_expenses(id),
   owner_deduction_id uuid references owner_deductions(id),
   read               jsonb not null default '{}'::jsonb,
-  created_by         uuid references users(id),
+  client_entry_id    uuid not null,
+  created_by         uuid not null references users(id),
   created_at         timestamptz not null default now(),
+  unique (created_by, client_entry_id),
   check ((payer = 'company') = (company_expense_id is not null)),
   check ((payer = 'owner') = (owner_deduction_id is not null)),
   check (payer = 'company' or (vehicle_id is not null and owner_id is not null))
@@ -168,8 +174,20 @@ declare
   v_od uuid;
   x jsonb;
   n integer := 0;
+  v_client uuid;
+  e expense_entries;
 begin
   if not app.expense_may_log(p_by) then raise exception 'An Admin, Finance or Fleet logs expenses' using errcode = '42501'; end if;
+  begin v_client := nullif(p ->> 'client_entry_id', '')::uuid; exception when others then v_client := null; end;
+  if v_client is null then raise exception 'The expense has no entry id: reload the page and save again' using errcode = '22023'; end if;
+  -- the same expense sent again (a double tap, a retry): the one already logged, nothing billed or emailed twice
+  perform pg_advisory_xact_lock(hashtextextended('expense_log:' || p_by::text || ':' || v_client::text, 0));
+  select * into e from expense_entries where created_by = p_by and client_entry_id = v_client;
+  if e.id is not null then
+    return jsonb_build_object('id', e.id, 'payer', e.payer, 'company_expense_id', e.company_expense_id, 'owner_deduction_id', e.owner_deduction_id,
+                              'photos', (select count(*) from expense_entry_photos ph where ph.entry_id = e.id), 'vehicle_name', app.vehicle_name(e.vehicle_id),
+                              'total_cents', e.amount_cents + e.hst_cents, 'replayed', true);
+  end if;
   begin
     v_amount := (p ->> 'amount_cents')::numeric::bigint; v_hst := coalesce(nullif(p ->> 'hst_cents', '')::numeric::bigint, 0);
   exception when others then raise exception 'Type the amount and the tax in dollars and cents' using errcode = '22023';
@@ -201,7 +219,13 @@ begin
   -- the receipt photos: the server stored each under expenses/ and sends the key it built
   for x in select value from jsonb_array_elements(p -> 'photos') loop
     n := n + 1;
-    if coalesce(x ->> 'path', '') !~ '^expenses/\d{4}/[0-9a-f-]{36}\.(jpg|png|pdf)$' then raise exception 'Unknown receipt file' using errcode = '22023'; end if;
+    -- the caller's own fresh upload (the server builds expenses/<year>/<user id>/<uuid>.<ext>), never a file already filed
+    if coalesce(x ->> 'path', '') !~ ('^expenses/(' || extract(year from app.today())::int || '|' || (extract(year from app.today())::int - 1) || ')/' || p_by::text || '/[0-9a-f-]{36}\.(jpg|png|pdf)$') then
+      raise exception 'Unknown receipt file' using errcode = '22023';
+    end if;
+    if exists (select 1 from documents d where d.storage_bucket = 'documents' and d.storage_path = x ->> 'path') then
+      raise exception 'This receipt file is already filed' using errcode = '23505';
+    end if;
     insert into documents (kind, title, storage_bucket, storage_path, mime_type, sha256, retention, uploaded_by, vehicle_id, owner_id)
     values ('receipt', left(format('Receipt %s of %s: %s', n, jsonb_array_length(p -> 'photos'), v_desc), 200), 'documents', x ->> 'path',
             nullif(x ->> 'mime', ''), nullif(x ->> 'sha256', ''), 'records_7y', p_by,
@@ -221,9 +245,9 @@ begin
     returning id into v_od;
   end if;
   insert into expense_entries (id, expense_on, vendor, category, description, amount_cents, hst_cents, vehicle_id, owner_id, payer, paid_with,
-                               company_expense_id, owner_deduction_id, read, created_by)
+                               company_expense_id, owner_deduction_id, read, client_entry_id, created_by)
   values (v_id, v_on, left(v_vendor, 160), v_cat, left(v_desc, 500), v_amount, v_hst, v.id, v.owner_id, v_payer, v_paid, v_ce, v_od,
-          coalesce(p -> 'read', '{}'::jsonb), p_by);
+          coalesce(p -> 'read', '{}'::jsonb), v_client, p_by);
   insert into expense_entry_photos (entry_id, document_id, sort) select v_id, d, o from unnest(v_docs) with ordinality u(d, o);
   insert into audit_log (actor_user_id, action, entity_table, entity_id, after)
   values (p_by, 'expense_log', 'expense_entries', v_id::text,
@@ -235,7 +259,7 @@ begin
                          'cost_tax', app.fmt_money(v_hst), 'receipt_count', cardinality(v_docs)::text));
   end if;
   return jsonb_build_object('id', v_id, 'payer', v_payer, 'company_expense_id', v_ce, 'owner_deduction_id', v_od, 'photos', cardinality(v_docs),
-                            'vehicle_name', app.vehicle_name(v.id), 'total_cents', v_amount + v_hst);
+                            'vehicle_name', app.vehicle_name(v.id), 'total_cents', v_amount + v_hst, 'replayed', false);
 end $$;
 
 create function app.expense_entries_json(p_by uuid, p_limit integer default 30) returns jsonb

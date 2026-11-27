@@ -24,7 +24,7 @@ export type RLine = {
 export type Read = {
   id: string; read_number: string; method: string; file_name: string | null; mime_type: string | null; document_id: string | null; authority: string | null; kind: string;
   statement_number: string | null; account_number: string | null; statement_date: string | null; due_on: string | null; total_cents: number | null; page_count: number | null;
-  model: string | null; neurons: number; problems: string[]; status: 'in_review' | 'confirmed' | 'discarded'; created_at: string; created_by_name: string | null;
+  model: string | null; neurons: number; problems: string[]; charge_hold?: string[]; status: 'in_review' | 'confirmed' | 'discarded'; created_at: string; created_by_name: string | null;
   confirmed_at: string | null; confirmed_by_name: string | null; discard_reason: string | null; min_confidence: number; auto_charge: boolean; profile_name: string | null;
   result: { imported?: number; duplicates?: number; exceptions?: number; charged?: number } | null; lines: RLine[];
 };
@@ -51,6 +51,9 @@ export function TollReview({ read, base }: { read: Read; base: '/admin' | '/staf
   const [errs, setErrs] = useState<Record<string, string>>({});
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [charge, setCharge] = useState(read.auto_charge);
+  // 5147: a credit left out or lines that do not add up to the statement hold the charging until a person has checked them
+  const held = read.charge_hold ?? [];
+  const [release, setRelease] = useState(false);
   const [discard, setDiscard] = useState('');
   const [exclude, setExclude] = useState<Record<string, string>>({});
   // a long statement is shown 30 lines at a time (the page stays light to render)
@@ -112,11 +115,16 @@ export function TollReview({ read, base }: { read: Read; base: '/admin' | '/staf
           </dl>
           {read.problems.length > 0 && <ul className="small tr-problems" data-testid="read-problems">{read.problems.map((p, i) => <li key={i}>{p}</li>)}</ul>}
           {open && <div className="stack">
-            <label className="check"><input type="checkbox" checked={charge} onChange={(e) => setCharge(e.target.checked)} data-testid="read-charge" /> <span>Charge renters matched with high confidence now (the notice and the administration fee)</span></label>
+            {held.length > 0 && <div className="stack" data-testid="read-hold">
+              <p className="small ad-late">Nothing on this statement is charged by itself until you check these:</p>
+              <ul className="small tr-problems">{held.map((h, i) => <li key={i}>{h}</li>)}</ul>
+              <label className="check"><input type="checkbox" checked={release} onChange={(e) => setRelease(e.target.checked)} data-testid="read-release" /> <span>I checked these against the statement</span></label>
+            </div>}
+            <label className="check"><input type="checkbox" checked={charge} onChange={(e) => setCharge(e.target.checked)} data-testid="read-charge" /> <span>Charge renters matched with high confidence now (the notice and the administration fee){held.length > 0 && !release ? ': held until you check the items above' : ''}</span></label>
             <p className="small muted">{goes.length} line(s) will be imported. {stays.length ? `${stays.length} line(s) with a problem not checked by a person stay here as exceptions.` : ''} Lines read at {read.min_confidence}% or more with nothing missing need no check.</p>
             <div className="row">
               <><button className="btn btn--primary btn--sm" type="button" disabled={pending || !read.lines.some((l) => l.status !== 'excluded') || Object.keys(drafts).length > 0} data-testid="read-confirm"
-                onClick={() => act(async () => staffDo('toll_read_confirm', { read: read.id, charge }, [...here, `${base}/tolls`]), 'Confirmed: the lines went to the toll work queue.')} aria-describedby="why-tollreview-117">{pending ? 'Working' : 'Confirm and import'}</button><WhyDisabled id="why-tollreview-117" why={((!read.lines.some((l) => l.status !== 'excluded')) || (Object.keys(drafts).length > 0)) ? 'Keep at least one line and save every draft first' : null} /></>
+                onClick={() => act(async () => staffDo('toll_read_confirm', { read: read.id, charge, release_hold: held.length > 0 && release }, [...here, `${base}/tolls`]), 'Confirmed: the lines went to the toll work queue.')} aria-describedby="why-tollreview-117">{pending ? 'Working' : 'Confirm and import'}</button><WhyDisabled id="why-tollreview-117" why={((!read.lines.some((l) => l.status !== 'excluded')) || (Object.keys(drafts).length > 0)) ? 'Keep at least one line and save every draft first' : null} /></>
               {Object.keys(drafts).length > 0 && <span className="small ad-err">Save or undo your changes first.</span>}
               <button className="btn btn--ghost btn--sm" type="button" disabled={pending} data-testid="read-add" onClick={() => act(async () => staffDo('toll_read_line_add', { read: read.id }, here), 'A line was added.')}>Add a line</button>
             </div>

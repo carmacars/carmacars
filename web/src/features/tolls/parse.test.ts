@@ -222,3 +222,15 @@ test('407 dates as other exports print them: a two-digit year with the month nam
   const { lines: out } = csvLines(rows, autoMap(rows[h]!), { kind: 'toll_invoice', authority: '407 ETR', plates: FLEET, header: h });
   assert.deepEqual(out.map((l) => [l.occurred_at, l.plate, l.amount_cents, l.fees_cents, l.time_unknown]), [['2026-11-03T08:15:00', 'CCAB123', 2558, 425, false]]);
 });
+
+test('5147: a credit left out or a total that does not add up holds the statement\'s charging; a clean statement holds nothing', () => {
+  assert.deepEqual(readText(PDF407, P407_5140, { plates: FLEET }).hold, []);
+  const credit = readText([text('407 ETR', 1, 0.01), text('Statement Date: 2026-11-18', 1, 0.02), row(HEAD, 1, 0.1),
+    row(['2026-11-05', '07:40', 'Hwy 401', '07:58', 'Hwy 403', '20.00', '$7.00', '$4.25', '$1.00', '$12.25'], 1, 0.15),
+    row(['2026-11-07', null, 'Reversal', null, null, null, '-$7.00', null, null, '-$7.00'], 1, 0.19)], P407_5140, { plates: FLEET });
+  assert.match(credit.hold.join(' | '), /credit or reversal was left out/);
+  assert.match(readText(lines(STATEMENT.replace('$43.29', '$50.00')), P407, { plates: FLEET }).hold.join(' '), /the statement says 50\.00/);
+  assert.match(readText(lines(STATEMENT.replace('Monthly Account Fee  $4.25', '2026-09-20  Reversal  -$8.14')), P407, { plates: FLEET }).hold.join(' '), /credit or reversal/, 'the line reader holds a credit too');
+  const rows = parseCsv(CSV407); const h = headerRow(rows);
+  assert.match(csvLines(rows, autoMap(rows[h]!), { kind: 'toll_invoice', authority: '407 ETR', plates: FLEET, header: h }).hold.join(' '), /credit or reversal/);
+});

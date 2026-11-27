@@ -4,8 +4,9 @@
 -- 1. permit_uploads: one uploaded file, what was read from it (by the permit reader of 0290, in the browser) and where it
 --    went: filed on a car (its document, how it was matched: VIN, plate or by hand, and a note when the permit's plate is not
 --    the car's), waiting for a person (unmatched), or discarded with the reason.
--- 2. app.permit_file: matches by the VIN (exact), else the plate the car has on that day (app.resolve_toll_vehicle), else
---    leaves it unmatched; a match stores the file as the car's ownership permit (documents, kind ownership_permit, on the car
+-- 2. app.permit_file: files it on its car only on an exact 17-character VIN match. A plate match alone (the plate the car
+--    has that day, app.resolve_toll_vehicle) is only suggested: it waits for a person to confirm the car, since a misread plate
+--    would file the permit, and email it, to another owner (review fix). Otherwise it waits unmatched; a match stores the file as the car's ownership permit (documents, kind ownership_permit, on the car
 --    and its owner: the owner's portal lists it under Documents), refreshes the owner's stages and tells the owner
 --    (owner_permit_filed, 5145). One Fleet To do lists the files waiting for a car (permit_unmatched).
 --    app.permit_assign files a waiting one on the car a person picks; app.permit_discard sets one aside with the reason.
@@ -28,6 +29,7 @@ create table permit_uploads (
   read         jsonb not null default '{}'::jsonb,
   status       text not null default 'unmatched' check (status in ('filed', 'unmatched', 'discarded')),
   vehicle_id   uuid references vehicles(id),
+  suggested_vehicle_id uuid references vehicles(id),
   document_id  uuid references documents(id),
   matched_by   text check (matched_by in ('vin', 'plate', 'hand')),
   note         text,
@@ -39,6 +41,7 @@ create table permit_uploads (
 );
 comment on table permit_uploads is 'R50 hotfix 2 (5144): an ownership permit file uploaded in bulk: what was read, and the car it was filed on or why it waits.';
 create index permit_uploads_vehicle_id_fk on permit_uploads (vehicle_id);
+create index permit_uploads_suggested_vehicle_id_fk on permit_uploads (suggested_vehicle_id);
 create index permit_uploads_document_id_fk on permit_uploads (document_id);
 create index permit_uploads_waiting_idx on permit_uploads (created_at desc) where status = 'unmatched';
 create trigger audit_permit_uploads after insert or update or delete on permit_uploads for each row execute function app.audit_row();
@@ -97,7 +100,7 @@ declare n integer := (select count(*) from permit_uploads where status = 'unmatc
 begin
   if n > 0 then
     perform app.raise_task(p_type => 'permit_unmatched', p_queue => 'fleet', p_title => format('%s ownership document%s need%s a car', n, case when n = 1 then '' else 's' end, case when n = 1 then 's' else '' end),
-      p_detail => 'Their VIN and plate did not match a car. Open Ownership documents and pick the car for each.', p_dedupe => 'permit_unmatched', p_created_by => p_by);
+      p_detail => 'Their VIN did not match a car. Open Ownership documents and pick or confirm the car for each.', p_dedupe => 'permit_unmatched', p_created_by => p_by);
     update tasks set title = format('%s ownership document%s need%s a car', n, case when n = 1 then '' else 's' end, case when n = 1 then 's' else '' end)
      where dedupe_key = 'permit_unmatched' and status in ('open', 'in_progress', 'waiting');
   else
@@ -115,6 +118,7 @@ declare
   v_id uuid;
   v_doc uuid;
   v_car uuid;
+  v_sug uuid;
   v_how text;
   n integer;
   r jsonb;
@@ -133,15 +137,15 @@ begin
     select count(*), min(v.id::text)::uuid into n, v_car from vehicles v where upper(v.vin) = v_vin and not coalesce(v.is_sample, false);
     if n = 1 then v_how := 'vin'; else v_car := null; end if;
   end if;
-  if v_car is null and v_plate is not null then
-    select x.vehicle_id into v_car from app.resolve_toll_vehicle(v_plate, null, app.today()) x;
-    if v_car is not null then v_how := 'plate'; end if;
-  end if;
   if v_car is null then
-    update permit_uploads set note = case when v_vin is null and v_plate is null then 'No VIN or plate could be read: pick the car'
-                                          else 'No car has this VIN or plate: pick the car' end where id = v_id;
+    -- a plate is never enough to file it (and email an owner): it only suggests the car for a person to confirm
+    if v_plate is not null then select x.vehicle_id into v_sug from app.resolve_toll_vehicle(v_plate, null, app.today()) x; end if;
+    update permit_uploads set suggested_vehicle_id = v_sug,
+           note = case when v_sug is not null then format('The plate matches the %s, the VIN did not: confirm the car', app.vehicle_name(v_sug))
+                       when v_vin is null and v_plate is null then 'No VIN or plate could be read: pick the car'
+                       else 'No car has this VIN or plate: pick the car' end where id = v_id;
     perform app.permit_waiting_task(p_by);
-    return jsonb_build_object('upload', v_id, 'status', 'unmatched', 'vin', v_vin, 'plate', v_plate);
+    return jsonb_build_object('upload', v_id, 'status', 'unmatched', 'vin', v_vin, 'plate', v_plate, 'suggested_vehicle_id', v_sug);
   end if;
   r := app.permit_file_on(p_by, v_id, v_car, v_how);
   return r || jsonb_build_object('vin', v_vin, 'plate', v_plate);
@@ -184,7 +188,7 @@ language plpgsql stable security definer set search_path = public, app, pg_temp 
 begin
   if not app.permit_may_file(p_by) then raise exception 'An Admin, Fleet or customer service files a car''s documents' using errcode = '42501'; end if;
   return jsonb_build_object(
-    'waiting', (select coalesce(jsonb_agg(jsonb_build_object('id', u.id, 'file_name', u.file_name, 'vin', u.vin, 'plate', u.plate, 'note', u.note, 'mime_type', u.mime_type, 'document_id', u.document_id,
+    'waiting', (select coalesce(jsonb_agg(jsonb_build_object('id', u.id, 'file_name', u.file_name, 'vin', u.vin, 'plate', u.plate, 'note', u.note, 'suggested_vehicle_id', u.suggested_vehicle_id, 'mime_type', u.mime_type, 'document_id', u.document_id,
                   'created_at', u.created_at) order by u.created_at), '[]'::jsonb) from permit_uploads u where u.status = 'unmatched'),
     'filed', (select coalesce(jsonb_agg(x.j order by x.at desc), '[]'::jsonb) from (
                 select jsonb_build_object('id', u.id, 'file_name', u.file_name, 'vin', u.vin, 'plate', u.plate, 'vehicle_id', u.vehicle_id, 'vehicle_name', app.vehicle_name(u.vehicle_id),

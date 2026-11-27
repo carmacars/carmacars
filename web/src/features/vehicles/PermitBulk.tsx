@@ -8,9 +8,9 @@ import type { PermitRead } from './permit-read';
 import { WhyDisabled } from '@/components/WhyDisabled';
 
 // Ownership documents in bulk (migration 5144): choose many permit photos or PDFs at once; each is read for its VIN and plate
-// (the permit reader of 0290), stored, and filed on its car by the database (by the VIN, else the plate); the owner sees it in
+// (the permit reader of 0290), stored, and filed on its car by the database (by the exact VIN; a plate match waits for a person); the owner sees it in
 // their portal. A file that matched no car waits below for a quick pick, or is set aside with the reason.
-export type Waiting = { id: string; file_name: string | null; vin: string | null; plate: string | null; note: string | null; document_id: string | null; created_at: string };
+export type Waiting = { id: string; file_name: string | null; vin: string | null; plate: string | null; note: string | null; suggested_vehicle_id?: string | null; document_id: string | null; created_at: string };
 export type Filed = { id: string; file_name: string | null; vin: string | null; plate: string | null; vehicle_name: string | null; matched_by: string | null; note: string | null; document_id: string | null; filed_at: string };
 export type PermitCar = { id: string; name: string; plate: string | null; vin: string | null; owner_name: string | null };
 type Row = { key: string; name: string; state: 'reading' | 'filing' | 'filed' | 'waiting' | 'failed'; text: string };
@@ -53,14 +53,14 @@ export function PermitBulk({ waiting, filed, cars, base }: { waiting: Waiting[];
       const r = await filePermit(fd);
       if (!r.ok) put(key, { state: 'failed', text: r.message });
       else if (r.data.status === 'filed') put(key, { state: 'filed', text: `Filed on the ${r.data.vehicle_name}, ${HOW[r.data.matched_by ?? ''] ?? ''}${r.data.note ? `. ${r.data.note}` : ''}` });
-      else put(key, { state: 'waiting', text: 'No car matched: pick it below' });
+      else put(key, { state: 'waiting', text: r.data.suggested_vehicle_id ? 'The plate matched a car, the VIN did not: confirm it below' : 'No car matched: pick it below' });
     }
     setBusy(false);
     router.refresh();
   }
 
   const act = (id: string, what: 'permit_assign' | 'permit_discard') => start(async () => {
-    const r = await staffDo(what, what === 'permit_assign' ? { upload: id, vehicle_id: pick[id] } : { upload: id, reason: why[id] ?? '' }, [`${base}/ownership-documents`]);
+    const r = await staffDo(what, what === 'permit_assign' ? { upload: id, vehicle_id: pick[id] ?? waiting.find((w) => w.id === id)?.suggested_vehicle_id ?? '' } : { upload: id, reason: why[id] ?? '' }, [`${base}/ownership-documents`]);
     setErr((x) => ({ ...x, [id]: r.ok ? '' : r.message }));
     if (r.ok) router.refresh();
   });
@@ -69,7 +69,7 @@ export function PermitBulk({ waiting, filed, cars, base }: { waiting: Waiting[];
     <div className="stack" data-testid="permit-bulk">
       <section className="pt-card ad-card stack" aria-labelledby="pb-h">
         <div className="pt-card__head"><h2 className="d4" id="pb-h">Upload ownership documents</h2></div>
-        <p className="small muted">Choose as many permit photos or PDFs as you have. Each is read for its VIN and plate and filed on its car; the owner sees it in their portal. One that matches no car waits below for you to pick the car.</p>
+        <p className="small muted">Choose as many permit photos or PDFs as you have. Each is read for its VIN and plate and filed on the car with that VIN; the owner sees it in their portal. One whose VIN matches no car waits below: confirm the car its plate suggests, or pick the car.</p>
         <label className="btn btn--primary" data-testid="permit-pick-label">{busy ? 'Working' : 'Choose the files'}
           <input className="vh" type="file" accept={PHOTO_ACCEPT} multiple disabled={busy} data-testid="permit-files" onChange={(e) => { void run(e.target.files); e.target.value = ''; }} /></label>
         {rows.length > 0 && <ol className="pb-rows" aria-live="polite" data-testid="permit-rows">{rows.map((r) => (
@@ -84,14 +84,14 @@ export function PermitBulk({ waiting, filed, cars, base }: { waiting: Waiting[];
             {w.note && <p className="small muted">{w.note}</p>}
             <div className="ad-fields">
               <div className="field ad-field"><label className="label" htmlFor={`pb-car-${w.id}`}>Car</label>
-                <select className="select" id={`pb-car-${w.id}`} value={pick[w.id] ?? ''} onChange={(e) => setPick((x) => ({ ...x, [w.id]: e.target.value }))} data-testid="permit-wait-car">
+                <select className="select" id={`pb-car-${w.id}`} value={pick[w.id] ?? w.suggested_vehicle_id ?? ''} onChange={(e) => setPick((x) => ({ ...x, [w.id]: e.target.value }))} data-testid="permit-wait-car">
                   <option value="">Choose the car</option>{cars.map((c) => <option key={c.id} value={c.id}>{[c.name, c.plate, c.owner_name].filter(Boolean).join(', ')}</option>)}</select></div>
               <div className="field ad-field"><label className="label" htmlFor={`pb-why-${w.id}`}>Or set it aside: why</label>
                 <input className="input" id={`pb-why-${w.id}`} value={why[w.id] ?? ''} onChange={(e) => setWhy((x) => ({ ...x, [w.id]: e.target.value }))} /></div>
             </div>
             <div className="row">
-              <button className="btn btn--primary btn--sm" type="button" disabled={pending || !pick[w.id]} onClick={() => act(w.id, 'permit_assign')} aria-describedby={`why-pb-${w.id}`} data-testid="permit-wait-file">File it on this car</button>
-              <WhyDisabled id={`why-pb-${w.id}`} why={!pick[w.id] ? 'Choose the car first' : null} />
+              <button className="btn btn--primary btn--sm" type="button" disabled={pending || !(pick[w.id] ?? w.suggested_vehicle_id)} onClick={() => act(w.id, 'permit_assign')} aria-describedby={`why-pb-${w.id}`} data-testid="permit-wait-file">File it on this car</button>
+              <WhyDisabled id={`why-pb-${w.id}`} why={!(pick[w.id] ?? w.suggested_vehicle_id) ? 'Choose the car first' : null} />
               <button className="btn btn--ghost btn--sm" type="button" disabled={pending || !(why[w.id] ?? '').trim()} onClick={() => act(w.id, 'permit_discard')} aria-describedby={`why-pbx-${w.id}`}>Set aside</button>
               <WhyDisabled id={`why-pbx-${w.id}`} why={!(why[w.id] ?? '').trim() ? 'Say why first' : null} />
             </div>

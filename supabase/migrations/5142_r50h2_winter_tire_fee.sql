@@ -4,7 +4,7 @@
 -- booking when it was added; a rental's own price was only reachable by overriding the whole line, and an insurer rental
 -- entered without the add-on had no way to carry it.
 -- Now: app.booking_winter_tire_set (the door's ops_do winter_tire_set; 5144 wires it) sets a rental's winter tires: the rate a
--- day (0 or none removes them) and, optionally, the cap for the rental. It adds the add-on when the rental has none, keeps its
+-- day (rate_cents sent as 0 or null removes them; the cap alone changes only the cap) and, optionally, the cap for the rental. It adds the add-on when the rental has none, keeps its
 -- rate and cap on the booking's add-on (booking_addons, which prices the line: rate x days up to the cap), reprices the
 -- booking and the insurer's share, and writes the change with who and why to the booking's fee changes and history: a money
 -- record is never changed silently. (booking_fee_terms is not used: a term set on one booking is an Admin's price override.) On an insurer-billed rental the line is
@@ -50,7 +50,13 @@ begin
   v_rate0 := ba.unit_price_cents;
   v_total0 := b.total_due_at_booking_cents;
 
-  if coalesce(v_rate, 0) = 0 then
+  if not (p ? 'rate_cents') and not (p ? 'cap_cents') then raise exception 'Send the rate a day, the cap, or both' using errcode = '22023'; end if;
+  if not (p ? 'rate_cents') then
+    -- the cap alone (review fix): the rate stays as it is; the tires are removed only when rate_cents is sent as 0 or null
+    if ba.id is null then raise exception 'Booking % has no winter tires: set the rate a day first', b.booking_number using errcode = '23514'; end if;
+    v_rate := ba.unit_price_cents;
+    update booking_addons set cap_cents = v_cap where id = ba.id;
+  elsif coalesce(v_rate, 0) = 0 then
     if ba.id is null then return jsonb_build_object('ok', true, 'booking_number', b.booking_number, 'changed', false, 'rate_cents', null); end if;
     update booking_addons set status = 'cancelled', cancelled_at = now(), cancelled_by = p_by, cancel_reason = left('Winter tires removed: ' || v_reason, 300)
      where id = ba.id;

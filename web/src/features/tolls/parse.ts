@@ -34,6 +34,9 @@ export interface ReadResult {
   profile: Profile | null; authority: string | null; kind: Kind; statement_number: string | null; account_number: string | null;
   statement_date: string | null; due_on: string | null; total_cents: number | null; lines: ReadLine[];
   statement_fees: Array<{ text: string; amount_cents: number }>; problems: string[]; layout: 'statement' | 'single';
+  /** Review fix: what stops the statement being charged by itself (a credit or reversal left out, lines that do not add up to
+   *  the statement's total). Saved with the read; the database then charges nothing until a person has checked these. */
+  hold: string[];
 }
 export interface Ctx { plates: string[]; transponders?: string[]; today?: string }
 
@@ -249,10 +252,10 @@ const TOTAL_ROW = /^\s*(sub\s?total|total|balance|amount due|page \d|continued)/
 
 /** The trips of a statement read by its columns; null when the text has no table header (the line reader then runs). */
 function readTable(lines: TextLine[], o: { kind: Kind; authority: string | null; fleet: Set<string>; tags: Set<string>; order: Rules['date_order']; year: number | null;
-  plateLabels: string[]; feeWords: string[] | undefined; skipWords: string[] | undefined; due: string | null; statementPlate: string | null; statementDate: string | null }): { trips: ReadLine[]; fees: Array<{ text: string; amount_cents: number }>; problems: string[] } | null {
+  plateLabels: string[]; feeWords: string[] | undefined; skipWords: string[] | undefined; due: string | null; statementPlate: string | null; statementDate: string | null }): { trips: ReadLine[]; fees: Array<{ text: string; amount_cents: number }>; problems: string[]; hold: string[] } | null {
   // only text with positions (a PDF's text layer) is read by columns; typed or pasted text keeps the line reader
   if (!lines.some((l) => l.cells?.length)) return null;
-  const trips: ReadLine[] = []; const fees: Array<{ text: string; amount_cents: number }> = []; const problems: string[] = [];
+  const trips: ReadLine[] = []; const fees: Array<{ text: string; amount_cents: number }> = []; const problems: string[] = []; const hold: string[] = [];
   let cols: Column[] | null = null; let found = false; let groupPlate: string | null = null;
   type Rec = { vals: Partial<Record<Col, string[]>>; src: string[]; line: TextLine };
   let rec: Rec | null = null;
@@ -269,7 +272,7 @@ function readTable(lines: TextLine[], o: { kind: Kind; authority: string | null;
     const time = findTime((get('time') || get('datetime')).replace(date.raw, ' '));
     const toll = money('toll'), fee = money('fee'), total = money('total');
     const sum = (t: Array<{ cents: number }>) => t.reduce((n, x) => n + x.cents, 0);
-    if ([...toll, ...fee, ...total].some((t) => t.cents < 0)) { problems.push(`A credit or reversal was left out: ${r.src.join(' ').slice(0, 160)}`); return; }
+    if ([...toll, ...fee, ...total].some((t) => t.cents < 0)) { const m = `A credit or reversal was left out: ${r.src.join(' ').slice(0, 160)}`; problems.push(m); hold.push(m); return; }
     if (!toll.length && !fee.length && !total.length) return;
     const feeC = fee.length ? sum(fee) : null;
     let amount = total.length ? total[total.length - 1]!.cents : sum(toll) + (feeC ?? 0);
@@ -324,7 +327,7 @@ function readTable(lines: TextLine[], o: { kind: Kind; authority: string | null;
     }
   }
   flush();
-  return found ? { trips, fees, problems } : null;
+  return found ? { trips, fees, problems, hold } : null;
 }
 
 // ---------------------------------------------------------------- reading
@@ -362,7 +365,7 @@ export function readText(lines: TextLine[], profile: Profile | null, ctx: Ctx): 
   const fleet = new Set(ctx.plates.map((p) => normPlate(p)!).filter(Boolean));
   const tags = new Set((ctx.transponders ?? []).map((t) => t.toUpperCase()));
   const all = lines.map((l) => l.text).join('\n');
-  const problems: string[] = [];
+  const problems: string[] = []; const hold: string[] = [];
   const kind: Kind = profile?.notice_kind ?? 'fine';
 
   const hText = (k: FieldKey) => { const a = afterLabel(lines, f[k]); return a ? firstRef(a.value) : null; };
@@ -384,18 +387,19 @@ export function readText(lines: TextLine[], profile: Profile | null, ctx: Ctx): 
   const table = rules.layout !== 'single' ? readTable(lines, { kind, authority, fleet, tags, order: inferOrder(lines.map((l) => l.text), order), year, plateLabels: f.plate ?? [], feeWords: rules.trip?.statement_fee_words,
     skipWords: rules.trip?.skip_words, due: head.due_on, statementPlate, statementDate: head.statement_date }) : null;
   if (table && table.trips.length) {
-    const problems = [...table.problems];
+    const problems = [...table.problems]; const hold = [...table.hold];
     if (head.total_cents != null) {
       const sum = table.trips.reduce((n, t) => n + (t.amount_cents ?? 0), 0) + table.fees.reduce((n, x) => n + x.amount_cents, 0);
-      if (sum !== head.total_cents) problems.push(`The lines add up to ${(sum / 100).toFixed(2)}, the statement says ${(head.total_cents / 100).toFixed(2)}`);
+      if (sum !== head.total_cents) { const m = `The lines add up to ${(sum / 100).toFixed(2)}, the statement says ${(head.total_cents / 100).toFixed(2)}`; problems.push(m); hold.push(m); }
     }
-    return { profile, authority, kind, ...head, lines: table.trips, statement_fees: table.fees, problems, layout: 'statement' };
+    return { profile, authority, kind, ...head, lines: table.trips, statement_fees: table.fees, problems, layout: 'statement', hold };
   }
   if (rules.layout !== 'single') {
     const pick = rules.trip?.amount ?? 'last';
     for (const l of lines) {
-      const money = moneyTokens(l.text).filter((t) => t.cents >= 0);
+      const all$ = moneyTokens(l.text); const money = all$.filter((t) => t.cents >= 0);
       const date = findDate(l.text, order);
+      if (date && all$.some((t) => t.cents < 0)) { const m = `A credit or reversal was left out: ${l.text.trim().slice(0, 160)}`; problems.push(m); hold.push(m); continue; }
       if (!money.length) continue;
       if (inWords(l.text, rules.trip?.statement_fee_words)) { statementFees.push({ text: l.text.trim(), amount_cents: money[money.length - 1]!.cents }); continue; }
       if (!date) continue;
@@ -426,9 +430,9 @@ export function readText(lines: TextLine[], profile: Profile | null, ctx: Ctx): 
     if (!trips.length) problems.push('No trip lines were found: check the reading profile or read the notice by hand');
     if (head.total_cents != null && trips.length) {
       const sum = trips.reduce((n, t) => n + (t.amount_cents ?? 0), 0) + statementFees.reduce((n, x) => n + x.amount_cents, 0);
-      if (sum !== head.total_cents) problems.push(`The lines add up to ${(sum / 100).toFixed(2)}, the statement says ${(head.total_cents / 100).toFixed(2)}`);
+      if (sum !== head.total_cents) { const m = `The lines add up to ${(sum / 100).toFixed(2)}, the statement says ${(head.total_cents / 100).toFixed(2)}`; problems.push(m); hold.push(m); }
     }
-    return { profile, authority, kind, ...head, lines: trips, statement_fees: statementFees, problems, layout };
+    return { profile, authority, kind, ...head, lines: trips, statement_fees: statementFees, problems, layout, hold };
   }
 
   // a single notice: each field from its label, else from the whole text
@@ -454,7 +458,7 @@ export function readText(lines: TextLine[], profile: Profile | null, ctx: Ctx): 
   };
   line.confidence = lineConfidence(line, base, { inFleet: plate ? plate.inFleet : null, ambiguousDate: !!date?.ambiguous, needsNotice: kind !== 'toll_invoice' });
   if (!date && !plate && amount == null) problems.push('Nothing could be read from this text');
-  return { profile, authority, kind, ...head, lines: date || plate || amount != null ? [line] : [], statement_fees: statementFees, problems, layout };
+  return { profile, authority, kind, ...head, lines: date || plate || amount != null ? [line] : [], statement_fees: statementFees, problems, layout, hold };
 }
 
 // ---------------------------------------------------------------- CSV (0021's column mapping, with the fees)
@@ -487,9 +491,9 @@ export function inferOrder(texts: string[], order: Rules['date_order'] = 'auto')
  *  profile's date format. A line's amount is what the renter owes for it: the total column, else the charge plus every fee
  *  column; the fees are the fee columns (or the total less the charge). Rows without a date or a charge (a summary, a
  *  payment) are left out; a credit is left out and said. */
-export function csvLines(rows: string[][], map: Record<string, string>, o: { kind: Kind; authority: string; dateOrder?: Rules['date_order']; plates: string[]; amountUnit?: string; header?: number }): { lines: ReadLine[]; problems: string[] } {
+export function csvLines(rows: string[][], map: Record<string, string>, o: { kind: Kind; authority: string; dateOrder?: Rules['date_order']; plates: string[]; amountUnit?: string; header?: number }): { lines: ReadLine[]; problems: string[]; hold: string[] } {
   const fleet = new Set(o.plates.map((p) => normPlate(p)!).filter(Boolean));
-  const problems: string[] = [];
+  const problems: string[] = []; const hold: string[] = [];
   const lines: ReadLine[] = [];
   const dateCols = Object.entries(map).filter(([, t]) => t === 'date' || t === 'occurred_at').map(([c]) => Number(c));
   const order = inferOrder(rows.slice((o.header ?? 0) + 1).flatMap((r) => dateCols.map((c) => r[c] ?? '')), o.dateOrder);
@@ -510,7 +514,7 @@ export function csvLines(rows: string[][], map: Record<string, string>, o: { kin
     const fees = (v.fees ?? []).map(money).filter((x): x is number => x != null);
     const total = (v.total ?? []).map(money).filter((x): x is number => x != null);
     if (!date || (!charges.length && !fees.length && !total.length)) continue;
-    if ([...charges, ...fees, ...total].some((x) => x < 0)) { problems.push(`A credit or reversal was left out: ${r.join(', ').slice(0, 160)}`); continue; }
+    if ([...charges, ...fees, ...total].some((x) => x < 0)) { const m = `A credit or reversal was left out: ${r.join(', ').slice(0, 160)}`; problems.push(m); hold.push(m); continue; }
     const charge = charges.reduce((n, x) => n + x, 0); const fee = fees.length ? fees.reduce((n, x) => n + x, 0) : null;
     const amount = total.length ? total[total.length - 1]! : charge + (fee ?? 0);
     const feesOut = fee ?? (total.length && charges.length && amount > charge ? amount - charge : null);
@@ -528,5 +532,5 @@ export function csvLines(rows: string[][], map: Record<string, string>, o: { kin
     line.confidence = lineConfidence(line, base, { inFleet: plate ? fleet.has(plate) : null, ambiguousDate: !!date?.ambiguous, needsNotice: o.kind !== 'toll_invoice' });
     lines.push(line);
   }
-  return { lines, problems };
+  return { lines, problems, hold };
 }

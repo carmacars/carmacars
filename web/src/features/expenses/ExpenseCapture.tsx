@@ -30,6 +30,8 @@ export function ExpenseCapture() {
   const [f, setF] = useState<Form>({ ...EMPTY, date: today() });
   const touched = useRef(new Set<keyof Form>());
   const [busy, setBusy] = useState(false);
+  // one id per expense on the screen: a double tap or a retry logs it once (5143)
+  const [entryId, setEntryId] = useState(() => crypto.randomUUID());
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   useEffect(() => { void staffRead<Ctx>('expense_context').then((r) => (r.ok ? setCtx(r.data) : setMsg({ ok: false, text: r.message }))); }, []);
   useEffect(() => () => { for (const s of shotsRef.current) URL.revokeObjectURL(s.url); }, []);
@@ -83,7 +85,7 @@ export function ExpenseCapture() {
     const fd = new FormData();
     shots.forEach((s, i) => fd.append('photos', new File([s.blob], `receipt-${i + 1}.jpg`, { type: 'image/jpeg' })));
     const m = mergeReads(shots.filter((s) => s.read).map((s) => s.read!));
-    fd.set('expense', JSON.stringify({ amount_cents: amount, hst_cents: tax ?? 0, expense_on: f.date || today(), vendor: f.vendor.trim() || null, category: f.category,
+    fd.set('expense', JSON.stringify({ client_entry_id: entryId, amount_cents: amount, hst_cents: tax ?? 0, expense_on: f.date || today(), vendor: f.vendor.trim() || null, category: f.category,
       vehicle_id: f.car || null, payer: f.payer, paid_with: f.payer === 'owner' ? 'company' : f.paid, description: m?.what ? `${m.what}${f.vendor.trim() ? `: ${f.vendor.trim()}` : ''}` : null,
       read: m ? { what: m.what, confidence: m.confidence, problems: m.problems, photos: shots.length } : {} }));
     const r = await logExpense(fd);
@@ -91,7 +93,7 @@ export function ExpenseCapture() {
     if (!r.ok) { setMsg({ ok: false, text: r.message }); return; }
     setMsg({ ok: true, text: `Saved: ${money(r.data.total_cents, { cents: true })}${r.data.vehicle_name ? ` for the ${r.data.vehicle_name}` : ''}, ${r.data.payer === 'owner' ? 'on the owner\'s next statement' : 'a company expense'}.` });
     for (const s of shots) URL.revokeObjectURL(s.url);
-    setShots([]); setF({ ...EMPTY, date: today() }); touched.current.clear();
+    setShots([]); setF({ ...EMPTY, date: today() }); touched.current.clear(); setEntryId(crypto.randomUUID());
     router.refresh();
   }
 

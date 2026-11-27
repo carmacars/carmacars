@@ -50,6 +50,14 @@ select test.eq('insurer rental: no email to the renter', (select count(*) from a
 select test.eq('door: staff reach it through ops_do winter_tire_set',
   (app.door(test.id('wt5_fin'), 'aal2', 'ops_do', 'winter_tire_set', jsonb_build_object('booking', 'WT5-2', 'rate_cents', 1100, 'reason', 'Adjuster''s rate')) ->> 'after_cents'), '6600');
 
+-- review fix: the cap alone changes only the cap; a call without rate_cents never removes the tires
+select app.booking_winter_tire_set(test.id('wt5_fin'), jsonb_build_object('booking', 'WT5-2', 'cap_cents', 4000, 'reason', 'Adjuster cap'));
+select test.eq('cap only: the rate stays $11 a day, the line is capped at $40, the tires stay on',
+  (select ba.unit_price_cents || '/' || ba.cap_cents || '/' || ba.status from booking_addons ba join addons a on a.id = ba.addon_id where ba.booking_id = test.id('booking:WT5-2') and a.code = 'winter_tire' and ba.status = 'confirmed')
+  || '/' || app.booking_line_key_cents(test.id('booking:WT5-2'), 'addon:winter_tire'), '1100/4000/confirmed/4000');
+select test.throws('nothing to change: neither rate nor cap', format('select app.booking_winter_tire_set(%L, %L)', test.id('wt5_fin'), jsonb_build_object('booking', 'WT5-2', 'reason', 'x')), 'Send the rate a day, the cap, or both');
+select test.throws('cap only on a rental without tires is refused, not added', format('select app.booking_winter_tire_set(%L, %L)', test.id('wt5_fin'), jsonb_build_object('booking', 'WT5-1', 'cap_cents', 3000, 'reason', 'x')), 'has no winter tires');
+
 select app.process_events(100000);
 select test.eq('email: the renter''s email is built: no variable missing, to the renter',
   (select count(*) filter (where o.missing_variables = '{}') || '/' || count(*) from notification_outbox o where o.code = 'renter_winter_tire_changed' and coalesce(o.channel, 'email') = 'email'
