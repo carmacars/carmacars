@@ -226,6 +226,10 @@ select test.eq('renter search: Sales still finds the renter by the full number (
   jsonb_array_length(app.phone_renter_search(test.id('rss_sam'), '{"q": "416 555 0188"}')), 1);
 select test.ok('renter search: the masked number is kept so the server''s Call and Text find it',
   exists (select 1 from phone_masks where user_id = test.id('rss_sam') and number = '+14165550188'));
+select test.mk_renter('rss_rita2');
+update renters set mobile = '416-555-0188', legal_name = 'Rss Rita Second' where id = test.id('renter:rss_rita2');
+select test.eq('renter search: two renters with one number: both found, one mask row (integration: ON CONFLICT met the number twice)',
+  jsonb_array_length(app.phone_renter_search(test.id('rss_sam'), '{"q": "416 555 0188"}'))::text || '/' || (select count(*) from phone_masks where user_id = test.id('rss_sam') and number = '+14165550188')::text, '2/1');
 select test.eq('renter search: Admin gets the full mobile and email',
   (select (x ->> 'mobile') || '/' || (x ->> 'email') from jsonb_array_elements(app.door(test.id('rss_admin'), 'aal2', 'admin_read', 'phone_renter_search', '{"q": "rss_rita.find"}')) x),
   '+14165550188/rss_rita.find@example.test');

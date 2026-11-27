@@ -34,7 +34,8 @@ begin
      order by r.created_at desc limit 10),
   kept as (
     insert into phone_masks as x (user_id, number, display, seen_at)
-    select p_by, t.e164, app.phone_mask_display(t.e164), now() from top t where v_mask and t.e164 is not null
+    -- two renters can share a number (a couple, an old account): one mask row a number
+    select distinct on (t.e164) p_by, t.e164, app.phone_mask_display(t.e164), now() from top t where v_mask and t.e164 is not null
     on conflict (user_id, number) do update set seen_at = excluded.seen_at, display = excluded.display
     returning 1)
   select coalesce(jsonb_agg(jsonb_build_object('id', t.id, 'name', t.legal_name,
