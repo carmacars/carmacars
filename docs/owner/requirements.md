@@ -877,6 +877,15 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 - Rule: later, not now. Note: it needs a walk-around video at each check-in and check-out (8 to 12 photos are too few for photogrammetry or Gaussian splatting), and it runs on our own server.
 - Done when: to be set when the owner schedules it (a future idea, no build yet).
 
+### REQ-126 "Not available" never blocks a free car, and always says why
+- Status: in progress
+- Proof: migration 5195 (app.vehicle_blocker; every "not available" or "not free" refusal ends with "blocked by" the booking or calendar block; offer_revise takes vehicle_id); 5111 (an ended booking never blocks) ships with it. Cause of CC-10674: the live database (build 97e9b615) has 3810 but not 5111, so the Kia Forte stayed "presumed out" behind CC-10602 (confirmed, pickup never recorded, return Nov 26).
+- Test: supabase/tests/99_r50h2_avail.sql
+- Asked: Nov 27 15:43, 15:50 (CC-10674)
+- Owner: "Trying to put this booking through, but it says ... the car is not available. Force the booking."; "Make sure that stops happening, because whatever is causing that has happened before, and that has become a regular issue."
+- Rule: a car is refused only for a real overlap (another booking that holds it, or a calendar block), never for a past trip left open. Every refusal names the exact booking (number, status, dates) or block (reason, source, dates). The connector moves an offer to another car with the checks of Admin > Edit the offer.
+- Done when: production runs 5111 and 5195; an offer moves to a car whose last rental was never closed and is booked; a refused car names its blocker on every screen and in the connector.
+
 ## 16. Earlier decisions (Oct to Nov 12, from the chat extraction)
 
 ### REQ-092 Corporation, shares and shareholder money
