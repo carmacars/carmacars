@@ -72,6 +72,12 @@ select test.ok('context: the owner''s car says its owner pays', (select (c ->> '
 select test.eq('door: through ops_read expense_context', (select jsonb_typeof(app.door(test.id('ex5_fin'), 'aal2', 'ops_read', 'expense_context', '{}') -> 'categories')), 'array');
 
 -- the vision model reads receipts, for the same people, counted in its allowance
+-- a day of its own: no neurons or readings an earlier file left (the live share can be used up by then), the vision switch on
+-- for every dated Program settings row (REQ-117: a 99_ file never needs what another leaves)
+delete from provider_calls where unit = 'neurons' and created_at >= app.local_midnight(app.today());
+delete from usage_readings where service = 'workers_ai';
+create temp table ex5_vis as select id, ai_vision_enabled v from program_settings;
+update program_settings set ai_vision_enabled = true;
 select test.eq('vision: receipts are read by those who log expenses, a live vision feature', (select (app.ai_vision_gate(test.id('ex5_fleet'), 'receipt_read') ->> 'allowed') || '/' || app.ai_tier('receipt_read') || '/' || app.ai_kind('receipt_read')), 'true/live/vision');
 select test.throws('vision: not for customer service', format('select app.ai_vision_gate(%L, %L)', test.id('ex5_cs'), 'receipt_read'), 'Admin, Finance or Fleet');
 select app.ai_call_record(test.id('ex5_fleet'), jsonb_build_object('purpose', 'receipt_read', 'model', 'test-vision', 'ok', true, 'neurons', 120));
@@ -82,3 +88,4 @@ select app.process_events(100000);
 select test.eq('email: the owner''s email is built: no variable missing',
   (select count(*) filter (where o.missing_variables = '{}') || '/' || count(*) from notification_outbox o where o.code = 'owner_car_cost_added' and coalesce(o.channel, 'email') = 'email'
       and o.entity_id = test.id('owner:ex5_otto')) <> '0/0' and not exists (select 1 from notification_outbox o where o.code = 'owner_car_cost_added' and o.missing_variables <> '{}'), true);
+update program_settings p set ai_vision_enabled = x.v from ex5_vis x where x.id = p.id;
