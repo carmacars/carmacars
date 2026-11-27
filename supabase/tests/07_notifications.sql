@@ -926,6 +926,7 @@ select test.eq('G every wired email code has been built at least once in these t
       and c.code not in ('admin_company_document_to_sign', 'admin_company_document_signed') -- company documents (5060, 5061), built in 99_r50_company_documents
       and c.code not in ('renter_winter_tire_changed', 'owner_car_cost_added', 'owner_permit_filed', 'insurer_estimate', 'staff_insurer_rental_added') -- R50 hotfix 2 (5142 to 5145; 5121 insurance replacements), built in 99_r50h2_winter_tire, 99_r50h2_expense_receipts, 99_r50h2_ownership_documents, 99_r50i_insurance_replacements
       and c.code <> 'admin_call_cancelled' -- the weekly Admin call (5150): a person no longer an Admin, built in 99_r50h2ux_admin_call
+      and c.code <> 'applicant_ai_interview_reminder' -- interview reminders (5161), built in 99_r50h2_seo_hiring_traction
       and not exists (select 1 from notification_outbox o where o.code = c.code)
       and not exists (select 1 from staff_digest_items d where d.code = c.code)),
   null::text);

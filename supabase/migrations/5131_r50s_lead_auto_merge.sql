@@ -315,3 +315,6 @@ revoke all on function app.lead_name_words(text), app.lead_name_fl(text), app.le
 grant execute on function app.lead_name_words(text), app.lead_name_fl(text), app.lead_name_sorted(text), app.lead_names_match(text, text), app.lead_names_fit(text, text),
   app.lead_city(leads), app.lead_car(leads), app.lead_has_work(leads), app.lead_open_for_merge(leads), app.lead_merge_target(uuid),
   app.lead_merge(uuid, uuid, uuid), app.lead_merge_auto(uuid), app.lead_auto_merge(), app.job_lead_merge(integer) to service_role;
+-- the name index (leads_open_name_fl_idx and the like) is computed by whoever writes a lead (staff from the portal): its
+-- plain SQL name functions, with no privileges of their own, are granted to authenticated (11_owners_forms_listings)
+grant execute on function app.lead_name_words(text), app.lead_name_fl(text), app.lead_name_sorted(text) to authenticated;
