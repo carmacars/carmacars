@@ -13,7 +13,7 @@ How to use this file:
 
 `scripts/check-requirements.mjs` (run by scripts/check-text.sh) fails if this file is missing, an item lacks ID, Status or Done when, or a done item lacks Proof or Test. `node scripts/check-requirements.mjs --export` rewrites docs/owner/requirements.json, which the weekly Admin call deck reads for its "Requirements not done" section (status not done).
 
-Status as of 2026-11-27: "in progress" means built or being built on the named hotfix 2 branch, not yet on main. The ledger of this first pass is hotfix-notes/owner-requests-ledger.md; the full owner chat is being merged in.
+Status as of 2026-11-27: "in progress" means built or being built on the named hotfix 2 branch, not yet on main. The ledger of this first pass is hotfix-notes/owner-requests-ledger.md; the first extraction of the owner chat (up to Nov 12) is merged as section 16; the complete pass follows from the owner data export.
 
 ## 1. Photos
 
@@ -268,13 +268,13 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 - Rule: invoices show direct deposit (account 1046242, transit 00085, institution 003) next to e-Transfer.
 - Done when: the issued invoice shows both.
 
-### REQ-030 Late fee
+### REQ-030 Late fee on unpaid owner insurance
 - Status: done
-- Proof: docs/changes/2026-11-20-r48-fees-evidence-hiring.md (commit f9d09caf)
-- Test: GAP (no test found)
+- Proof: docs/changes/2026-11-20-r48-money-rules.md (migration 3271, setting owner_insurance_late_fee_bps = 500)
+- Test: supabase/tests/24_owner_debit.sql; supabase/tests/99_r48rw_owner_money.sql
 - Asked: Nov 20
-- Rule: 5% late fee on unpaid insurer invoices.
-- Done when: an overdue invoice carries the fee.
+- Rule: 5% late fee (with HST) on unpaid owner insurance, added once to the returned invoice.
+- Done when: an overdue owner invoice carries the fee.
 
 ## 4. Payments, money
 
@@ -793,3 +793,230 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 - Owner: "Review every single thing I've discussed"
 - Rule: nothing the owner asked is dropped; the ledger and this file list all of it.
 - Done when: every item here is Done or has a named owner and date.
+
+## 16. Earlier decisions (Oct to Nov 12, from the chat extraction)
+
+### REQ-092 Corporation, shares and shareholder money
+- Status: in progress
+- Proof: not yet verified against the code (earlier release); verification pass pending
+- Test: to be added with the work
+- Asked: Oct 2026 (T2, T12, T14)
+- Owner: "CarmaCars.ca is 18122211 Canada Inc. My 50% shares should be under my own corp and Mahad's 50% shares should be under his own corp."
+- Rule: Mahad and the owner share all workload, invest equally, own equally and withdraw in equal amounts. Shareholder personally owned cars: 90-10 (10% to the shared corp, 90% to the owner payout). Cohosted cars: revenue goes to the corp, then the owner share is paid out. Staff and owners get a 20% kickback on referred rentals ("referral kickback: 20% of the rental"). Shareholder cars pay the company monthly insurance and trackers and pay first and last upfront. Investor payments: 12 blended payments. Coverage sold to renters comes from a third party.
+- Done when: Agreements, statements and payouts all follow these terms.
+
+### REQ-093 One agreement per owner and owner money rules
+- Status: in progress
+- Proof: not yet verified against the code (earlier release); verification pass pending
+- Test: to be added with the work
+- Asked: ~Oct 6 (T600)
+- Owner: One agreement per owner covers all cars; owner pays ServiceOntario, inspection and appraisal directly
+- Rule: CarmaCars collects only $100 tracker install (now $150) plus monthly fees plus first and last month insurance. Self-managed owners are paid 100% of owner revenue on the 10th. Claim leftover after repair on third-party owner cars stays with CarmaCars (lawyer or broker approves). Referral kickback is deducted before owner revenue.
+- Done when: Owner agreement and statement code match these rules.
+
+### REQ-094 Public car code, not fleet size
+- Status: in progress
+- Proof: not yet verified against the code (earlier release); verification pass pending
+- Test: to be added with the work
+- Asked: ~Oct 24 (T1000)
+- Owner: "Fleet numbers or codes r good for when a renter is describing a car they r looking at to us."
+- Rule: The public site shows the car code CC-xxxx, never the fleet size. Staff AI assistant with usage alerts at 80%, investor deck, VIN-first car entry, native apps after the website.
+- Done when: No public page shows the fleet size; codes show.
+
+### REQ-095 List cars with no roadblocks
+- Status: in progress
+- Proof: not yet verified against the code (earlier release); verification pass pending
+- Test: to be added with the work
+- Asked: ~Oct 21 (T901)
+- Owner: "It's a necessity to be able to list cars with no roadblocks."
+- Rule: A car goes public with only year, make, model, plate or VIN, supply type and rates; missing photos, documents and signatures are warnings. Hard gates only at handover: car on the fleet policy and renter verified. Publish now button; auto-publish on by default.
+- Done when: A car with only those fields publishes; handover is blocked until the two gates pass.
+
+### REQ-096 Renter coverage rules (OPCF 27 and credit card)
+- Status: in progress
+- Proof: not yet verified against the code (earlier release); verification pass pending
+- Test: to be added with the work
+- Asked: ~Oct 21 (T901)
+- Owner: "Renters must be able to upload their insurance policy if using OPCF 27 coverage, and if using credit card rental coverage, they must be paying with a credit card that actually has rental car coverage."
+- Rule: Credit card, not debit or prepaid, the same card as the payment; staff approve before confirming.
+- Done when: Both routes work and staff approval is required.
+
+### REQ-097 Legal text word for word
+- Status: in progress
+- Proof: not yet verified against the code (earlier release); verification pass pending
+- Test: to be added with the work
+- Asked: ~Oct 21 (T800)
+- Owner: "CarmaCars: legal text changes before launch" applied word for word
+- Rule: PAD payee "[company legal name], operating as CarmaCars"; NSF-only single retry on the later of the 18th or 3 business days after return, never over 30 days; Late Fee as its own invoice line; renter-facing always "Protection Plan", never insurance, coverage or the provider name; investment agreements need an Admin countersign; signing officer Abbas Al-Mashita, Director. The only admin access is through rent@carmacars.ca.
+- Done when: Every renter-facing page, email and agreement matches the legal review doc.
+
+### REQ-098 Admin portal easy to navigate
+- Status: in progress
+- Proof: not yet verified against the code (earlier release); verification pass pending
+- Test: to be added with the work
+- Asked: ~Oct 21 (T800)
+- Owner: Admin portal "super difficult to navigate and intense" (31 nav links)
+- Rule: Fewer, grouped navigation links; every upgrade also applies to each relevant staff portal.
+- Done when: Admin navigation is grouped and each role sees only its links.
+
+### REQ-099 Edit renter details
+- Status: in progress
+- Proof: not yet verified against the code (earlier release); verification pass pending
+- Test: to be added with the work
+- Asked: ~Oct 25 (T1751, T1755, T1757)
+- Owner: "There's no way to adjust a renters details. We accidentally entered someone's email wrong and need to change it asap"
+- Rule: Admin and CS/Sales can edit name, email, phone, DOB, address and licence; an email change updates the auth user, is audit logged and warns on duplicates (case: yichengchen@gmail.com to yichengchen0923@gmail.com, booking CC-10012).
+- Done when: An email edit changes sign-in and is in the audit log.
+
+### REQ-100 Add any fee to any booking
+- Status: in progress
+- Proof: not yet verified against the code (earlier release); verification pass pending
+- Test: to be added with the work
+- Asked: ~Oct 25 (T1759, T1763)
+- Owner: "the future we should be able to add in any sort of fee at all to any booking"
+- Rule: Staff can add a fee line (young driver fee $70 case) to any booking including confirmed and in progress; the outstanding balance recalculates, the renter is notified with a pay link, the renter portal has a Pay button, owner statements update.
+- Done when: A fee added to a confirmed booking is payable by the renter at once.
+
+### REQ-101 01 Motors CRM sync excludes partner cars
+- Status: in progress
+- Proof: not yet verified against the code (earlier release); verification pass pending
+- Test: to be added with the work
+- Asked: ~Oct 25 (T1767, T1771)
+- Owner: "it only syncs over the non-partner cars."
+- Rule: The outbound GoHighLevel sync sends only our cars and cohost cars, never supply_type partner; enforced in the database and by a test.
+- Done when: A partner car never appears in the outbound sync.
+
+### REQ-102 Discount game rules
+- Status: in progress
+- Proof: not yet verified against the code (earlier release); verification pass pending
+- Test: to be added with the work
+- Asked: ~Oct 22 to 25 (T1306, T2012, T2013)
+- Owner: "People that win a prize should be able to play again"
+- Rule: Re-show after 60 s on site or the 2nd page view; at most 3 a visit and 6 a day; never in checkout; one code per person per day and per booking; codes expire in 7 days; "Play again after claiming" default cooldown 1 day; all admin settings.
+- Done when: The game follows each limit.
+
+### REQ-103 SEO page multipliers
+- Status: in progress
+- Proof: not yet verified against the code (earlier release); verification pass pending
+- Test: to be added with the work
+- Asked: ~Oct 22 (T1311, T1313, T1317, T1319, T1330)
+- Owner: "Need seo multipliers for all those pages for DUI, bad drivers record, uber/ubereats/doordash/hopp/lyft rentals, and whatever else u suggest"
+- Rule: Detailing, body shop, DUI, gig driver and occasion pages exist for every car, place, colour and term (terms from the place_terms table). The pages are for SEO only: do not change booking rules or site copy to match. Header menu adds only Chauffeur; no menu links to SEO or vehicle pages; a small quiet footer "Browse" section only. Programmatic SEO is a feature on the investor deck without page-count promises.
+- Done when: The page families exist, the menu is as stated and the deck slide exists.
+
+### REQ-104 CarmaCars phone line from settings
+- Status: in progress
+- Proof: not yet verified against the code (earlier release); verification pass pending
+- Test: to be added with the work
+- Asked: Oct 21 (T1034, T1036, T1026)
+- Owner: Real line is (289) 312-5991 (Quo), not 289-321-5991
+- Rule: The number comes from site settings, never hard-coded. Quo set up with caller id, menu, text-backs, contacts, call hold and call transcripts. CarmaCars Quo, Cloudflare and GitHub accounts stay separate from Almash.
+- Done when: No hard-coded number in code, emails, agreements or guides.
+
+### REQ-105 VIN-decoded listing data is correct
+- Status: in progress
+- Proof: not yet verified against the code (earlier release); verification pass pending
+- Test: to be added with the work
+- Asked: ~Oct 22 (T1304)
+- Owner: "the gearbox and seats info seems to be wrong too"
+- Rule: Trim lists, gearbox and seats decode correctly (Beetle, Jetta, Forte cases); cited data only.
+- Done when: The sample cars show the right trim, gearbox and seats.
+
+### REQ-106 Fleet page filters can hide
+- Status: in progress
+- Proof: not yet verified against the code (earlier release); verification pass pending
+- Test: to be added with the work
+- Asked: ~Oct 22 (T1515)
+- Owner: "there should be a way to hide the options menu because that takes up a lot of the screen"
+- Rule: A small arrow hides and shows the filter menu on the fleet page.
+- Done when: The filter menu collapses on desktop and phone.
+
+### REQ-107 Facebook Marketplace
+- Status: in progress
+- Proof: not yet verified against the code (earlier release); verification pass pending
+- Test: to be added with the work
+- Asked: ~Oct 25 (T1753, T1765)
+- Owner: "For fb marketplace I just need the auto replies and auto posting."
+- Rule: Meta auto replies; posting and replying through Chrome; ready-to-post listings; a quick page /fb; Quo auto text reply.
+- Done when: Listings and replies run without manual typing.
+
+### REQ-108 Website needs real photos
+- Status: in progress
+- Proof: not yet verified against the code (earlier release); verification pass pending
+- Test: to be added with the work
+- Asked: ~Oct 25 (T1769, T1773)
+- Owner: "My website also desperately needs photos."
+- Rule: Licensed stock photos on SEO pages; real fleet photos through the guided photo flow.
+- Done when: Every published page and car has a real or approved photo.
+
+### REQ-109 Admin lists are in the order they came in
+- Status: in progress
+- Proof: not yet verified against the code (earlier release); verification pass pending
+- Test: to be added with the work
+- Asked: Nov 12 (T4401)
+- Owner: "it should probably be chronological in the order that it came in, not alphabetical."
+- Rule: Renters, bookings, offers, leads and hiring lists default to newest or arrival order, not alphabetical.
+- Done when: Each list opens in arrival order.
+
+### REQ-110 Town hall and interview reminders
+- Status: in progress
+- Proof: not yet verified against the code (earlier release); verification pass pending
+- Test: to be added with the work
+- Asked: Nov 12 (T4403, T4407)
+- Owner: "I mean to remind them through notifications and through the actual staff portal."
+- Rule: Remind everyone, including the owner, about the town hall and interviews by notifications and the staff portal, not WhatsApp or calendar. Google Calendar connect must work.
+- Done when: Reminders arrive in the portal and as notifications.
+
+### REQ-111 Hiring alerts and tough interviews
+- Status: in progress
+- Proof: not yet verified against the code (earlier release); verification pass pending
+- Test: to be added with the work
+- Asked: Nov 12 (T4409)
+- Owner: "You can notify me when a new applicant comes through, when an AI interview gets done and when a live call gets booked ... Make the interviews difficult, a pre-screening to the academy."
+- Rule: Notify the owner on those three events, with no action required except when an interview is booked; interviews act as a hard pre-screen to the academy.
+- Done when: The three notices fire and only a booked interview creates a task.
+
+### REQ-112 Secrets in GitHub for setup steps
+- Status: in progress
+- Proof: not yet verified against the code (earlier release); verification pass pending
+- Test: to be added with the work
+- Asked: Nov 12 (T4411)
+- Owner: "put the values into a GitHub secrets thing, so I literally just have to copy and paste it in and click submit"
+- Rule: Every setup the owner must finish is prepared so he only pastes and clicks (Google OAuth values to GitHub secrets).
+- Done when: Each owner setup step is one paste and one click.
+
+### REQ-113 Close unused browser tabs
+- Status: in progress
+- Proof: not yet verified against the code (earlier release); verification pass pending
+- Test: to be added with the work
+- Asked: Nov 12 (T4413)
+- Owner: "There are way too many tabs open. This is a mess."
+- Rule: Close tabs when finished; use the CarmaCars Chrome profile for CarmaCars work.
+- Done when: No stray tabs remain after a browser task.
+
+### REQ-114 Insurer rental data on the rental
+- Status: in progress
+- Proof: not yet verified against the code (earlier release); verification pass pending
+- Test: to be added with the work
+- Asked: Oct 2026 (T2200 to T2211)
+- Owner: "insurer rentals can be longer than 30 days"
+- Rule: Claim number, policy number, licence and adjuster details are saved on the renter profile or rental; insurer pays HST on top; VLF billed (target $20 a day); insurer rentals may exceed 30 days; the sales portal must let sales staff enter rentals and offers; the numbered company name (not CarmaCars) shows as the sender name on insurer emails.
+- Done when: An insurer rental holds all those fields and sales can create it.
+
+### REQ-115 Nightly storage cleanup
+- Status: in progress
+- Proof: not yet verified against the code (earlier release); verification pass pending
+- Test: to be added with the work
+- Asked: Oct 21 (T1019)
+- Owner: "ya why not"
+- Rule: Nightly auto-cleanup of old test reports and guide screenshots (about 3:23am); photos, documents, signed agreements and backups are never touched.
+- Done when: The cleanup runs and none of the protected data is deleted.
+
+### REQ-116 Email and To do organiser
+- Status: not started
+- Proof: not yet verified against the code (earlier release); verification pass pending
+- Test: to be added with the work
+- Asked: Oct 21 (T1010)
+- Owner: "i need ur help with an automatic organizer for the emails and with everything in my to do list"
+- Rule: Automatic email organiser and To do handling, running inside the account (not tied to one business inbox).
+- Done when: Incoming mail is sorted and tasks are tracked automatically.
