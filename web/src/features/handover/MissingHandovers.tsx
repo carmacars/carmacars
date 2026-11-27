@@ -32,6 +32,7 @@ export async function MissingHandovers({ userId, aal, mode, base }: { userId: st
             </span>
           </li>);
       })}</ul> : <p className="small muted">{mode === 'field' ? 'Nothing missing on your past rentals.' : 'Every past check-in and check-out has its photos and readings.'}</p>}
+      <p className="small"><Link prefetch={false} className="link" href={mode === 'field' ? '/staff/field/old-photos' : `${base}/old-photos`} data-testid="missing-old-photos">Photos of an earlier check-in or check-out still on your phone? Add old photos</Link></p>
     </Card>
   );
 }

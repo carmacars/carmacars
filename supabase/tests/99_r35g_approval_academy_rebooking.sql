@@ -1,4 +1,4 @@
--- 99: release 35 part G (migration 1154). Onboarding step 4 (approved by an Admin or a Fleet VA), the academy's safeguards
+-- 99: release 35 part G (migration 1154). Onboarding step 4 (approved by an Admin or a Fleet team member), the academy's safeguards
 -- (90% pass mark, reading time, random order, cooldown, tries a day, too-fast flag, an Admin's reset) and the rebooking claim
 -- (a returning renter's lead goes to the salesperson of their last booking). Fixtures start with "gap".
 select test.suite('99 r35g approval, academy, rebooking');
@@ -28,7 +28,7 @@ select test.eq('approval: not fully onboarded yet', app.staff_fully_onboarded(te
 select test.eq('approval: one open Fleet To do', (select queue || ':' || status || ':' || title from tasks where task_type = 'approve_onboarding' and related_id = test.id('gap_hire')), 'fleet:open:Approve Gap Hire''s onboarding');
 select test.eq('approval: Welcome shows the step, open and not done',
   (select (s ->> 'open') || '/' || (s ->> 'done') from jsonb_array_elements(pg_temp.dr('gap_hire', 'ops_read', 'staff_welcome') -> 'steps') s where s ->> 'key' = 'approval'), 'true/false');
-select test.ok('approval: the Fleet VA sees the person waiting',
+select test.ok('approval: the Fleet team member sees the person waiting',
   exists (select 1 from jsonb_array_elements(pg_temp.dr('gap_fleet', 'va_read', 'staff_onboarding_approvals')) x where x ->> 'user_id' = test.id('gap_hire')::text));
 select test.throws('approval: never by the person', $$select pg_temp.dr('gap_hire', 'ops_do', 'staff_onboarding_approve', jsonb_build_object('user', test.id('gap_hire')))$$);
 select test.throws('approval: not by Sales', $$select pg_temp.dr('gap_rep', 'ops_do', 'staff_onboarding_approve', jsonb_build_object('user', test.id('gap_hire')))$$, 'Admins and Fleet only');
@@ -41,7 +41,7 @@ select test.eq('reject: Welcome shows the reason',
 select test.eq('ask again: asked', (pg_temp.dr('gap_hire', 'ops_do', 'staff_onboarding_ask_again') ->> 'asked')::boolean, true);
 select test.eq('ask again: a new open To do', pg_temp.task_status('gap_hire'), 'cancelled,open');
 select pg_temp.dr('gap_fleet', 'va_do', 'staff_onboarding_approve', jsonb_build_object('user', test.id('gap_hire')));
-select test.eq('approved by a Fleet VA: fully onboarded', app.staff_fully_onboarded(test.id('gap_hire')), true);
+select test.eq('approved by a Fleet team member: fully onboarded', app.staff_fully_onboarded(test.id('gap_hire')), true);
 select test.eq('approved: the step is done', pg_temp.st('gap_hire'), 'done');
 select test.eq('approved: the To do is done', pg_temp.task_status('gap_hire'), 'cancelled,done');
 select test.eq('approved: logged', (select count(*)::int from audit_log where action = 'staff_onboarding_approved' and entity_id = test.id('gap_hire')::text and actor_user_id = test.id('gap_fleet')), 1);
@@ -117,7 +117,7 @@ update academy_quiz_starts set started_at = now() - interval '5 minutes' where u
 select test.eq('reset: tries again today, and a pass', (pg_temp.submit(true) ->> 'passed')::boolean, true);
 select test.eq('pass: answered at a normal pace: not flagged', (select flagged from academy_attempts where user_id = test.id('gap_cs') order by created_at desc limit 1), false);
 select test.eq('pass: the section is passed', app.academy_passed(test.id('gap_cs'), (select id from academy_sections where slug = 'prices-and-deposits')), true);
-update program_settings set academy_fail_cooldown_minutes = 30 where id = (app.settings()).id;
+update program_settings set academy_fail_cooldown_minutes = 2, academy_attempts_per_day = 10 where id = (app.settings()).id;
 
 -- ================================================================ C. rebooking: the last booking's salesperson claims the lead
 select test.mk_owner('gap_owner');

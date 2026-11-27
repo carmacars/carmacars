@@ -8,7 +8,7 @@ import { JsonLd } from '@/components/JsonLd';
 import { SlotCars } from '@/components/SlotCars';
 import { breadcrumbLd, type Trail, seoMeta } from '@/features/seo/meta';
 import { money } from '@/lib/format';
-import { deliveryFrom, fill, getStudioCovers, getFacts, getFleet, getSettings, getTokens, slotPhoto } from '@/lib/site';
+import { deliveryFrom, fill, getCutouts, getFacts, getFleet, getSettings, getTokens, slotPhoto } from '@/lib/site';
 
 export const revalidate = 3600;
 const trail: Trail = [['Home', '/'], ['Delivery']];
@@ -35,7 +35,7 @@ export default async function Delivery() {
     <div className="p-delivery">
       <JsonLd graph={[breadcrumbLd(trail, '/delivery')]} />
       <section className="band band--hero on-dark">
-        <div className="band__media photo fx-drift"><SlotCars slot="delivery.hero" photo={hero} studio={await getStudioCovers()} eager /></div>
+        <div className="band__media photo fx-drift"><SlotCars slot="delivery.hero" photo={hero} cutouts={await getCutouts()} eager /></div>
         <div className="wrap band__inner"><div className="band__copy stack">
           <Crumbs trail={trail} />
           <h1 className="d1">The car comes to you.</h1>

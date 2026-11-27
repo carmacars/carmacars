@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { ROLE_NAV, currentRole, landingRole, mergedNav, rolesFor, type RoleInfo } from './roles.ts';
+import { ROLE_NAV, accountRoleWords, currentRole, landingRole, mergedNav, rolesFor, worksInPerson, type RoleInfo } from './roles.ts';
 
 // r48 ops: one portal with a role switcher and merged navigation, for a person with more than one role.
 const R = (o: Partial<RoleInfo> = {}): RoleInfo => ({ admin: false, va: null, field: false, owner: false, renter: false, investor: false, ...o });
@@ -54,4 +54,14 @@ test('sign-in opens the role used last, never a chooser; with none remembered th
   assert.equal(landingRole(rolesFor(R({ owner: true, renter: true })), 'account'), '/owner', 'renting counts only when there is nothing else');
   assert.equal(landingRole(rolesFor(R({ renter: true })), null), '/account');
   assert.equal(landingRole([], null), '/account');
+});
+
+test('REQ-065: VA only for remote assistants, never for in-person staff', () => {
+  assert.equal(accountRoleWords(['va'], { staff_type: 'va', functions: ['sales'], sales_work_mode: 'in_person' }), 'Staff');
+  assert.equal(accountRoleWords(['va', 'field'], { staff_type: 'va', functions: ['sales', 'field'], sales_work_mode: 'remote' }), 'Staff, Field');
+  assert.equal(accountRoleWords(['field'], { staff_type: 'field', functions: ['field'] }), 'Field');
+  assert.equal(accountRoleWords(['va', 'owner'], { staff_type: 'va', functions: ['cs'] }), 'VA (remote), Owner');
+  assert.equal(accountRoleWords(['admin'], null), 'Admin');
+  assert.equal(worksInPerson({ staff_type: 'va', va_function: 'sales', sales_work_mode: 'in_person' }), true);
+  assert.equal(worksInPerson({ staff_type: 'va', functions: ['finance'] }), false);
 });

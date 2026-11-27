@@ -96,6 +96,7 @@
   "tracker.pound_flag": {"staff_va_fleet": "staff_pound_flag"},
   "breakdown.reported": {"renter": "renter_breakdown_help", "staff_va_fleet": "staff_breakdown_reported"},
   "hiring.application_received": {"applicant": "applicant_received", "staff_admin": "rule:application_new"},
+  "photos.studio_paused": {"staff_admin": "rule:photo_studio_paused"},
   "hiring.confirm": {"applicant": "applicant_confirm"},
   "hiring.interview_booked": {"applicant": "applicant_booked"},
   "hiring.interview_reminder": {"applicant": "applicant_reminder"},

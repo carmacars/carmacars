@@ -45,7 +45,7 @@ export default async function Fleet({ searchParams }: { searchParams: Promise<Re
   // 1068: the live calls of field applicants who passed the AI interview, in the hour before the townhall
   const [wl, prep, calls] = await Promise.all([door<WorkLists>(user.id, 'ops_read', 'field_work_lists', {}, aal).catch(() => null), door<PrepList>(user.id, 'ops_read', 'field_prep', {}, aal).catch(() => null),
     door<FieldCall[]>(user.id, 'ops_read', 'field_call_slots', {}, aal).catch(() => [] as FieldCall[])]);
-  // 1154: onboarding step 4, the staff waiting for an Admin or a Fleet VA to approve
+  // 1154: onboarding step 4, the staff waiting for an Admin or a Fleet team member to approve
   const approvals = await door<ApprovalRow[]>(user.id, 'ops_read', 'staff_onboarding_approvals', {}, aal).catch(() => [] as ApprovalRow[]);
   // r43: the same pipeline as the Admin's (staff stages only), when this role may read the list; else the approvals alone
   const onboarding = await door<OnboardingRow[]>(user.id, 'ops_read', 'staff_onboarding_list', {}, aal).catch(() => [] as OnboardingRow[]);

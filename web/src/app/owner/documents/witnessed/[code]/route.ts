@@ -4,6 +4,7 @@ import { agreementPdf } from '@/features/agreement/pdf';
 import { FORM_TITLE, WITNESSED_FORMS_VERSION, witnessedBlocks, type WitnessedFacts } from '@/features/owner-agreement/witnessed';
 import { currentUser } from '@/server/portal/data';
 import { fileResponse } from '@/server/files';
+import { localRedirect } from '@/lib/http/local-redirect';
 
 // The pre-filled Form C (one financed or leased car) or Form D, as a PDF to print, sign with witnesses and upload
 // (migration 0040). The database checks the form is one this owner needs.
@@ -15,7 +16,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ code: st
   const nf = () => new Response('Not found', { status: 404, headers: { 'x-robots-tag': 'noindex' } });
   if (!['C', 'D'].includes(code) || (vehicle && !/^[0-9a-f-]{36}$/.test(vehicle))) return nf();
   const user = await currentUser();
-  if (!user) return Response.redirect(new URL(`/sign-in?next=${encodeURIComponent('/owner/documents')}`, req.url), 303);
+  if (!user) return localRedirect(`/sign-in?next=${encodeURIComponent('/owner/documents')}`, 303);
   const f = (await rpc('server_witnessed_form_facts', { p_by: user.id, p_code: code === 'C' ? 'C' : 'D1', p_vehicle: vehicle ?? undefined }, { role: 'service_role' }).catch(() => null)) as unknown as WitnessedFacts | null;
   if (!f) return nf();
   const k = f.company.logo_key;

@@ -17,7 +17,7 @@ export function StaffAgreements({ rows }: { rows: StaffAgreementRow[]; today?: s
     <ul className="mr-list">
       {rows.filter((r) => r.is_active).map((r) => (
         <li key={r.user_id} data-staff={r.email}>
-          <span><b>{r.name}</b> ({r.function?.replace(/_/g, ' ') ?? r.staff_type}): <span data-testid="staff-agreement-status">{r.signed ? `signed ${r.signed.method === 'paper' ? 'on paper' : 'in the portal'}, ${day(r.signed.on)}` : r.open ? `sent ${day(r.open.sent_at)}, waiting for their signature` : r.agreement_document_id ? 'on file' : 'no agreement on file'}</span></span>
+          <span><b>{r.name}</b> ({r.function?.replace(/_/g, ' ') ?? 'no function yet'}): <span data-testid="staff-agreement-status">{r.signed ? `signed ${r.signed.method === 'paper' ? 'on paper' : 'in the portal'}, ${day(r.signed.on)}` : r.open ? `sent ${day(r.open.sent_at)}, waiting for their signature` : r.agreement_document_id ? 'on file' : 'no agreement on file'}</span></span>
           {(r.signed?.document_id ?? r.agreement_document_id) && <a className="link small" href={`/admin/documents/${r.signed?.document_id ?? r.agreement_document_id}`} target="_blank" rel="noreferrer">Agreement</a>}
           {!r.open && !r.signed && <SendGenerated docType="staff_agreement" who={r.user_id} refresh={REFRESH} />}
           {!r.open && <SendToSign docType="staff_agreement" who={r.user_id} defaultTitle={`Staff agreement, ${r.name}`} refresh={REFRESH} />}

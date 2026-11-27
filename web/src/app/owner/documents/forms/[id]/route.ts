@@ -3,6 +3,7 @@ import type { Block } from '@/features/agreement/model';
 import { currentUser } from '@/server/portal/data';
 import { ownerForms } from '@/server/owner/data';
 import { readableMissing } from '@/features/onboarding/missing';
+import { localRedirect } from '@/lib/http/local-redirect';
 
 // A government form's data sheet as a PDF (08-forms.md section 9.3): every value the owner copies onto
 // the registry form, in the form's order, from public.owner_portal_forms. Used until a template is
@@ -12,7 +13,7 @@ export const dynamic = 'force-dynamic';
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const id = (await params).id;
   const user = await currentUser();
-  if (!user) return Response.redirect(new URL(`/sign-in?next=${encodeURIComponent('/owner/documents')}`, req.url), 302);
+  if (!user) return localRedirect(`/sign-in?next=${encodeURIComponent('/owner/documents')}`, 302);
   const f = (await ownerForms(user).catch(() => [])).find((x) => x.id === id);
   if (!f) return new Response('Not found', { status: 404 });
   const rows = f.data_sheet.map((r) => [r.label, r.value ?? 'To fill in']);

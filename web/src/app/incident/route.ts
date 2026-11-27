@@ -1,3 +1,4 @@
+import { localRedirect } from '@/lib/http/local-redirect';
 import { incidentRedirect } from '@/features/incident-cards/digital';
 
 // The printed incident card's QR code (1150): one fixed address for every car. It opens the renter's digital incident card
@@ -6,5 +7,5 @@ export const dynamic = 'force-dynamic';
 
 export function GET(req: Request) {
   const u = new URL(req.url);
-  return new Response(null, { status: 302, headers: { location: new URL(incidentRedirect(u.searchParams.get('b')), req.url).toString(), 'cache-control': 'no-store' } });
+  return localRedirect(incidentRedirect(u.searchParams.get('b')), 302, { 'cache-control': 'no-store' });
 }

@@ -55,7 +55,7 @@ select test.eq('show again: nothing added, nothing changed', (test.sc('again') -
 -- ---------------------------------------------------------------- 3. a request on a sample car is an enquiry
 create or replace function test.screq(p_slug text, p_key text) returns jsonb language sql as $$
   select public.submit_booking_request(jsonb_build_object('request_key', p_key, 'vehicle_id', (select vehicle_id from vehicle_listings where slug = p_slug),
-    'pickup_at', '2026-11-20 10:00-05', 'return_at', '2026-11-23 10:00-05', 'booking_type', 'standard', 'note', 'Need it for a wedding',
+    'pickup_at', date_trunc('day', now() + interval '20 days') + interval '15 hours', 'return_at', date_trunc('day', now() + interval '23 days') + interval '15 hours', 'booking_type', 'standard', 'note', 'Need it for a wedding',
     'renter', jsonb_build_object('email', 'Eve.Enquirer@example.test', 'full_name', 'Eve Enquirer', 'mobile', '647-555-0123', 'date_of_birth', '1990-01-01'),
     'consents', jsonb_build_object('marketing', jsonb_build_object('opted_in', false))), null, 'test', null) $$;
 set role service_role;
@@ -82,7 +82,7 @@ select test.throws('enquiry: no booking on a sample car from anywhere (Add a ren
       5900, 5900, 30000, 100000, 'daily', 1, 0, 5900, 0, 200, 200, 35, 50000, 5900, 767, 6667 from vehicle_listings l where l.slug = 'hyundai-elantra'$$, 'example car');
 select test.mk_vehicle('sxreal', 'sx_owner');
 select test.ok('enquiry: a real car still books normally (the guard is only for sample cars)',
-  test.mk_booking('SC-REAL', 'sxreal', 'sx_rita', '2026-11-01 10:00', '2026-11-02 10:00', 'requested') is not null);
+  test.mk_booking('SC-REAL', 'sxreal', 'sx_rita', (date_trunc('day', now() + interval '30 days') + interval '15 hours')::text, (date_trunc('day', now() + interval '31 days') + interval '15 hours')::text, 'requested') is not null);
 select test.eq('chat: the assistant''s facts mark the sample cars, not the real ones',
   (select string_agg(c ->> 'slug' || '=' || (c ->> 'sample'), ',' order by c ->> 'slug') from jsonb_array_elements(app.server_chat_facts() -> 'fleet') c
     where c ->> 'slug' in ('toyota-corolla', 'mercedes-c300-sxpub0')), 'toyota-corolla=true');

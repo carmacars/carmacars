@@ -10,7 +10,7 @@ import { JsonLd } from '@/components/JsonLd';
 import { SlotCars } from '@/components/SlotCars';
 import { OwnerForm } from '@/features/forms/OwnerForm';
 import { breadcrumbLd, faqLd, type Trail, seoMeta } from '@/features/seo/meta';
-import { faqItems, fill, getStudioCovers, getFacts, getSettings, getTokens, slotPhoto } from '@/lib/site';
+import { faqItems, fill, getCutouts, getFacts, getSettings, getTokens, slotPhoto } from '@/lib/site';
 
 export const revalidate = 3600;
 const trail: Trail = [['Home', '/'], ['List your car']];
@@ -31,7 +31,7 @@ export default async function Owners() {
     <div className="p-owners">
       <JsonLd graph={[breadcrumbLd(trail, '/list-your-car'), faqLd(faq)]} />
       <section className="band band--hero on-dark">
-        <div className="band__media photo fx-drift"><SlotCars slot="owners.hero" photo={hero} studio={await getStudioCovers()} eager /></div>
+        <div className="band__media photo fx-drift"><SlotCars slot="owners.hero" photo={hero} cutouts={await getCutouts()} eager /></div>
         <div className="wrap band__inner"><div className="band__copy stack">
           <Crumbs trail={trail} />
           <p className="eyebrow">Owner program, {s.city}</p>

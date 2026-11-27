@@ -19,8 +19,8 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 
 ### REQ-001 Full angle set, identical backgrounds, real photos after
 - Status: in progress
-- Proof: branch r50-hotfix2-photos (not on main)
-- Test: to be added with the work
+- Proof: branch r50-hotfix2-photos (not on main, not live): docs/changes/2026-11-25-r50-hotfix2-photos.md; migration 5080 (app.photo_render_order = the 8 sample angles; app.public_listing_photos: the views in that order, then the real photos cut out); web r48.ts R48_ANGLES and R48_ROOM_PATH, studio-composite.ts (one room for every view of every car). Live check after deploy: a real car page shows the set first, the same room, real photos after; fresh-eyes fixes: an older render that was live stays on the site until its view is made again (prev_live), only exterior check-in and check-out angles go to the image model (app.photo_r48_handover_shot) with a line on the privacy page, the real-photo extras wait while any standard view is waiting (app.photo_r48_views_waiting)
+- Test: supabase/tests/99_r50h2_studio_composite.sql (sections 1, 6, 9); web/src/features/listing/r48.test.ts; web/src/features/listing/studio-gate.test.ts
 - Asked: Nov 25 (repeated Nov 25 20:13, Nov 27)
 - Owner: "generate each vehicle in every single angle ... same angles as the sample photos, same order ... real photos after, still cut out on the same background"
 - Rule: every car gets all the sample photos' angles, in exactly the same angles and order as the samples. When a car has no photo for an angle, AI generates that exact car (same rims, same paint, same everything) in that angle. After the AI angles come the real photos, cut out onto the same AI background. Every background looks exactly the same.
@@ -28,8 +28,8 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 
 ### REQ-002 Cutout only on heroes, home and cards
 - Status: in progress
-- Proof: branch r50-hotfix2-photos (not on main)
-- Test: to be added with the work
+- Proof: branch r50-hotfix2-photos (not on main, not live): migration 5080 (worker_listing_result keeps the cover matte and the side cutout in site_cutouts; app.site_studio_covers gives only the cutout with the room); web components/SlotCars.tsx (home, heroes, fleet, delivery and owner pages: cutouts where the sample car stood), components/Picture.tsx StudioTurn (cards: the room once, the cutouts over it). Live check after deploy: heroes, home and sample cards on every page
+- Test: supabase/tests/99_r50h2_studio_composite.sql (section 9); web/src/features/listing/r48.test.ts (the cover matte and the side cutout); e2e not run here: GAP for the rendered pages
 - Asked: Nov 27
 - Owner: "only the cutout is shown, never the full photo with its background"
 - Rule: on home pages, heroes and anywhere sample cars are replaced by real cars, show only the cutout, never the full photo with its background.
@@ -54,8 +54,8 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 
 ### REQ-005 Find why Gemini fails
 - Status: in progress
-- Proof: branch r50-hotfix2-photos (not on main)
-- Test: to be added with the work
+- Proof: branch r50-hotfix2-photos (not on main, not live): docs/changes/2026-11-25-r50-hotfix2-photos.md ("The cause of a failed check was never stored"); web integrations/photos/gemini.ts geminiCheckImages reports the cause, server/listing-worker.ts records it; migration 5080 app.photo_mark_record keeps it with the photo; the cost guard (app.photo_r48_cost_guard, 3 calls a photo a day, pause and alert). Production cause still unknown: photo_standard fails in production (site_errors Nov 27: POST /api/mcp syntax error at or near ")", fixed in 5080) and no Gemini key here for a real call
+- Test: supabase/tests/99_r50h2_studio_composite.sql (sections 3, 4, 7, 10); web/src/integrations/photos/gemini-route.test.ts
 - Asked: Nov 25 17:17
 - Owner: "Find that actual problem"
 - Rule: find and fix the cause of failing image generation that burns usage and money; add a pass-rate guard so failures stop early.
@@ -486,8 +486,8 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 
 ### REQ-055 Photos for past bookings
 - Status: in progress
-- Proof: branch r50-hotfix2-oldphotos (not on main)
-- Test: to be added with the work
+- Proof: branch r50-hotfix2-oldphotos (not on main): migrations 5185 to 5187, docs/changes/2026-11-27-r50h2-old-photos.md; fresh-eyes fixes: photos added later hidden from the renter and the owner, capture time only inside the booking's dates, 200 photos a report, 30 plate reads a person a day
+- Test: supabase/tests/99_r50h2_old_photos.sql; web/src/features/old-photos/old-photos.test.ts; web/tests/e2e/r50h2-old-photos.spec.ts
 - Asked: Nov 26 14:43, Nov 27 07:12
 - Rule: upload check-in and out photos for previous bookings, in bulk; field staff can see those bookings.
 - Done when: a past booking accepts bulk photos.
@@ -584,11 +584,13 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 
 ### REQ-067 Academy
 - Status: in progress
-- Proof: branch r50-hotfix2-academy (not on main)
-- Test: to be added with the work
-- Asked: Nov 27 01:12, 05:02
-- Rule: the first sections (more than 3) unlock work; the full academy is needed for payouts; shorter; lessons match questions; stuck or repeated errors force that section; Admin opens any lesson and quiz; wrong-answer wait 2 minutes with one fix.
-- Done when: each rule is testable in the academy.
+- Proof: branch r50-hotfix2-academy at 31356c07 (not on main): supabase/migrations/5170 to 5172
+- Test: supabase/tests/99_r50h2_basics_routing.sql (92 assertions: basics, pay and hours hold and release, stuck sections, Admin access, audit)
+- Asked: Nov 27 01:12, 05:02, 12:36, 15:05
+- Owner (Nov 27 12:36): "Pay for hours should also be held until academy is passed. Field staff must finish entire academy. Same with customer service and fleet and finance."
+- Owner (Nov 27 15:05): "Portal stays locked for field staff and customer service and finance and fleet until they finish the full academy"
+- Rule: the first sections (more than 3) unlock work for Admins and Sales; Field, customer service, Finance and Fleet need the full academy before the portal opens; the full academy is needed for payouts; shorter; lessons match questions; stuck or repeated errors force that section; Admin opens any lesson and quiz; wrong-answer wait 2 minutes with one fix. Payouts held until the entire academy is passed cover hours and shift pay too, plus commission, bonus, referral and contractor payouts, for Field, customer service, Fleet and Finance; held pay is never lost (paid in full on the first pay run after the pass); an Admin can waive per person with a reason; one Program setting turns the hours part off (on by default).
+- Done when: each rule is testable in the academy; an hourly or shift pay line for a Field, customer service, Fleet or Finance person who has not passed the full academy is held, and is paid on the first pay run after they pass; a Field, customer service, Finance or Fleet person who has not passed the full academy reaches only the academy and onboarding pages (agreement, documents, pay details); every other staff page sends them to the academy.
 
 ### REQ-068 Academy videos
 - Status: not started
@@ -877,12 +879,39 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 - Rule: later, not now. Note: it needs a walk-around video at each check-in and check-out (8 to 12 photos are too few for photogrammetry or Gaussian splatting), and it runs on our own server.
 - Done when: to be set when the owner schedules it (a future idea, no build yet).
 
-### REQ-126 "Not available" never blocks a free car, and always says why
+### REQ-126 The installed app and every redirect stay on the public host
+- Status: in progress
+- Proof: see the commit that adds web/src/lib/http/public-origin.ts and the guard test in web/src/lib/http/local-redirect.test.ts
+- Test: web/src/lib/http/local-redirect.test.ts
+- Asked: Nov 27 15:55
+- Owner: "When doing the app bookmark thing, it says localhost and stops working. Wtf fix that"
+- Rule: behind Caddy and vps-server.mjs, req.url reads http://localhost:3000. Same-site redirects use localRedirect(path) (relative Location). An absolute address (OAuth redirect_uri, links) uses publicOrigin(req). No route builds a browser-facing address from req.url or u.origin.
+- Done when: the installed app (Add to Home Screen) and every redirect on carmacars.ca stay on the public host; no response sends a browser to localhost.
+
+### REQ-127 E-Transfer requests for renters who pay by e-Transfer
+- Status: not started
+- Proof: none yet (open, next release)
+- Test: GAP
+- Asked: Nov 27 15:55
+- Owner: "Need to implement e-transfer requests when someone wants to pay via e-transfer"
+- Rule: open, next release.
+- Done when: a renter who chooses e-Transfer gets an email request with the exact amount, the e-Transfer address and the booking number as the message, the booking waits for that payment, and the received e-Transfer is matched to the booking automatically.
+
+### REQ-128 Never accept an offer for the renter
+- Status: not started
+- Proof: none yet (open; a rule for staff and Claude)
+- Test: GAP
+- Asked: Nov 27 15:55
+- Owner: "don't accept the offer for him"
+- Rule: a rule for staff and Claude.
+- Done when: Admin tools and Claude never use Book it now (accept an offer without the renter) unless the owner names that action for that booking.
+
+### REQ-129 "Not available" never blocks a free car, and always says why
 - Status: in progress
 - Proof: migration 5195 (app.vehicle_blocker; every "not available" or "not free" refusal ends with "blocked by" the booking or calendar block; offer_revise takes vehicle_id); 5111 (an ended booking never blocks) ships with it. Cause of CC-10674: the live database (build 97e9b615) has 3810 but not 5111, so the Kia Forte stayed "presumed out" behind CC-10602 (confirmed, pickup never recorded, return Nov 26).
 - Test: supabase/tests/99_r50h2_avail.sql
-- Asked: Nov 27 15:43, 15:50 (CC-10674)
-- Owner: "Trying to put this booking through, but it says ... the car is not available. Force the booking."; "Make sure that stops happening, because whatever is causing that has happened before, and that has become a regular issue."
+- Asked: Nov 27 15:43, 15:50, 16:51 (CC-10674)
+- Owner: "Trying to put this booking through, but it says ... the car is not available. Force the booking."; "Make sure that stops happening, because whatever is causing that has happened before, and that has become a regular issue."; "Why the fuck is it marked cleaning it's already available and put that booking into the Kia forte. Do it for me. And make sure that doesn't happen again"
 - Rule: a car is refused only for a real overlap (another booking that holds it, or a calendar block), never for a past trip left open. Every refusal names the exact booking (number, status, dates) or block (reason, source, dates). The connector moves an offer to another car with the checks of Admin > Edit the offer.
 - Done when: production runs 5111 and 5195; an offer moves to a car whose last rental was never closed and is booked; a refused car names its blocker on every screen and in the connector.
 

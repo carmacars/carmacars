@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { localRedirect } from '@/lib/http/local-redirect';
 import { env } from '@/lib/env';
 import { auth } from '@/lib/auth';
 import { landingFor, safeNext } from '@/server/portals';
@@ -70,19 +70,19 @@ export async function GET(req: Request) {
     jar.delete(FLOW_COOKIE);
     if (!code) {
       const reason = u.searchParams.get('error') === 'access_denied' ? 'cancelled' : 'exchange';
-      return NextResponse.redirect(new URL(`/sign-in?oauth=${reason}&provider=${flow.p}`, u.origin));
+      return localRedirect(`/sign-in?oauth=${reason}&provider=${flow.p}`);
     }
     const r = await finishProviderSignIn(code, flow);
-    return NextResponse.redirect(new URL(r.to, u.origin));
+    return localRedirect(r.to);
   }
   if (backend === 'supabase' && tokenHash && TYPES.has(type)) {
     const { supabaseServer } = await import('@/lib/supabase/server');
     const s = await supabaseServer();
     const { data, error } = await s.auth.verifyOtp({ token_hash: tokenHash, type: type as 'invite' });
     if (!error) {
-      if (type === 'email_change') return NextResponse.redirect(new URL(await emailChanged(data.user, asked), u.origin));
+      if (type === 'email_change') return localRedirect(await emailChanged(data.user, asked));
       await verified(data.user?.id, data.user?.email);
-      return NextResponse.redirect(new URL(await target(type, asked, data.user?.id), u.origin));
+      return localRedirect(await target(type, asked, data.user?.id));
     }
   } else if (backend === 'supabase' && code) {
     const { supabaseServer } = await import('@/lib/supabase/server');
@@ -90,20 +90,20 @@ export async function GET(req: Request) {
     const { data, error } = await s.auth.exchangeCodeForSession(code);
     if (!error) {
       await verified(data.user?.id, data.user?.email);
-      return NextResponse.redirect(new URL(await target(type || 'signup', asked, data.user?.id), u.origin));
+      return localRedirect(await target(type || 'signup', asked, data.user?.id));
     }
   } else if (backend !== 'supabase' && tokenHash && type === 'email_change') {
     const r = await (await auth()).confirmEmailChange?.(tokenHash);
-    if (r?.ok) return NextResponse.redirect(new URL(await emailChanged({ id: r.user.id, email: r.user.email }, asked), u.origin));
+    if (r?.ok) return localRedirect(await emailChanged({ id: r.user.id, email: r.user.email }, asked));
   } else if (backend !== 'supabase' && tokenHash && CONFIRM.has(type)) {
     // the local stand-in for Supabase Auth (src/lib/auth/local.ts): the same confirmation link, checked locally
     const r = await (await auth()).confirmEmail?.(tokenHash);
     if (r?.ok) {
       await verified(r.user.id, r.user.email);
-      return NextResponse.redirect(new URL(await target(type, asked, r.user.id), u.origin));
+      return localRedirect(await target(type, asked, r.user.id));
     }
   }
   // Supabase sends people here with ?error=...&error_code=otp_expired when its own page refused the link
   const kind = type === 'signup' || type === 'email' ? 'confirm' : type === 'invite' ? 'invite' : 'password';
-  return NextResponse.redirect(new URL(`/link-expired?kind=${kind}`, u.origin));
+  return localRedirect(`/link-expired?kind=${kind}`);
 }

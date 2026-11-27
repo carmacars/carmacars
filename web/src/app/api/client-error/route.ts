@@ -4,6 +4,7 @@ import type { Json } from '@/lib/db/types';
 import { currentUser } from '@/server/portal/data';
 import { foreignOrigin } from '@/lib/security/same-origin';
 import { cookies } from 'next/headers';
+import { assignStuck } from '@/server/academy-stuck';
 
 // A crash in a visitor's browser (migration 0433): the error page and the window listeners post here; the database
 // keeps it and opens one Admin task a day per page and message (2895: real crashes only; noise is kept, never a task). Same-origin only; small bodies only.
@@ -25,6 +26,8 @@ export async function POST(req: Request) {
   const p = { visitor: vid && /^[0-9A-Za-z-]{8,64}$/.test(vid) ? vid : undefined, message: s(b.message, 500), path: s(b.path, 300), stack: s(b.stack, 4000), digest: s(b.digest, 100), ua: s(req.headers.get('user-agent'), 300), user_id: who?.id };
   try {
     await rpc('server_client_error', { p: p as unknown as Json }, { role: 'service_role' });
+    // 5171: repeated errors of a staff member on one area: its academy section first (the database counts them)
+    if (who && p.path?.startsWith('/staff')) await assignStuck(who.id, p.path, null, 'client_errors');
   } catch (e) {
     console.error('client-error', e instanceof Error ? e.message.slice(0, 200) : e);
   }

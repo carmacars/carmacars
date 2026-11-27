@@ -74,7 +74,29 @@ select test.eq('...and a second booking on the Forte is told which booking holds
 -- ================================================================ 5. grants
 select test.eq('vehicle_blocker and offer_revise_pre5195 run for the server only',
   (select count(*)::int from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-    where n.nspname = 'app' and p.proname in ('vehicle_blocker', 'offer_revise_pre5195')
+    where n.nspname = 'app' and p.proname in ('vehicle_blocker', 'offer_revise_pre5195', 'vehicle_status_set', 'detail_done_car_available')
       and (has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'))), 0);
 
 
+
+-- ================================================================ 6. cleaning never stops a rental, and is cleared (5195)
+select test.mk_vehicle('AVK', 'av_own');
+update vehicles set status = 'cleaning' where id = test.id('vehicle:AVK');
+select test.mk_booking('AV-K', 'AVK', 'av_r2', pg_temp.t(interval '-1 hour'), pg_temp.t(interval '2 days'), 'confirmed');
+select test.eq('the pickup of a car in cleaning lists no car status problem (CC-10602 could not be handed over)',
+  exists (select 1 from jsonb_array_elements(app.handover_blockers(test.id('av_admin'), test.id('booking:AV-K'), 'pickup', '{}'::jsonb)) x where x ->> 'code' = 'vehicle_status'), false);
+select test.eq('...and the handover itself takes a car in cleaning', position($q$'ready_to_list', 'cleaning')$q$ in pg_get_functiondef('app.booking_after_status()'::regprocedure)) > 0, true);
+select test.mk_vehicle('AVD', 'av_own');
+update vehicles set status = 'cleaning' where id = test.id('vehicle:AVD');
+insert into field_jobs (vehicle_id, kind, status, scheduled_at) values (test.id('vehicle:AVD'), 'detail', 'scheduled', now());
+update field_jobs set status = 'done', completed_at = now() where vehicle_id = test.id('vehicle:AVD') and kind = 'detail';
+select test.eq('the detail job marked done puts the car back to available', (select status::text from vehicles where id = test.id('vehicle:AVD')), 'available');
+
+-- ================================================================ 7. set_car_status (the connector, admin_do vehicle_status_set)
+update vehicles set status = 'cleaning' where id = test.id('vehicle:AVD');
+select test.throws('a reason is needed', $$select app.door(test.id('av_admin'), 'aal2', 'admin_do', 'vehicle_status_set', jsonb_build_object('vehicle_id', test.id('vehicle:AVD'), 'status', 'available'))$$, 'Say why');
+select test.throws('only a move the status rules allow', $$select app.door(test.id('av_admin'), 'aal2', 'admin_do', 'vehicle_status_set', jsonb_build_object('vehicle_id', test.id('vehicle:AVD'), 'status', 'on_rent', 'reason', 'Test move'))$$, 'A car goes from cleaning to');
+select test.eq('an Admin sets it available',
+  app.door(test.id('av_admin'), 'aal2', 'admin_do', 'vehicle_status_set', jsonb_build_object('vehicle_id', test.id('vehicle:AVD'), 'status', 'available', 'reason', 'Cleaned on Nov 26')) ->> 'status', 'available');
+select test.eq('...logged with the reason', (select after ->> 'reason' from audit_log where action = 'vehicle_status_set' and entity_id = test.id('vehicle:AVD')::text order by at desc, id desc limit 1), 'Cleaned on Nov 26');
+select test.eq('the connector maps set_car_status to it', app.api_action('set_car_status') ->> 'name', 'vehicle_status_set');

@@ -16,9 +16,7 @@ import { GEMINI_DEFAULT_MODEL as GEMINI_VISION_DEFAULT, geminiVision } from '@/i
 import { chainDeps } from '@/integrations/ai/links';
 import { letteringName } from '@/features/car/studio';
 import { showroomPrompt, type ShowroomOut, type ShowroomProvider } from '@/features/listing/showroom';
-import { geminiCheckImages, geminiEditImage } from '@/integrations/photos/gemini';
-import { renderChain, type RenderOut } from '@/integrations/renders/chain';
-import { renderProviders } from '@/server/render-providers';
+import { GEMINI_CHECK_MODEL, geminiCheckImages, geminiEditImage } from '@/integrations/photos/gemini';
 import { geminiRelay } from '@/server/gemini-relay';
 
 // The listing worker as the site runs it: the Cloudflare cron trigger (custom-worker.ts, every five
@@ -112,18 +110,13 @@ export function showroomAi(apiKey: string, f: typeof fetch = fetch): ShowroomPro
   };
 }
 
-/** r36b (2200): the missing angle through the same gate and free daily limit as the showroom (server_showroom_ai_gate).
- *  r48 AN: a standard view (makeR48 passes sameAngle and tries) goes through the render chain: Workers AI image-to-image
- *  for a restyle of a same-angle photo on the first try, then Gemini with the non-sensitive photos only
- *  (integrations/renders/chain.ts, server/render-providers.ts). */
+/** r36b (2200): the missing angle and the standard views through the same gate and daily limit as the showroom
+ *  (server_showroom_ai_gate: the daily limit, the cost of each call, the cap per photo a day and the paused studio, 5080).
+ *  5080: Gemini alone, sent every image the words number. The render chain of r48 AN is gone: its first provider (Workers AI
+ *  image-to-image) could not make the asked view and spent a try of every view, and its Gemini step dropped the check-in
+ *  and check-out photos while the words still counted them, so the drawing and the stock photo were taken as the car. */
 export function angleAi(apiKey: string, f: typeof fetch = fetch) {
-  const gemini = geminiAngle(apiKey, f);
-  return async (i: { images: Array<{ bytes: Uint8Array; contentType: string; ref?: boolean; sensitive?: boolean }>; prompt: string; photoId: string; sameAngle?: boolean; tries?: number }): Promise<ShowroomOut> => {
-    if (i.sameAngle === undefined) return gemini(i);
-    const out = await renderChain(await renderProviders((r) => gemini(r) as Promise<RenderOut>), i);
-    return out.ok ? { ok: true, bytes: out.bytes, contentType: out.contentType, provider: 'ai', model: out.provider }
-      : { ok: false, reason: out.reason as Extract<ShowroomOut, { ok: false }>['reason'], message: out.message };
-  };
+  return geminiAngle(apiKey, f);
 }
 
 function geminiAngle(apiKey: string, f: typeof fetch) {
@@ -146,9 +139,12 @@ async function checkPhoto(i: { images: Array<{ bytes: Uint8Array; contentType: s
   const key = env().GEMINI_API_KEY;
   if (!key) return null;
   const t0 = Date.now();
-  const r = await geminiCheckImages({ apiKey: key, model: env().GEMINI_CHECK_MODEL || null, relay: geminiRelay() }, i.images, i.system, i.prompt).catch(() => null);
+  const model = env().GEMINI_CHECK_MODEL || GEMINI_CHECK_MODEL;
+  let why: string | null = null;
+  const r = await geminiCheckImages({ apiKey: key, model, relay: geminiRelay() }, i.images, i.system, i.prompt, (w) => { why = w; }).catch(() => null);
   servedGemini('photo_check', r ? { ok: true, model: r.model } : null, t0);
-  await rpc('server_photo_mark_record', { p: { model: r?.model ?? null, ok: !!r, neurons: 0, duration_ms: Date.now() - t0, photo_id: i.photoId, marks: null } }, SR).catch(() => undefined);
+  // REQ-005: a check that gave no verdict is recorded with its cause (it was recorded as a bare failure, so nobody could see why)
+  await rpc('server_photo_mark_record', { p: { model: r?.model ?? `gemini:${model}`, ok: !!r, error: r ? null : why, neurons: 0, duration_ms: Date.now() - t0, photo_id: i.photoId, marks: null } }, SR).catch(() => undefined);
   return r;
 }
 

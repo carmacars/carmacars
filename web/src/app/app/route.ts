@@ -1,3 +1,4 @@
+import { localRedirect } from '@/lib/http/local-redirect';
 import { NextResponse } from 'next/server';
 import { realUser } from '@/server/portal/data';
 
@@ -7,5 +8,5 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
   const user = await realUser().catch(() => null);
-  return NextResponse.redirect(new URL(user ? '/choose-portal' : '/', req.url), 302);
+  return localRedirect(user ? '/choose-portal' : '/', 302);
 }

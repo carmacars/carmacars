@@ -74,8 +74,8 @@ select test.eq('the intake is published: its processed photos are approved',
 select test.ok('its plate not checked: still off the site (0070)', (select not is_public from vehicle_photos where id = (select detail from rphp)));
 update vehicle_photos set plate_status = 'not_visible' where id = (select detail from rphp);
 select test.ok('marked "no plate visible": on the site', (select is_public from vehicle_photos where id = (select detail from rphp)));
-select test.ok('on the site, but never the first photo: with no outside photo the site shows only the Photos coming soon photo (2841, 3701)',
-  (select is_public from vehicle_photos where id = (select detail from rphp)) and app.public_listing_photos(test.id('vehicle:rph_car')) #>> '{0,placeholder}' = 'true');
+select test.ok('on the site: with no live render the photos as before release 50 (5064)',
+  (select is_public from vehicle_photos where id = (select detail from rphp)) and (app.public_listing_photos(test.id('vehicle:rph_car')) = coalesce(nullif(app.photo_fallback_gallery(test.id('vehicle:rph_car')), '[]'::jsonb), jsonb_build_array(app.photo_placeholder(test.id('vehicle:rph_car'))))));
 update vehicle_photos set quality_flags = '["watermark"]'::jsonb where id = (select detail from rphp);
 select test.ok('a photo flagged for a mark is still kept off the site (0566)', (select not is_public from vehicle_photos where id = (select detail from rphp)));
 update vehicle_photos set quality_flags = '[]'::jsonb, is_public = true where id = (select detail from rphp);

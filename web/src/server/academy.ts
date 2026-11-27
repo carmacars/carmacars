@@ -2,7 +2,7 @@ import 'server-only';
 import { notFound, redirect } from 'next/navigation';
 import { currentUser } from '@/server/portal/data';
 import { door, rolesOf, sessionAal } from '@/server/door';
-import type { PathRow, SectionView } from '@/features/academy/model';
+import type { AcademyCounts, PathRow, Required, SectionView } from '@/features/academy/model';
 
 // The academy's reads (0207): the person's paths and a section to study. Staff (office or field) at /staff/academy; Admins
 // take the Admin path at /admin/academy/learn.
@@ -16,7 +16,8 @@ export async function academyUser(next: string, admin = false) {
   return { user, roles, aal };
 }
 export async function academyHome(userId: string) {
-  return door<{ paths: PathRow[]; gate: boolean; locked: boolean; pass_bps: number; /** 0840: when the hold starts (2990: the due date of new sections) */ lock_from?: string | null }>(userId, 'ops_read', 'academy_home');
+  return door<{ paths: PathRow[]; gate: boolean; locked: boolean; pass_bps: number; /** 0840: when the hold starts (2990: the due date of new sections) */ lock_from?: string | null;
+    /** 5170 */ counts?: AcademyCounts; basics_done?: boolean; pay_hold?: string | null; all_paths?: boolean; /** 5171 */ required?: Required[] }>(userId, 'ops_read', 'academy_home');
 }
 export async function academySection(userId: string, path: string, section: string): Promise<SectionView | { closed: string }> {
   try { return await door<SectionView>(userId, 'ops_read', 'academy_section', { path, section }); }

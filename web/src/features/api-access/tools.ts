@@ -546,6 +546,9 @@ export const RENTAL_TOOLS: Tool[] = [
   write('confirm_pay_later', 'Confirm, pay later', 'Confirm a booking waiting for payment with the rental and the deposit still owed (no card processor now; the renter pays later by e-Transfer or cash). Admins only; the reason (10 characters or more) is kept in the history and Finance gets a To do to collect.',
     ['booking', 'reason'], { ...booking, reason: str('Why it is confirmed before payment') }),
   write('start_rental_pay_later', 'Car already out: record the pickup', 'For a car that already went out before payment: an open offer is booked, the booking is confirmed pay later, and the pickup is recorded at the real time given, in one step. Admins only.',
-    ['booking', 'reason', 'at'], { ...booking, reason: str('Why it started before payment'), ...PAST_PICKUP })
+    ['booking', 'reason', 'at'], { ...booking, reason: str('Why it started before payment'), ...PAST_PICKUP }),
+  // 5195: a car's status, as the Admin car page changes it
+  write('set_car_status', 'Change a car\'s status', 'Change a car\'s status (available, cleaning, out of service, ...) to one the Admin car page offers from its current status, with the reason (kept in the audit log). Admins only. Cleaning never stops a booking or a handover.',
+    ['vehicle_id', 'status', 'reason'], { vehicle_id: id('The car'), status: str('The new status, for example available'), reason: str('Why it changes') })
 ];
 TOOLS.push(...RENTAL_TOOLS);

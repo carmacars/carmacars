@@ -22,8 +22,11 @@ export interface Today {
   cards: Card[];
   todo: Array<{ id: string; title: string; detail: string | null; type: string; related_id: string | null }>;
   counts: { must: number; done: number };
-  /** r35 (1051): the jobs on the person's shift that day held by someone else on it (either may take one) */
+  /** r35 (1051): the jobs on the person's shift that day held by someone else on it (either may take one); 5173: every pickup and
+   *  return of the day that is not theirs, on any shift or none */
   mates?: Mate[];
+  /** 5173: the pickups and returns after the day, up to the next held shift's day, so cars are prepped */
+  ahead?: Ahead[];
 }
 /** r40: Today as the page can always render it. A failed or partial read of field_read today gave an uncaught error in the
  *  page's server render, which reached the phone as React error 441 after every action (the actions revalidate /staff/field). */
@@ -33,10 +36,12 @@ export function safeToday(t: Partial<Today> | null | undefined, day: string): To
   return {
     day: typeof x.day === 'string' && x.day ? x.day : day, on_shift: !!x.on_shift, shift: x.shift ?? null, clock: x.clock ?? null,
     cards: Array.isArray(x.cards) ? x.cards.filter((c) => !!c && !!c.vehicle) : [], todo: Array.isArray(x.todo) ? x.todo : [],
-    counts: { must: Number(x.counts?.must) || 0, done: Number(x.counts?.done) || 0 }, mates: Array.isArray(x.mates) ? x.mates : [], failed: !ok
+    counts: { must: Number(x.counts?.must) || 0, done: Number(x.counts?.done) || 0 }, mates: Array.isArray(x.mates) ? x.mates : [], ahead: Array.isArray(x.ahead) ? x.ahead : [], failed: !ok
   };
 }
-export interface Mate { id: string; kind: string; leg: 'pickup' | 'return' | null; at: string; status: string; place: string | null; vehicle: string; booking: string | null; who: string | null }
+export interface Mate { id: string; kind: string; leg: 'pickup' | 'return' | null; at: string; status: string; place: string | null; vehicle: string; booking: string | null; who: string | null; /** 5173 */ on_my_shift?: boolean }
+/** 5173: a pickup or return before the next shift, to prep its car now. */
+export interface Ahead { id: string; kind: string; leg: 'pickup' | 'return' | null; at: string; status: string; day: string; vehicle: string; plate: string | null; booking: string | null; who: string | null }
 /** r35 (1051): the jobs of a shift by kind (the database's fx_slot_jobs). */
 export interface ShiftJobs { pickups: number; returns: number; cleans: number; other: number; total: number }
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;

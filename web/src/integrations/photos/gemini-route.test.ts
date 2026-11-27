@@ -64,3 +64,25 @@ test('the image call: a location refusal with no relay is a "location" failure (
   assert.deepEqual(check?.data, { a: true });
   resetGeminiRoute();
 });
+
+test('REQ-005: a check without a verdict says why (the HTTP status and message, an answer cut off, a timeout)', async () => {
+  resetGeminiRoute();
+  const img = [{ bytes: new Uint8Array([1]), contentType: 'image/jpeg' }];
+  const ask = async (f: () => Promise<Response>) => {
+    let why = '';
+    const r = await geminiCheckImages({ apiKey: 'gk', fetch: f as unknown as typeof fetch }, img, 'sys', 'words', (w) => { why = w; });
+    return { r, why };
+  };
+  const notFound = await ask(async () => json(404, { error: { code: 404, status: 'NOT_FOUND', message: 'models/x is not found' } }));
+  assert.equal(notFound.r, null);
+  assert.equal(notFound.why, 'http 404 NOT_FOUND: models/x is not found');
+  const cut = await ask(async () => json(200, { candidates: [{ finishReason: 'MAX_TOKENS', content: { parts: [{ text: '{"wrong_colour": fal' }] } }] }));
+  assert.equal(cut.r, null);
+  assert.equal(cut.why, 'no verdict: finish MAX_TOKENS, 20 characters');
+  const down = await ask(async () => { throw new Error('connect failed'); });
+  assert.equal(down.why, 'error: the model could not be reached');
+  const ok = await ask(async () => json(200, { candidates: [{ content: { parts: [{ text: '{"a": 1}' }] } }] }));
+  assert.deepEqual(ok.r?.data, { a: 1 });
+  assert.equal(ok.why, '');
+  resetGeminiRoute();
+});

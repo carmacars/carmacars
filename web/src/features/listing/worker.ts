@@ -20,10 +20,10 @@ import { boxesForSave, decidePlate, greyOfRgba, refineAll } from './plate-auto.t
 import { enhanceValues, statsOf, type Enhance } from './enhance.ts';
 import { cropAway, type MarkBox } from './photo-sort.ts';
 import { BACKGROUND_SAME, DEALERSHIP_PLACE, borderDiff, isDealership, type R48Scene } from './r48.ts';
-import { STUDIO_FRAME, cropResize, frameWindow, gateExterior, gateInterior, readCarBox, type GateVerdict } from './studio-gate.ts';
+import { chromaKey, gateKey, keyFor, type FBox, type GateMeasures } from './studio-gate.ts';
+import { composeStudio, cropBox } from './studio-composite.ts';
 import { STUDIO_MOVE_CHECK_SCHEMA, STUDIO_MOVE_CHECK_SYSTEM, judgeStudioMove, studioMoveCheckPrompt, studioMovePrompt } from './marketing-studio.ts';
-import { R48_MAX_BYTES, R48_MAX_REFS, R48_PRESET, R48_REF_SIDE, R48_SPEC, PLATE_CHECK_PROMPT, PLATE_CHECK_SCHEMA, PLATE_CHECK_SYSTEM, R48_CHECK_SCHEMA, R48_CHECK_SYSTEM, judgePlate, judgeR48,
-  platePath, platePrompt, r48CheckPrompt, r48Prompt, type PlateFamily } from './r48.ts';
+import { COVER_SHOT, R48_ROOM_PATH, R48_MAX_BYTES, R48_MAX_REFS, R48_PRESET, R48_REF_SIDE, R48_SPEC, R48_CHECK_SCHEMA, R48_CHECK_SYSTEM, judgeR48, r48CheckPrompt, r48ExtraPrompt, r48Prompt } from './r48.ts';
 import { R45_PRESET, R45_SPEC, blurPlates, checkPrompt, CHECK_SCHEMA, CHECK_SYSTEM, isExterior, judgeCheck, promptFor, type CarFacts, type Verdict } from './r45.ts';
 import { imageSize } from '../drive-import/image-size.ts';
 
@@ -142,9 +142,7 @@ export interface WorkerDeps {
   showroomNoKey?: boolean;
   /** r36b (2200): a view of the car from an angle never photographed, made by the image model from the car's other photos,
    *  behind the same gate and free daily limit as the showroom; none: the view waits for the image model. */
-  angleAi?: ((i: { images: Array<{ bytes: Uint8Array; contentType: string; ref?: boolean; sensitive?: boolean }>; prompt: string; photoId: string;
-    /** r48 AN: the render chain's hints (integrations/renders/chain.ts): a restyle of a same-angle photo, the tries made */
-    sameAngle?: boolean; tries?: number }) => Promise<ShowroomOut>) | null;
+  angleAi?: ((i: { images: Array<{ bytes: Uint8Array; contentType: string }>; prompt: string; photoId: string }) => Promise<ShowroomOut>) | null;
   /** r45 (2840): the second Gemini pass on a made photo (r45.ts checkPrompt): the JSON answer and the model; null when it may
    *  not be asked or did not answer (the photo is then not published). With angleAi, every listing photo is made by r45. */
   checkPhoto?: ((i: { images: Array<{ bytes: Uint8Array; contentType: string }>; system: string; prompt: string; schema: Record<string, unknown>; photoId: string }) => Promise<{ data: unknown; model: string } | null>) | null;
@@ -1038,11 +1036,12 @@ async function r45Job(d: WorkerDeps, j: JobContext): Promise<JobResult> {
 }
 
 // ================================================================ r48 (2900): every standard angle generated from references
-/** The job's r48 words (app.listing_job_context fills them fresh on every try). r48.2 (3030): the scene (its words, and a
- *  photo of the real place when it has one), the tries made before, and the stock photo alone when the car has no photo. */
-export interface R48Input { mode: 'r48'; /** r50 (3701): check the render already made against r48.3 in place (no new render) */ regate?: boolean; car?: CarFacts | null; shot?: string; refs?: Array<{ bucket: string; path: string; shot?: string; from?: 'listing' | 'handover' }>;
-  family?: PlateFamily | null; plate?: string | null; guide?: string | null; stock?: string | null; body?: string | null; feedback?: string[] | null;
-  scene?: (R48Scene & { reference_path?: string | null }) | null; tries?: number | null;
+/** The job's r48 words (app.listing_job_context fills them fresh on every try). r48.4 (5080): the references are the car's
+ *  listing photos, else its check-in and check-out photos (app.photo_r48_refs); an extra photo ('studio_extra') has its one
+ *  real photo as its reference. */
+export interface R48Input { mode: 'r48'; /** 5080: one of the car's real outside photos, cut out on the dealership after the standard views */ extra?: boolean;
+  car?: CarFacts | null; shot?: string; refs?: Array<{ bucket: string; path: string; shot?: string; from?: 'listing' | 'handover' }>;
+  guide?: string | null; stock?: string | null; body?: string | null; feedback?: string[] | null; tries?: number | null;
   /** r48 (3040): whether the car's own photos show a plate at the end this view shows (app.photo_r48_plate_end) */
   plate_end?: 'yes' | 'no' | null }
 type Img = { bytes: Uint8Array; contentType: string };
@@ -1070,159 +1069,143 @@ export async function refForModel(bytes: Uint8Array | null): Promise<Img | null>
   return m.bytes.length <= 3_000_000 ? m : null;
 }
 
-/** The background plate of a scene and family made once: Gemini makes the empty place (the dark dealership from its drawn
- *  layout with the CarmaCars sign; another scene from its words and, when it has one, a photo of the real place); the check
- *  must say it looks like a real photo with no car or person; stored in the public bucket. null when it could not be made. */
-export async function makePlate(d: WorkerDeps, f: PlateFamily, photoId: string, tag: string, scene: R48Scene | null = null, place: Img | null = null):
-  Promise<{ img: Img; path: string; model: string | null; check: Record<string, unknown> } | null> {
-  if (!d.angleAi || !d.checkPhoto) return null;
-  const deal = isDealership(scene);
-  // the image call needs an image: the dealership's drawn layout, the photo of the real place, or a blank canvas
-  const blank = { bytes: encodeJpeg({ width: 48, height: 32, data: new Uint8ClampedArray(48 * 32 * 4).fill(200) }, 80), contentType: 'image/jpeg' };
-  const first = deal ? { bytes: encodeJpeg(scaleDown(showroomBackdrop(), 1280, 1280), 86), contentType: 'image/jpeg' } : place ?? blank;
-  const words = platePrompt(f, scene ? { ...scene, reference: !!place } : null);
-  const made = await d.angleAi({ images: [first], prompt: deal || place ? words : `${words} Ignore the plain grey image: it is only a blank canvas.`, photoId }).catch(() => null);
-  if (!made?.ok) return null;
-  const img = await decodeImage(made.bytes).catch(() => null);
-  if (!img) return null;
-  const fitted = fitFrame(img, EXTERIOR.width, EXTERIOR.height);
-  const bytes = encodeJpeg(fitted, 90);
-  const asked = await d.checkPhoto({ images: [{ bytes: encodeJpeg(scaleDown(fitted, 1280, 1280), 85), contentType: 'image/jpeg' }], system: PLATE_CHECK_SYSTEM, prompt: PLATE_CHECK_PROMPT,
-    schema: PLATE_CHECK_SCHEMA as unknown as Record<string, unknown>, photoId }).catch(() => null);
-  const v = judgePlate(asked?.data, { logo: deal });
-  if (!v.pass) return null;
-  const path = platePath(f, tag, deal ? '' : scene?.code ?? '');
-  await d.files.putPublic(path, bytes, 'image/jpeg');
-  const issues = Array.isArray((asked!.data as { issues?: unknown }).issues) ? ((asked!.data as { issues: unknown[] }).issues).slice(0, 5).map(String) : [];
-  return { img: { bytes, contentType: 'image/jpeg' }, path, model: made.model ?? null, check: { pass: true, model: asked!.model, issues } };
-}
-
 /** Gemini's failures that are never the photo's fault: tried again later with a growing wait, no try counted (3030). */
 const RETRY_LATER = ['location', 'timeout', 'error', 'model'];
 
-/** One standard angle of a car made to r48.2: Gemini generates it from the car's real photos (or its check-in and check-out
- *  photos; the stock photo alone for an outside view of a car with none), the composition guide, the stock photo and the
- *  scene's background plate, with the angle's framing and direction in words; Gemini's second pass compares it with the real
- *  photos and the framing, and the site measures that the background really changed; the plates it found are blurred by the
- *  site; stored. Nothing is stored when it is refused. The references themselves are never stored or published here. */
+/** One view of a car made to r48.4 (5080). Gemini makes the car alone on a flat key colour from the car's own photos (its
+ *  listing photos, else its check-in and check-out photos; the stock photo alone for an outside view of a car with none),
+ *  the sample view of the angle and the stock photo, with the angle's camera and direction in words. Then, on the site's
+ *  CPU and before anything else is paid: the gate (a flat key, the whole car in the frame). Then Gemini's check against the
+ *  real photos (the car, the view, the direction, the plates). Then the car is keyed out and put on the drawn dealership
+ *  with the CarmaCars sign and the car's name, at its view's place (studio-composite.ts); an inside view is kept as made.
+ *  A render whose check could not be asked is kept privately and checked on the next try, never made (and paid) again.
+ *  Nothing is published when it is refused. The references themselves are never stored or published here. */
 export async function makeR48(d: WorkerDeps, j: JobContext): Promise<R45Made> {
   const p = j.photo!;
   const inp = ((j.input as { r45?: R48Input }).r45 ?? { mode: 'r48' }) as R48Input;
-  const shot = inp.shot ?? p.shot_type;
-  const ext = isExterior(shot);
+  const extra = !!inp.extra;
+  const shot = extra ? 'studio_extra' : (inp.shot ?? p.shot_type);
+  const ext = extra || isExterior(shot);
   const car: CarFacts = inp.car ?? { model: p.model ?? null };
-  const scene: R48Scene | null = inp.scene?.code ? { code: inp.scene.code, label: inp.scene.label ?? null, place: inp.scene.place ?? null } : null;
-  const name = ext && shot === 'front_left' && isDealership(scene) && (car.model ?? p.model) ? letteringName(String(car.model ?? p.model)) : null;
+  const key = keyFor(car.colour);
   const plateEnd = inp.plate_end === 'yes' || inp.plate_end === 'no' ? inp.plate_end : null;
-  let plateMade: Record<string, unknown> | null = null;
-  // r50 (3701): a render made before r48.3 is put through the studio gate as it is: kept (cropped onto its target) when it
-  // passes, made again only when it fails. No image is generated for it, only the check.
-  const regate = !!inp.regate && !!p.processed_path && !!d.files.getPublic;
-  const no = (why: string, extra: Record<string, unknown> = {}, wait: string | null = null): R45Made =>
-    ({ pass: false, why, wait, output: { r45: { pass: false, spec: R48_SPEC, why, generated: true, ...(regate ? { regate: true } : {}), ...(wait ? { wait } : {}), ...(plateMade ? { plate_made: plateMade } : {}), ...extra } } });
-  if ((!regate && !d.angleAi) || !d.checkPhoto) return no('Gemini is not set up on the website (no GEMINI_API_KEY)', {}, 'no_key');
-  // the car: its real photos (the same angle first), within the request's size
+  const no = (why: string, more: Record<string, unknown> = {}, wait: string | null = null): R45Made =>
+    ({ pass: false, why, wait, output: { r45: { pass: false, spec: R48_SPEC, why, generated: true, ...(wait ? { wait } : {}), ...more } } });
+  if (!d.angleAi || !d.checkPhoto) return no('Gemini is not set up on the website (no GEMINI_API_KEY)', {}, 'no_key');
+  // the car: its photos (the same angle first), within the request's size; every one read is sent
   const refs: Img[] = [];
   let total = 0, handover = 0;
-  let sameAngle: Img | null = null;
   let firstRaw: Uint8Array | null = null;
   for (const r of (inp.refs ?? []).slice(0, R48_MAX_REFS)) {
     const raw = r.bucket === 'condition-photos' ? (d.files.getCondition ? await d.files.getCondition(r.path).catch(() => null) : null)
       : r.bucket === 'vehicle-originals' ? await d.files.getPrivate(r.path).catch(() => null) : null;
-    if (raw && !firstRaw && r.from !== 'handover') firstRaw = raw;
+    if (raw && !firstRaw) firstRaw = raw;
     const m = refLight(raw);
     if (!m || total + m.bytes.length > R48_MAX_BYTES * 0.75) continue;
-    // r48 AN: marked for the render chain (a check-in or check-out photo never goes to an outside model)
-    refs.push(Object.assign(m, { ref: true, sensitive: r.from === 'handover' })); total += m.bytes.length;
+    refs.push(m); total += m.bytes.length;
     if (r.from === 'handover') handover++;
-    if (!sameAngle && r.shot === shot) sameAngle = m;
   }
-  // every reference too large to send as it is: one (the first listing photo) is made smaller, the only decode of a reference
-  if (!refs.length && firstRaw) { const m = await refForModel(firstRaw); if (m) { refs.push(Object.assign(m, { ref: true, sensitive: false })); total += m.bytes.length; } }
+  // every reference too large to send as it is: the first one is made smaller, the only decode of a reference
+  if (!refs.length && firstRaw) { const m = await refForModel(firstRaw); if (m) { refs.push(m); total += m.bytes.length; } }
   const pub = async (path: string | null | undefined): Promise<Img | null> => {
     if (!path || !d.files.getPublic) return null;
     const b = await d.files.getPublic(path).catch(() => null);
     const m = b ? await refForModel(b) : null;
     return m && total + m.bytes.length <= R48_MAX_BYTES ? (total += m.bytes.length, m) : null;
   };
-  const guide = await pub(inp.guide);
-  const stock = ext ? await pub(inp.stock) : null;
+  const guide = extra ? null : await pub(inp.guide);
+  const stock = ext && !extra ? await pub(inp.stock) : null;
   // a car with no photo at all: its outside views from the stock photo of its model, in the car's own colour
   const stockOnly = !refs.length && !!stock;
+  // nothing to make it from: refused here, before any call is paid
   if (!refs.length && !stockOnly) return no('the car\'s photos could not be read');
-  let plate = ext ? await pub(inp.plate) : null;
-  if (ext && !plate && inp.family && !regate) {
-    const placeRaw = inp.scene?.reference_path ? await d.files.getPrivate(inp.scene.reference_path).catch(() => null) : null;
-    const placeImg = placeRaw ? await refForModel(placeRaw) : null;
-    const made = await makePlate(d, inp.family, p.id, j.id.replace(/-/g, '').slice(0, 8), scene, placeImg);
-    if (made) { plate = made.img; total += made.img.bytes.length; plateMade = { family: inp.family, scene: scene?.code ?? null, path: made.path, model: made.model, check: made.check }; }
-  }
-  let ai: Rgba | null;
-  let made: { model?: string | null };
-  if (regate) {
-    const raw = await d.files.getPublic!(p.processed_path!).catch(() => null);
-    ai = raw ? await decodeImage(raw).catch(() => null) : null;
-    if (!ai) return no('the render could not be read for the studio gate');
-    made = { model: p.model ?? null };
-  } else {
-  const prompt = r48Prompt({ car, shot, refs: stockOnly ? 0 : refs.length, guide: !!guide, stock: !!stock, plate: !!plate, feedback: inp.feedback ?? null, scene, name, stockOnly, plateEnd });
-  const gen = await d.angleAi!({ images: [...refs, ...(guide ? [guide] : []), ...(stock ? [stock] : []), ...(plate ? [plate] : [])], prompt, photoId: p.id,
-    sameAngle: !stockOnly && !!sameAngle && refs[0] === sameAngle, tries: inp.tries ?? 0 })
-    .catch((e: unknown): ShowroomOut => ({ ok: false, reason: 'error', message: e instanceof Error ? e.message : String(e) }));
-  if (!gen.ok) {
-    const wait = ['limit', 'quota', 'off'].includes(gen.reason) ? gen.reason : RETRY_LATER.includes(gen.reason) ? 'retry' : null;
-    return no(`Gemini did not make it (${gen.reason}: ${gen.message})`, {}, wait);
-  }
-  ai = await decodeImage(gen.bytes).catch(() => null);
-  if (!ai) return no('Gemini\'s photo could not be read');
-  made = gen;
-  }
-  const size = ext ? EXTERIOR : INTERIOR;
-  let fitted = fitFrame(ai, size.width, size.height);
-  // r50: the same-angle real photo is no longer decoded for borderDiff (CPU); the studio gate compares with the plate instead
-  const seen = encodeJpeg(scaleDown(fitted, 1280, 1280), 85);
-  const asked = await d.checkPhoto({ images: [{ bytes: seen, contentType: 'image/jpeg' }, ...(stockOnly ? [stock!] : refs.slice(0, 4)), ...(plate ? [plate] : [])], system: R48_CHECK_SYSTEM,
-    prompt: r48CheckPrompt({ car, shot, plate: !!plate, scene, name, plateEnd }), schema: R48_CHECK_SCHEMA as unknown as Record<string, unknown>, photoId: p.id }).catch(() => null);
-  if (!asked) return no('the check could not be asked now', {}, 'retry');
-  const v = judgeR48(asked.data, { shot, plate: !!plate, tries: inp.tries ?? 0, scene, name, plateEnd });
-  const base = { model: made.model ?? null, check_model: asked.model, view: v.view, nose: v.nose ?? null, reasons: v.reasons, soft: v.soft ?? [], refs: refs.length, handover_refs: handover,
-    stock_only: stockOnly, scene: scene?.code ?? null };
-  if (!v.pass) return no(`the check refused it: ${v.reasons.join(', ')}`, base);
-  // r50 (3701): the studio gate. Outside: the car put on its view's target by a crop, then measured against the scene's one
-  // plate (wall, floor, contact shadow), its box, its view and direction. Inside: the view. Refused: made again with the reasons.
-  let gate: GateVerdict;
-  let platesAt = v.plates;
-  // r50 (5030): the crop window is kept with the verdict's measures (r45.gate.measures.win): the drive-off matte crops the plate the same way (studio-matte.ts)
-  let win: { x: number; y: number; w: number; h: number } | null = null;
-  if (ext && STUDIO_FRAME[shot]) {
-    const box = readCarBox(asked.data);
-    const placed = box ? frameWindow(box, STUDIO_FRAME[shot]!) : { error: 'gate_no_car_box' as const };
-    if ('error' in placed) gate = { pass: false, reasons: [placed.error], measures: {} };
-    else {
-      fitted = cropResize(fitted, placed.win, size.width, size.height);
-      win = { x: +placed.win.x.toFixed(4), y: +placed.win.y.toFixed(4), w: +placed.win.w.toFixed(4), h: +placed.win.h.toFixed(4) };
-      platesAt = v.plates.map((b) => ({ x: (b.x - placed.win.x) / placed.win.w, y: (b.y - placed.win.y) / placed.win.h, w: b.w / placed.win.w, h: b.h / placed.win.h }));
-      const plateImg = plate ? await decodeImage(plate.bytes).catch(() => null) : null;
-      gate = gateExterior({ shot, img: fitted, plate: plateImg ? fitFrame(plateImg, size.width, size.height) : null, car: placed.car, view: v.view, nose: v.nose ?? null, zoom: 1 / placed.win.w });
+  // the render: the one kept when its check could not be asked, else a new one
+  const pending = `vehicles/${j.vehicle_id}/original/r48-pending-${p.id}`;
+  const kept = await d.files.getPrivate(pending).catch(() => null);
+  let ai = kept ? await decodeImage(kept).catch(() => null) : null;
+  let model: string | null = null;
+  if (!ai) {
+    const prompt = extra ? r48ExtraPrompt({ car, key, feedback: inp.feedback ?? null })
+      : r48Prompt({ car, shot, refs: stockOnly ? 0 : refs.length, guide: !!guide, stock: !!stock, feedback: inp.feedback ?? null, stockOnly, plateEnd, key });
+    // the images in the order the words number them (imageRoles): the stock photo first when it is the car
+    const images = stockOnly ? [stock!, ...(guide ? [guide] : [])] : [...refs, ...(guide ? [guide] : []), ...(stock ? [stock] : [])];
+    const gen = await d.angleAi({ images, prompt, photoId: p.id })
+      .catch((e: unknown): ShowroomOut => ({ ok: false, reason: 'error', message: e instanceof Error ? e.message : String(e) }));
+    if (!gen.ok) {
+      const wait = ['limit', 'quota', 'off'].includes(gen.reason) ? gen.reason : RETRY_LATER.includes(gen.reason) ? 'retry' : null;
+      return no(`Gemini did not make it (${gen.reason}: ${gen.message})`, {}, wait);
     }
-  } else gate = gateInterior({ shot, view: v.view });
-  const gateOut = { pass: gate.pass, reasons: gate.reasons, measures: { ...gate.measures, ...(win ? { win } : {}) }, spec: R48_SPEC };
-  if (!gate.pass) return no(`the studio gate refused it: ${gate.reasons.join(', ')}`, { ...base, reasons: [...base.reasons, ...gate.reasons], gate: gateOut });
-  blurPlates(fitted, platesAt);
+    ai = await decodeImage(gen.bytes).catch(() => null);
+    if (!ai) return no('Gemini\'s photo could not be read');
+    model = gen.model ?? null;
+    await d.files.putPrivate(pending, gen.bytes, gen.contentType).catch(() => undefined);
+  }
+  const drop = async () => { if (d.files.removePrivate) await d.files.removePrivate(pending).catch(() => undefined); };
+  const size = ext ? EXTERIOR : INTERIOR;
+  const fitted = fitFrame(ai, size.width, size.height);
+  // the gate first, on the site's CPU: a render that is not the whole car on a flat key is refused before the paid check
+  const keyed = ext ? chromaKey(fitted, key) : null;
+  const gate = gateKey(keyed);
+  if (!gate.pass) { await drop(); return no(`the studio gate refused it: ${gate.reasons.join(', ')}`, { model, reasons: gate.reasons, key, gate_measures: gate.measures }); }
+  const seen = encodeJpeg(scaleDown(fitted, 1280, 1280), 85);
+  const asked = await d.checkPhoto({ images: [{ bytes: seen, contentType: 'image/jpeg' }, ...(stockOnly ? [stock!] : refs.slice(0, 4))], system: R48_CHECK_SYSTEM,
+    prompt: r48CheckPrompt({ car, shot, key: ext ? key : null, plateEnd }), schema: R48_CHECK_SCHEMA as unknown as Record<string, unknown>, photoId: p.id }).catch(() => null);
+  // the render is kept (pending) and checked on the next try: never made again for a check that did not answer
+  if (!asked) return no('the check could not be asked now (the render is kept for the next try)', { model }, 'retry');
+  const v = judgeR48(asked.data, { shot, tries: inp.tries ?? 0, plateEnd });
+  const base = { model, check_model: asked.model, view: v.view, nose: v.nose ?? null, reasons: v.reasons, soft: v.soft ?? [], refs: refs.length, handover_refs: handover,
+    stock_only: stockOnly, key: ext ? key : null };
+  if (!v.pass) { await drop(); return no(`the check refused it: ${v.reasons.join(', ')}`, base); }
+  let img: Rgba = fitted;
+  let backdrop: Rgba | null = null, layer: Rgba | null = null, carBox: FBox | null = null;
+  let measures: GateMeasures = gate.measures;
+  let plates = v.plates;
+  if (keyed) {
+    // a plate left on the car (a late try) blurred on the car itself, then the car put on the dealership
+    blurPlates(keyed.cut, v.plates);
+    const c = composeStudio(keyed.cut, shot);
+    if (!c) { await drop(); return no('the car could not be framed from its key', { ...base, reasons: [...base.reasons, 'gate_key_no_car'] }); }
+    img = c.img; backdrop = c.backdrop; layer = c.layer; carBox = c.car;
+    const r4 = (b: FBox) => ({ x: +b.x.toFixed(4), y: +b.y.toFixed(4), w: +b.w.toFixed(4), h: +b.h.toFixed(4) });
+    // the plates where the car now stands (from its box in the render to its box in the composite)
+    const kb = keyed.box!;
+    plates = v.plates.map((b) => ({ x: c.car.x + ((b.x - kb.x) / kb.w) * c.car.w, y: c.car.y + ((b.y - kb.y) / kb.h) * c.car.h, w: (b.w / kb.w) * c.car.w, h: (b.h / kb.h) * c.car.h }));
+    // the drive-off matte (5030) cuts the car against the empty room: the whole frame is the window, the car's box is known
+    measures = { ...gate.measures, car: r4(c.car), win: { x: 0, y: 0, w: 1, h: 1 } };
+  } else blurPlates(img, v.plates);
   const tag = j.id.replace(/-/g, '').slice(0, 6);
   const path = `vehicles/${j.vehicle_id}/${p.file_base}-r48${tag}.jpg`;
-  await d.files.putPublic(path, encodeJpeg(fitted, 88), 'image/jpeg');
+  await d.files.putPublic(path, encodeJpeg(img, 88), 'image/jpeg');
   const variants: Array<{ width: number; format: string; path: string }> = [];
   for (const w of VARIANT_WIDTHS) {
-    if (w >= fitted.width) continue;
+    if (w >= img.width) continue;
     const vp = `vehicles/${j.vehicle_id}/${p.file_base}-r48${tag}-${w}.jpg`;
-    await d.files.putPublic(vp, encodeJpeg(scaleDown(fitted, w), 84), 'image/jpeg');
+    await d.files.putPublic(vp, encodeJpeg(scaleDown(img, w), 84), 'image/jpeg');
     variants.push({ width: w, format: 'jpg', path: vp });
   }
-  const plates = platesAt.map((b) => ({ x: +b.x.toFixed(4), y: +b.y.toFixed(4), w: +b.w.toFixed(4), h: +b.h.toFixed(4) }));
+  // the owner's spec (5080): one identical room for every photo of every car, stored once (the cards' plate); the car alone
+  // on transparency for the places that show only the cutout: the cover's full frame (the cards and their drive-off) and
+  // the side profile cropped to the car (the home hero and sections, app.site_cutouts)
+  let background: string | null = null;
+  let cutout: { path: string; width: number; height: number; kind: 'matte' | 'cutout'; box?: FBox } | null = null;
+  if (backdrop && layer && carBox) {
+    background = R48_ROOM_PATH;
+    if (!(await d.files.hasPublic?.(R48_ROOM_PATH))) await d.files.putPublic(R48_ROOM_PATH, encodeJpeg(backdrop, 88), 'image/jpeg');
+    if (shot === COVER_SHOT) {
+      const lp = `site/cutouts/${j.vehicle_id}/${shot}-${tag}.png`;
+      await d.files.putPublic(lp, await encodePng(layer), 'image/png');
+      cutout = { path: lp, width: layer.width, height: layer.height, kind: 'matte', box: carBox };
+    } else if (shot === 'left') {
+      const cut = cropBox(layer, carBox);
+      const lp = `site/cutouts/${j.vehicle_id}/${shot}-${tag}.png`;
+      await d.files.putPublic(lp, await encodePng(cut), 'image/png');
+      cutout = { path: lp, width: cut.width, height: cut.height, kind: 'cutout' };
+    }
+  }
+  await drop();
+  const out = plates.map((b) => ({ x: +b.x.toFixed(4), y: +b.y.toFixed(4), w: +b.w.toFixed(4), h: +b.h.toFixed(4) }));
   return { pass: true, why: '', output: {
-    processed_path: path, width: size.width, height: size.height, variants, preset_version: R48_PRESET, flags: [],
-    showroom: { provider: 'ai', ...(made.model ? { model: made.model } : {}), note: null, reason: null, mode: 'r48', spec: R48_SPEC, scene: scene?.code ?? 'showroom_dark',
-      ...(plate && inp.plate ? { background: inp.plate } : plateMade ? { background: plateMade.path } : {}) },
-    r45: { pass: true, spec: R48_SPEC, generated: true, plates, ...base, gate: gateOut, ...(regate ? { regate: true } : {}), ...(plateMade ? { plate_made: plateMade } : {}) } } };
+    processed_path: path, width: img.width, height: img.height, variants, preset_version: R48_PRESET, flags: [],
+    showroom: { provider: 'ai', ...(model ? { model } : {}), note: null, reason: null, mode: 'r48', spec: R48_SPEC, scene: 'showroom_dark', ...(background ? { background } : {}), ...(cutout ? { cutout } : {}) },
+    r45: { pass: true, spec: R48_SPEC, generated: true, plates: out, ...base, gate: { pass: true, reasons: [], measures, spec: R48_SPEC } } } };
 }

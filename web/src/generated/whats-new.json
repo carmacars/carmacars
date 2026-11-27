@@ -415,6 +415,7 @@
      "Phone alerts stay on after the app signs out and back in",
      "Self-healing keeps one bug report for each problem, counts it and closes it by itself once the problem is gone",
      "Hotfix: every car shows its photo again (the cards, the car pages and the home hero no longer show an empty studio); the top bar keeps the bell and an Account menu (Profile, Academy, the assistant, What's new, Guide, Guide me, Report a bug, Sign out); Add shifts, townhalls and interviews to Google Calendar also puts the weekly townhall and every booked interview call in your calendar",
+     "Hotfix 2: studio photos that can pass: Gemini makes each car alone and the site puts it on the same dealership background with the CarmaCars sign and the car's name, in the order of the sample photos, then the car's real outside photos cut out the same way; check-in photos are used when a car has no photos; each view gets at most 3 tries a day, every Gemini image counts in the daily photo budget, and the studio pauses with an alert when it spends too much for each photo that passes",
      "Field shifts in your Google Calendar: on Field jobs, Add shifts, townhalls and interviews to Google Calendar gives you a private link with every field shift (who claimed it or Open, the tasks, a link to it), 14 days back to 60 ahead; one click adds it to Google, which refreshes it every few hours. No email",
      "Far fewer emails: only what needs you now comes by email (a card dispute, a failed payment on a confirmed booking, a security alert, a booked live interview, a request to book no salesperson holds, an urgent To do). Everything else is in the bell and in one email at 7:00 am, counted by type with a link per kind. Switch Email on for a kind in Notifications to get it as it happens",
      "One website crash To do per error, not one per page: it counts the reports and lists the pages, and closes by itself after 24 hours with no new report. The old per-page ones were merged",
@@ -468,6 +469,8 @@
      "Fleet and customer service see Agreements before cars on the owner page and can send the reminder",
      "Fleet gets a To do for every confirmed rental whose pickup was not recorded",
      "Field staff choose whose money paid each expense; what is owed to you is on My shifts and paid back on the payroll",
+     "Field staff on shift see every pickup and return of the day under Also today and the cars to prep under Before the next shift",
+     "The Academy: pass the basics and your portal opens; finish the rest before your payouts",
      "Check-in visits (Fleet: Checks; customer service: Renters; field work: Today): do the monthly visit of a long rental with the checklist; you are told when a renter picks a time and the morning of a visit. Guide me: Do a check-in visit walks you through it",
      "Record pickup at the booked time on a booking whose pickup was never recorded, and a renter's return report records it by itself: Admin and Fleet are told, and Fleet gets a To do with what is still owed and the documents to review. Approving a licence on one booking now approves it on the renter's other bookings"
     ],
