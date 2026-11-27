@@ -644,6 +644,24 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 - Rule: Admin marks a staff member as a manager and assigns staff to them. A manager sees, read only, each team member's hours, academy progress, KPIs, pay owed, field jobs and activity, with the same masking as Admin, in the staff portal and the app, with a guide chapter. A manager never changes a team member's records from this view.
 - Done when: an Admin sets a manager and a team; the manager's My team page shows those facts for their team only and refuses anyone else; the app opens it from Profile; the guide chapter describes it.
 
+### REQ-134 Academy: retry the wrong ones first, shorter wait, fewer steps
+- Status: in progress
+- Proof: branch r51-staff (not on main)
+- Test: to be added with the work
+- Asked: Nov 27 17:45
+- Owner: "the academy wait time when getting things wrong is too long and they need to have 1 chance to retry the wrong questions before it starts the wait time. also i think theres a lot of redundant sections or questions and just unnecessary steps. it needs to be easier"
+- Rule: after a quiz below the pass mark, the person retries only the wrong questions once, straight away; the wait starts only if that retry fails. The wait is half of what it was (REQ-067 set 2 minutes: now 1 minute). Sections and questions are audited per role: duplicates merged, questions that test the same thing twice dropped, steps that add clicks without teaching removed; the change doc lists what was removed.
+- Done when: a failed first try offers the retry of only the wrong questions with no wait; a failed retry waits 1 minute; the change doc lists every section, question and step removed.
+
+### REQ-135 Easy onboarding: every blocking screen has its next button
+- Status: in progress
+- Proof: branch r51-staff (not on main)
+- Test: to be added with the work
+- Asked: Nov 27 17:45
+- Owner: "jamal got the academy waived for him and now it says your agreement first and theres no buttons to click anywhere other than resign. this is bad ui, he needs to have things to click to finish up his profile so he can start using his portal. he needs extremely easy steps to follow for getting access to portals. all staff should have easy flows."
+- Rule: the agreement step always offers Sign now: it makes the agreement at once when there is none (also after the automatic job gave up) and opens it to sign; if it still waits for something, the page says exactly what, with a button for what the person gives and an alert to Admin for what only Admin gives. Welcome is one checklist for every staff role: each remaining step is one big button (Sign agreement, Set availability, Join the WhatsApp group and Confirm, Pay details), done steps ticked, and the portal opens when the list is done. No blocking screen is a dead end.
+- Done when: a staff member in Jamal's state (Sales and Field, academy waived, no agreement made, availability not set, WhatsApp not confirmed) sees a big button for each step left on Welcome, Sign now makes and opens the agreement, and every blocking screen links to its next step.
+
 ## 11. Townhall and weekly Admin call
 
 ### REQ-070 Townhall join and slide

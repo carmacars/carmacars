@@ -876,6 +876,30 @@
     "test": "to be added with the work"
   },
   {
+    "id": "REQ-134",
+    "title": "Academy: retry the wrong ones first, shorter wait, fewer steps",
+    "area": "10. Staff portals and academy",
+    "status": "in progress",
+    "asked": "Nov 27 17:45",
+    "owner_quote": "\"the academy wait time when getting things wrong is too long and they need to have 1 chance to retry the wrong questions before it starts the wait time. also i think theres a lot of redundant sections or questions and just unnecessary steps. it needs to be easier\"",
+    "rule": "after a quiz below the pass mark, the person retries only the wrong questions once, straight away; the wait starts only if that retry fails. The wait is half of what it was (REQ-067 set 2 minutes: now 1 minute). Sections and questions are audited per role: duplicates merged, questions that test the same thing twice dropped, steps that add clicks without teaching removed; the change doc lists what was removed.",
+    "done_when": "a failed first try offers the retry of only the wrong questions with no wait; a failed retry waits 1 minute; the change doc lists every section, question and step removed.",
+    "proof": "branch r51-staff (not on main)",
+    "test": "to be added with the work"
+  },
+  {
+    "id": "REQ-135",
+    "title": "Easy onboarding: every blocking screen has its next button",
+    "area": "10. Staff portals and academy",
+    "status": "in progress",
+    "asked": "Nov 27 17:45",
+    "owner_quote": "\"jamal got the academy waived for him and now it says your agreement first and theres no buttons to click anywhere other than resign. this is bad ui, he needs to have things to click to finish up his profile so he can start using his portal. he needs extremely easy steps to follow for getting access to portals. all staff should have easy flows.\"",
+    "rule": "the agreement step always offers Sign now: it makes the agreement at once when there is none (also after the automatic job gave up) and opens it to sign; if it still waits for something, the page says exactly what, with a button for what the person gives and an alert to Admin for what only Admin gives. Welcome is one checklist for every staff role: each remaining step is one big button (Sign agreement, Set availability, Join the WhatsApp group and Confirm, Pay details), done steps ticked, and the portal opens when the list is done. No blocking screen is a dead end.",
+    "done_when": "a staff member in Jamal's state (Sales and Field, academy waived, no agreement made, availability not set, WhatsApp not confirmed) sees a big button for each step left on Welcome, Sign now makes and opens the agreement, and every blocking screen links to its next step.",
+    "proof": "branch r51-staff (not on main)",
+    "test": "to be added with the work"
+  },
+  {
     "id": "REQ-070",
     "title": "Townhall join and slide",
     "area": "11. Townhall and weekly Admin call",
