@@ -14,7 +14,7 @@ export interface ServiceFacts {
   /** the landing pages that exist (their slugs), so a card never links to a page that is not there */
   landing: ReadonlySet<string>;
 }
-export type ServiceKey = 'trackers' | 'owner' | 'chauffeur' | 'delivery' | 'airport' | 'coverage' | 'detailing' | 'bodyshop' | 'monthly' | 'replacement' | 'rideshare' | 'young' | 'addons';
+export type ServiceKey = 'rental' | 'trackers' | 'owner' | 'chauffeur' | 'delivery' | 'airport' | 'coverage' | 'detailing' | 'bodyshop' | 'monthly' | 'replacement' | 'rideshare' | 'young' | 'addons';
 export interface ServiceCard { key: ServiceKey; icon: KitIcon; title: string; line: string; fact: string | null; href: string; go: string; feature?: boolean;
   /** the pages of this service's cluster (the hub page lists them) */ more: Array<{ href: string; label: string }> }
 
@@ -28,17 +28,17 @@ export function serviceCards(f: ServiceFacts): ServiceCard[] {
   const seat = addon('child_seat') ?? addon('baby_seat');
   const cards: Array<ServiceCard | null> = [
     f.trackerOn ? { key: 'trackers', icon: 'pin', feature: true, title: 'GPS tracker and kill switch', line: 'See your car live, lock it and keep it from being started, from your phone.',
-      fact: f.trackerPrice ? `${f.trackerPrice}${f.trackerAvailable ? '' : ` · ${f.trackerNote}`}` : f.trackerAvailable ? null : f.trackerNote, href: '/trackers', go: f.trackerAvailable ? 'See the tracker' : 'Pre-order or join the waitlist',
+      fact: f.trackerPrice ? `${f.trackerPrice}${f.trackerAvailable ? '' : ` · ${f.trackerNote}`}` : f.trackerAvailable ? null : f.trackerNote, href: '/trackers#waitlist', go: f.trackerAvailable ? 'See the tracker' : 'Pre-order or join the waitlist',
       more: [{ href: '/trackers/kill-switch-for-car', label: 'Kill switch for a car' }, { href: '/trackers/gps-tracker-for-rental-car', label: 'GPS tracker for rental cars' }, { href: '/trackers/anti-theft-tracker-toronto', label: `Anti-theft tracker in ${f.city}` },
         { href: '/trackers/fleet-tracking', label: 'Fleet tracking' }, { href: '/trackers/turo-host-gps-tracker', label: 'Tracker for Turo hosts' }, { href: '/trackers/install', label: 'Tracker install near you' }] } : null,
-    { key: 'owner', icon: 'key', title: 'List your car and earn', line: 'We find the renters, check them, take the payments and send you a monthly statement.', fact: null, href: '/list-your-car', go: 'See the owner program',
+    { key: 'owner', icon: 'key', title: 'List your car and earn', line: 'We find the renters, check them, take the payments and send you a monthly statement.', fact: null, href: '/list-your-car/apply', go: 'Apply with your car',
       more: [{ href: '/list-your-car', label: 'The owner program' }, { href: '/list-your-car/apply', label: 'Apply with your car' }, ...(f.trackerOn ? [{ href: '/trackers/gps-tracker-for-rental-car', label: 'The tracker in every owner car' }] : [])] },
-    { key: 'chauffeur', icon: 'wheel', title: 'Chauffeur service', line: 'A professional driver and car by the hour: airport runs, weddings, nights out.', fact: f.chauffeurFromCents ? `From ${money(f.chauffeurFromCents)} an hour` : null, href: '/chauffeur', go: 'Book a chauffeur',
+    { key: 'chauffeur', icon: 'wheel', title: 'Chauffeur service', line: 'A professional driver and car by the hour: airport runs, weddings, nights out.', fact: f.chauffeurFromCents ? `From ${money(f.chauffeurFromCents)} an hour` : null, href: '/chauffeur/request', go: 'Request a chauffeur',
       more: [{ href: '/chauffeur', label: 'Chauffeur service by the hour' }, { href: '/chauffeur/request', label: 'Request a chauffeur' }] },
     { key: 'delivery', icon: 'truck', title: 'Delivery and pickup', line: 'The car comes to your door, your hotel or the terminal, and we collect it after.', fact: f.deliveryFromCents ? `Delivered from ${money(f.deliveryFromCents)}` : null, href: '/delivery', go: 'How delivery works',
       more: [{ href: '/delivery', label: 'Delivery and pickup' }, ...land(f, 'car-delivery', 'Car rental delivery'), ...land(f, 'airport', 'Airport car rental'), ...f.airports.slice(0, 3).map((a) => ({ href: `/airport-car-rental/${a.code.toLowerCase()}`, label: `Delivered to ${a.name}` }))] },
     { key: 'coverage', icon: 'shield', title: 'Coverage options', line: `Liability is in every rate. ${f.coverageOptions || 'Three'} ways to cover the car itself, your card's among them.`, fact: null, href: '/requirements#coverage', go: 'Compare the options',
-      more: [{ href: '/requirements#coverage', label: 'The coverage options compared' }, { href: '/credit-card-rental-coverage', label: 'Using your credit card\'s coverage' }, ...land(f, 'insurance-included', 'Car rental with insurance included')] },
+      more: [{ href: '/requirements#coverage', label: 'The coverage options compared' }, { href: '/credit-card-rental-coverage', label: 'Using your credit card\'s coverage' }, ...land(f, 'opcf-27', 'Renting with your own policy (OPCF 27)'), ...land(f, 'insurance-included', 'Car rental with insurance included')] },
     { key: 'monthly', icon: 'calendar', title: 'Monthly and long-term', line: 'One car for a month or more at the monthly rate, extended from your account.', fact: null, href: f.landing.has('monthly') ? '/car-rental/monthly' : '/cars', go: 'See monthly rentals',
       more: [...land(f, 'monthly', 'Monthly car rental'), ...land(f, 'weekly', 'Weekly car rental'), ...land(f, 'weekend', 'Weekend car rental')] },
     { key: 'replacement', icon: 'card', title: 'Insurance replacement', line: 'A car while yours is repaired. We can bill your insurer when the adjuster approves.', fact: null, href: f.landing.has('insurance-replacement') ? '/car-rental/insurance-replacement' : '/contact', go: 'Get a replacement car',
@@ -52,17 +52,28 @@ export function serviceCards(f: ServiceFacts): ServiceCard[] {
       fact: [addon('phone_charger') && addonPrice(addon('phone_charger')!) ? `Charger ${addonPrice(addon('phone_charger')!)}` : null, seat && addonPrice(seat) ? `Seats ${addonPrice(seat)}` : null].filter(Boolean).join(' · ') || null,
       href: f.landing.has('with-a-charger') ? '/services#addons' : '/cars', go: 'See the add-ons',
       more: [...land(f, 'with-a-charger', 'Car rental with a phone charger'), ...land(f, 'with-flowers', 'Car rental with flowers'), ...land(f, 'with-child-seat', 'Car rental with a child seat')] },
-    { key: 'detailing', icon: 'sparkle', title: 'Car detailing', line: 'Interior, exterior and full details, at your place or ours.', fact: null, href: '/detailing', go: 'See detailing', more: [{ href: '/detailing', label: 'Car detailing' }] },
-    { key: 'bodyshop', icon: 'wrench', title: 'Body work and collision repair', line: 'Dents, scratches and collision repair, with a rental car while yours is in.', fact: null, href: '/body-shop', go: 'See body work', more: [{ href: '/body-shop', label: 'Auto body shop' }] }
+    { key: 'detailing', icon: 'sparkle', title: 'Car detailing', line: 'Interior, exterior and full details, at your place or ours.', fact: null, href: '/detailing#request', go: 'Request detailing', more: [{ href: '/detailing', label: 'Car detailing' }] },
+    { key: 'bodyshop', icon: 'wrench', title: 'Body work and collision repair', line: 'Dents, scratches and collision repair, with a rental car while yours is in.', fact: null, href: '/body-shop#request', go: 'Request body work', more: [{ href: '/body-shop', label: 'Auto body shop' }] }
   ];
   return cards.filter((c): c is ServiceCard => c !== null);
 }
 
-/** The cards of the module on a search page: never the page's own service, the tracker first, at most `n`; the choice
- *  turns with the page (its address), so across the site every service is linked from many pages. */
-export function promoCards(f: ServiceFacts, exclude: ServiceKey | null, pageKey: string, n = 8): ServiceCard[] {
-  const all = serviceCards(f).filter((c) => c.key !== exclude);
-  const lead = all.filter((c) => c.feature || c.key === 'owner');
+/** The car rental card of the module: on every search page that is not itself a rental page (r50 hotfix 2: the
+ *  detailing, body shop, buying and search term pages lead with the services and still offer a rental). */
+export const rentalCard = (f: ServiceFacts): ServiceCard => ({ key: 'rental', icon: 'car', title: 'Car rental, delivered', line: `Daily, weekly and monthly rentals in ${f.city}, delivered to your door. Nothing to pay to request.`,
+  fact: f.deliveryFromCents ? `Delivered from ${money(f.deliveryFromCents)}` : null, href: '/cars', go: 'See the cars and request one',
+  more: [{ href: '/cars', label: 'Every car for rent' }, ...land(f, 'monthly', 'Monthly car rental'), ...land(f, 'insurance-replacement', 'Insurance replacement rental')] });
+/** The offers every search page carries (r50 hotfix 2, the owner, several times: every family, not a sample): the
+ *  tracker, the owner program, the chauffeur, a car rental, long-term rental, insurance replacement, body work and
+ *  detailing, always first (less the page's own), each a link to a page with a form that makes a lead or a request. */
+export const LEAD_KEYS: readonly ServiceKey[] = ['trackers', 'owner', 'chauffeur', 'rental', 'monthly', 'replacement', 'bodyshop', 'detailing'];
+
+/** The cards of the module on a search page: never the page's own service (one key or several), the four lead offers
+ *  first, at most `n`; the rest turn with the page (its address), so across the site every service is linked from many pages. */
+export function promoCards(f: ServiceFacts, exclude: ServiceKey | readonly ServiceKey[] | null, pageKey: string, n = 10): ServiceCard[] {
+  const out = new Set<ServiceKey>(exclude === null ? [] : typeof exclude === 'string' ? [exclude] : exclude);
+  const all = [...serviceCards(f), rentalCard(f)].filter((c) => !out.has(c.key));
+  const lead = LEAD_KEYS.map((k) => all.find((c) => c.key === k)).filter((c): c is ServiceCard => !!c);
   const rest = all.filter((c) => !lead.includes(c));
   let h = 0; for (const ch of pageKey) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
   const turned = rest.length ? [...rest.slice(h % rest.length), ...rest.slice(0, h % rest.length)] : rest;

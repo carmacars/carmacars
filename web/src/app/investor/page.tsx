@@ -8,6 +8,8 @@ import { signCount } from '@/features/manual/SignPages';
 import { More } from '@/features/portal/Chrome';
 import { RAISE } from '@/features/deck/pitch';
 import { WhatsNewFeed } from '@/features/investor/WhatsNewFeed';
+import { Traction } from '@/features/deck/Traction';
+import type { DeckTraction } from '@/features/deck/traction';
 import { investorPlan, type InvestorHome, type ReturnRow } from '@/features/investor/plan';
 import { ActionTiles, DocumentList, DocumentRow, LineChart, PortalHero, ProgressRing, PuIcon, StatCard, Timeline, TimelineItem, type ActionTileItem } from '@/components/portal-ui';
 
@@ -21,11 +23,13 @@ const torontoToday = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America
 
 // Home (07-investor.md section 2; r27 portals: what needs the investor first, above the numbers): what needs the investor, then their own money: invested, paid, next payment, the
 // schedule and the growth of their account, from their own records only (investor_read home and statements). Nothing about
-// the fleet (its size, use, insurance or costs) is read here.
+// the fleet (its size, insurance or costs) is read here; r50 hotfix 2 (5162): the business's traction (monthly active
+// users of the website and the app, days rented), as the owner asked.
 export default async function InvestorHome() {
   const { user } = await requireInvestor('/investor');
-  const [h, rows, deck, toSign] = await Promise.all([door<InvestorHome>(user.id, 'investor_read', 'home'), door<ReturnRow[]>(user.id, 'investor_read', 'statements').catch(() => [] as ReturnRow[]),
-    door<{ visible: boolean }>(user.id, 'investor_read', 'deck_visible').then((r) => r.visible).catch(() => false), signCount(user.id)]);
+  const [h, rows, deck, toSign, traction] = await Promise.all([door<InvestorHome>(user.id, 'investor_read', 'home'), door<ReturnRow[]>(user.id, 'investor_read', 'statements').catch(() => [] as ReturnRow[]),
+    door<{ visible: boolean }>(user.id, 'investor_read', 'deck_visible').then((r) => r.visible).catch(() => false), signCount(user.id),
+    door<DeckTraction>(user.id, 'investor_read', 'deck_traction').catch(() => null)]);
   const today = torontoToday();
   const plan = investorPlan(h, rows, today);
   // what needs the investor first (portal cleanup, October 23, 2026), then the numbers
@@ -125,6 +129,7 @@ export default async function InvestorHome() {
             <p className="small muted">The model, the demand, what one car earns, and the ask, in eight slides.</p>
             <p><Link href="/investor/deck" prefetch={false} className="btn btn--primary btn--sm iv-deck__cta"><PuIcon name="play" />Open the deck</Link></p>
           </section>}
+          <Traction t={traction} today={today} portal />
           <WhatsNewFeed limit={3} compact />
           {h.requests.length > 0 && <section className="pu-panel" aria-labelledby="rq-t"><h2 className="pu-title" id="rq-t">Your notices</h2><ul className="small">{h.requests.map((r, i) => <li key={i}>{when(r.created_at)}: {r.title} ({r.status === 'done' ? 'recorded' : 'received'})</li>)}</ul></section>}
         </div>

@@ -57,3 +57,11 @@ test('robots: the AI answer engines are named and the private paths kept out', (
   // r27b: every AI engine by name, none refused
   for (const b of ['GPTBot', 'CCBot', 'ClaudeBot', 'Bytespider', 'YouBot', 'cohere-ai', 'MistralAI-User', 'Google-Extended', 'Applebot-Extended']) assert.ok((ANSWER_CRAWLERS as readonly string[]).includes(b), b);
 });
+
+test('r50 hotfix 2: llms.txt and llms-full.txt name the rental software page, with no price', () => {
+  for (const t of [llmsTxt(base), llmsFullTxt(base)]) {
+    assert.match(t, /\n## Car rental software for rental companies\n/);
+    assert.ok(t.includes('- Page: https://carmacars.ca/rental-software'));
+    assert.doesNotMatch(t.slice(t.indexOf('## Car rental software')).split('\n## ')[0]!, /\$\d/);
+  }
+});

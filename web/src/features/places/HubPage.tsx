@@ -24,6 +24,7 @@ import { ReadyCars } from '@/features/seo/ReadyCars';
 import { SiteReviews } from '@/features/seo/SiteReviews';
 import { KitFold, KitSticky, KitTrust } from '@/features/seo/kit/Kit';
 import { ServicePromo } from '@/features/services/ServicePromo';
+import { getServiceFacts } from '@/features/services/data';
 import '@/styles/seo.css';
 import '@/styles/vehicles.css';
 
@@ -52,7 +53,7 @@ export function hubTrail(h: Hub): Trail {
 
 export async function HubPage({ h }: { h: Hub }) {
   // 0149: a licensed photo of the kind of page (a road for renting, a car being detailed, a body shop, cars for sale)
-  const [t, classes, s, allTerms, photo] = await Promise.all([getTokens(), getClasses(), getSettings(), getTerms(), genericPhoto(h.term.vertical, h.path)]);
+  const [t, classes, s, allTerms, photo, svc] = await Promise.all([getTokens(), getClasses(), getSettings(), getTerms(), genericPhoto(h.term.vertical, h.path), getServiceFacts().catch(() => null)]);
   const F = (x: string) => fill(x, t);
   const c = hubCopy(h, { fill: F });
   const labels = Object.fromEntries(classes.map((x) => [x.code, x.label]));
@@ -185,6 +186,10 @@ export async function HubPage({ h }: { h: Hub }) {
               {h.term.landing_path && <li><Link prefetch={false} className="link" href={h.term.landing_path}>{h.term.title} in Toronto</Link></li>}
               {/* r48: the tracker's install page of this place, where the place pages are on and we reach it */}
               {h.place.region === 'CA-ON' && h.delivery.in_reach && !wide && <li><Link prefetch={false} className="link" href={`/trackers/install/${h.place.slug}`}>GPS tracker and kill switch install in {h.place.name}</Link></li>}
+              {/* r50 hotfix 2: the offers in the list too, on every place page */}
+              {allTerms.some((x) => x.vertical === 'rental' && x.slug === 'chauffeur-service') && <li><Link prefetch={false} className="link" href={hubPath('rental', 'chauffeur-service', h.place.slug)}>Chauffeur service in {h.place.name}</Link></li>}
+              <li><Link prefetch={false} className="link" href="/list-your-car/apply">List your car and earn in {h.place.name}</Link></li>
+              {svc?.trackerOn && !(h.place.region === 'CA-ON' && h.delivery.in_reach && !wide) && <li><Link prefetch={false} className="link" href="/trackers#waitlist">GPS tracker and kill switch</Link></li>}
             </ul></nav>
           </div>
         </section>
@@ -206,7 +211,7 @@ export async function HubPage({ h }: { h: Hub }) {
         </p>
       </div>
       {/* r48: the other services on every search page, and the phone's sticky action */}
-      <ServicePromo exclude={v === 'detailing' ? 'detailing' : v === 'bodyshop' ? 'bodyshop' : null} pageKey={h.path} />
+      <ServicePromo exclude={v === 'detailing' ? 'detailing' : v === 'bodyshop' ? 'bodyshop' : v === 'rental' ? 'rental' : null} pageKey={h.path} />
       {v === 'rental' && h.term.served === 'yes'
         ? <KitSticky title={h.counts.min_daily_cents !== null ? `From ${money(h.counts.min_daily_cents)} a day` : 'Pick a car, send a request'} sub="No payment until we confirm" cta="See the cars" href="#cars" />
         : <KitSticky title={c.h1.length > 44 ? h.term.title : c.h1} sub={showForm ? 'A person replies to every request' : 'No payment until we confirm'} cta={showForm ? 'Send a request' : 'See the cars'} href={showForm ? '#request' : '#cars'} />}

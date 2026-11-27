@@ -60,7 +60,7 @@ export default async function CarRentalHub() {
       </div></section>}
       <CtaBand h="Not sure where to start?" p="Every car shows its own dates, prices and delivery fee." />
       {/* r48: the other services, and the phone's sticky action */}
-      <ServicePromo pageKey="/car-rental" />
+      <ServicePromo exclude="rental" pageKey="/car-rental" />
       <KitSticky title="Pick a car, send a request" sub="No payment until we confirm" cta="Find a car" href="/cars" />
     </div>
   );

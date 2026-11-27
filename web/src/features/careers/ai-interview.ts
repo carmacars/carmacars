@@ -10,6 +10,8 @@ export interface InterviewView {
   total: number; answered: number; next: NextQuestion | null;
   /** 0585: the seconds for each answer (Admin > Hiring, Answer time) and the retakes allowed. */
   answer_seconds?: number; retakes?: number;
+  /** r50 hotfix 2 (5161): an expired link the applicant may open again with one tap */
+  can_renew?: boolean;
 }
 export interface Topic { key: string; label: string; weight: number; good: string }
 

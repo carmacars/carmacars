@@ -5,6 +5,7 @@ import { JsonLd } from '@/components/JsonLd';
 import { breadcrumbLd, seoMeta, type Trail } from '@/features/seo/meta';
 import { rpc } from '@/lib/db/repo';
 import { getSettings } from '@/lib/site';
+import { ServicePromo } from '@/features/services/ServicePromo';
 
 // The place directory (migration 0115): every place with pages, a thousand a page in the database's own order (a
 // primary key range: one cheap read a page), so any place page is three clicks from the home page (footer Browse,
@@ -45,6 +46,8 @@ export default async function Places({ params }: Params) {
           </ul></nav>
           <p><Link prefetch={false} className="link" href="/car-rental">Car rental by place</Link> · <Link prefetch={false} className="link" href="/makes">Every make and model</Link></p>
         </div></section>
+        {/* r50 hotfix 2: the tracker, owner, chauffeur and rental offers on every search page */}
+        <ServicePromo pageKey="/places" />
       </div>
     );
   }
@@ -70,6 +73,7 @@ export default async function Places({ params }: Params) {
           {next && <Link prefetch={false} className="link" href={`/places/${next}`} rel="next">Page {next}</Link>}
         </nav>
       </div></section>
+      <ServicePromo pageKey={`/places/${n}`} />
     </div>
   );
 }

@@ -40,6 +40,10 @@ const LABELS: Record<string, string> = {
   theft_recovery_fee_cents: 'Theft recovery charge (before HST, plus actual costs)', roadside_admin_fee_cents: 'Tire and roadside administration fee (before HST, on top of the actual cost)',
   fee_evidence_gate: 'Every fee needs its evidence before it is charged', clean_evidence_min_photos: 'Return not clean: guided evidence photos needed',
   hiring_resend_per_run: 'Hiring re-send: referrals and interview links per run (every 15 minutes)',
+  // r50 hotfix 2 (5161): the AI interview reminders and the one-tap new link
+  hiring_ai_reminder_hours: 'AI interview reminders: hours after the link went (1 and 3 days unless you change them)',
+  hiring_ai_reminder_last_hours: 'AI interview: the last reminder this many hours before the link expires (0: none)',
+  hiring_ai_self_renewals: 'AI interview: links an applicant may have in all when they open a new one from an expired link',
   offline_deposit_double: 'Deposit by e-Transfer or cash: a multiple of the deposit', offline_deposit_multiplier: 'Deposit by e-Transfer or cash (times the deposit)',
   tips_on: 'Tips: renters may add one, staff record cash and e-Transfer tips', tip_percents_bps: 'Tip suggestions (percent of the total, hundredths: 1000 is 10%)',
   tip_sales_share_bps: 'Tip: the salesperson\'s share (hundredths of a percent; the rest to the handover)',

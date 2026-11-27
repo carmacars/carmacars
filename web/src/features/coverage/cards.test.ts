@@ -73,7 +73,7 @@ test('the page: the issuer confirms, CarmaCars decides no claim, the checklist, 
   assert.match(read('web/src/features/portal/CoverageSection.tsx'), /\/credit-card-rental-coverage/);
   assert.match(read('web/scripts/content/site-content.json'), /Which credit cards include rental car coverage\?/);
   assert.match(read('web/src/features/seo/facts.ts'), /path: '\/credit-card-rental-coverage'/);
-  assert.match(read('web/src/features/seo/sitemap.ts'), /'\/credit-card-rental-coverage'/);
+  assert.match(read('web/src/features/seo/sitemap-paths.ts'), /'\/credit-card-rental-coverage'/);
   assert.match(read('supabase/migrations/0131_card_coverage.sql'), /'question', 'Which credit cards include rental car coverage\?'/);
 });
 

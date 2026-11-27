@@ -1,7 +1,7 @@
 // The index coverage report (release 28, B7).   npm run test:unit
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { coverageBucket, coverageShares, emptyBuckets, pageKind, pickSample } from './coverage.ts';
+import { coverageBucket, coverageShares, emptyBuckets, knownPages, knownPageState, pageKind, pickSample } from './coverage.ts';
 
 test('coverage states in five buckets (1103: unknown to Google apart, any indexed state, the verdict)', () => {
   assert.equal(coverageBucket('Submitted and indexed'), 'indexed');
@@ -42,4 +42,16 @@ test('the sample: a third priority, the rest long tail, no repeats, another slic
   assert.equal(a.filter((u) => u.startsWith('/p')).length, 10);
   assert.notDeepEqual(a, b);
   assert.equal(pickSample([], ['/x'], 5, 0).length, 1);
+});
+
+test('r50 hotfix 2: the pages Google shows are checked on the site; a gone page is stored as an error the self-healing matches', () => {
+  const rows = [{ kind: 'query', key: 'car rental toronto', impressions: 900 }, { kind: 'page', key: '/cars/old-car', impressions: 50 }, { kind: 'page', key: '/', impressions: 800 },
+    { kind: 'page', key: '/api/x', impressions: 999 }, { kind: 'page', key: '/Bad Path', impressions: 999 }, { kind: 'page', key: '/trackers', impressions: 120 }];
+  assert.deepEqual(knownPages(rows, 2), ['/', '/trackers']);
+  assert.deepEqual(knownPages(rows, 10), ['/', '/trackers', '/cars/old-car']);
+  for (const s of [200, 301, 308, 403]) assert.equal(knownPageState(s), null, String(s));
+  // the states match what app.heal_detect (4800) and search_console_issues (4701) look for
+  assert.match(knownPageState(404)!.state, /not found|404/i);
+  assert.match(knownPageState(410)!.state, /not found/i);
+  assert.match(knownPageState(503)!.state, /5xx|server error/i);
 });

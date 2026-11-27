@@ -7,6 +7,9 @@ import { PageHead } from '@/features/admin/ui';
 import { PitchDeck } from '@/features/deck/PitchDeck';
 import type { DeckFigures } from '@/features/deck/types';
 import { SearchTraction } from '@/features/deck/SearchTraction';
+import { Traction } from '@/features/deck/Traction';
+import type { DeckTraction } from '@/features/deck/traction';
+import { torontoToday } from '@/lib/dates';
 import type { DeckSearch } from '@/features/deck/search';
 
 export const dynamic = 'force-dynamic';
@@ -19,7 +22,7 @@ export default async function AdminDeck() {
   const { read } = await page('/admin/investors/deck');
   const f = await read<DeckFigures>('investor_deck');
   const st = f.settings;
-  const search = await read<DeckSearch>('deck_search').catch(() => null);
+  const [search, traction] = await Promise.all([read<DeckSearch>('deck_search').catch(() => null), read<DeckTraction>('deck_traction').catch(() => null)]);
   return (<>
     <PageHead title="Investor deck"><Link className="btn btn--ghost btn--sm" href="/investor/deck" prefetch={false}>Open as investors see it</Link></PageHead>
     <section className="ad-card" aria-labelledby="dk-set" data-testid="deck-settings">
@@ -40,6 +43,6 @@ export default async function AdminDeck() {
         fields={[{ name: 'indexed_pages', label: 'Indexed pages (Search Console)', type: 'text', required: true, value: search?.indexed_pages && !search.indexed_estimate ? String(search.indexed_pages) : '' }]} />
     </section>
     <p className="dk-preview-note small">Preview: this is the deck exactly as investors see it, with today&apos;s figures from the database.</p>
-    <div className="dk-admin-preview"><PitchDeck multiplier={Number(st.deck_multiplier) > 0 ? Number(st.deck_multiplier) : undefined} /><SearchTraction s={search} /></div>
+    <div className="dk-admin-preview"><PitchDeck multiplier={Number(st.deck_multiplier) > 0 ? Number(st.deck_multiplier) : undefined} /><Traction t={traction} today={torontoToday()} /><SearchTraction s={search} /></div>
   </>);
 }

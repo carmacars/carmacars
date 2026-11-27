@@ -73,6 +73,17 @@ export const vehicleLeadSchema = z.object({
   place: z.string().trim().max(80).optional().default(''),
   marketing: z.string().optional()
 }).refine((v) => !!(v.email || v.phone), { message: 'Give an email or a phone number so we can reply.', path: ['email'] });
+// r50 hotfix 2: a rental company asking about the white-label software (/rental-software): a lead for the team.
+export const softwareLeadSchema = z.object({
+  name: z.string().trim().min(2, 'Enter your name.').max(100),
+  email,
+  phone: optPhone.optional().default(''),
+  company: z.string().trim().min(2, 'Enter your company name.').max(120),
+  fleet: z.enum(['', '1-10', '11-50', '51-200', '200+']).optional().default(''),
+  website: z.string().trim().max(200).optional().default(''),
+  message: z.string().trim().max(2000, 'Keep it under 2,000 characters.').optional().default('')
+});
+
 // A request from a place page, /detailing or /body-shop (migration 0095): a car to buy, financing or leasing, a car in a
 // place we do not serve yet, detailing or body work. The details depend on the kind; a way to reply is required.
 export const placeLeadSchema = z.object({

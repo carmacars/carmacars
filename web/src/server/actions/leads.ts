@@ -1,6 +1,6 @@
 'use server';
 import { verifyTurnstile } from '@/integrations/turnstile';
-import { contactSchema, fieldErrors, ownerSchema, placeLeadSchema, vehicleLeadSchema, type ActionResult } from '@/features/forms/schemas';
+import { contactSchema, fieldErrors, ownerSchema, placeLeadSchema, softwareLeadSchema, vehicleLeadSchema, type ActionResult } from '@/features/forms/schemas';
 import { consentTexts } from '@/server/booking-data';
 import { DbError, rpc } from '@/lib/db/repo';
 import { requestMeta } from '@/server/request';
@@ -33,6 +33,17 @@ export async function submitContact(_: unknown, fd: FormData): Promise<ActionRes
   if (!parsed.success) return { ok: false, code: 'invalid', message: 'Check the highlighted fields.', fieldErrors: fieldErrors(parsed.error) };
   const v = parsed.data;
   return submit('contact', { name: v.name, email: v.email || null, phone: v.phone || null, message: v.message, payload: { topic: TOPICS[v.topic], booking_number: v.ref || null } }, fd.get('cf-turnstile-response'));
+}
+
+// r50 hotfix 2: the white-label software page (/rental-software): a contact lead with the topic, the company, the fleet
+// size and the website, so Sales sees it as a software enquiry and replies with pricing.
+const SOFTWARE_TOPIC = 'Rental software (white label)';
+export async function submitSoftwareLead(_: unknown, fd: FormData): Promise<ActionResult<{ leadId: string }>> {
+  const parsed = softwareLeadSchema.safeParse(Object.fromEntries(fd));
+  if (!parsed.success) return { ok: false, code: 'invalid', message: 'Check the highlighted fields.', fieldErrors: fieldErrors(parsed.error) };
+  const v = parsed.data;
+  const message = [`Rental software enquiry from ${v.company}`, v.fleet ? `Fleet: ${v.fleet} cars` : '', v.website ? `Website: ${v.website}` : '', v.message].filter(Boolean).join('\n');
+  return submit('contact', { name: v.name, email: v.email, phone: v.phone || null, message, payload: { topic: SOFTWARE_TOPIC, company: v.company, fleet_size: v.fleet || null, website: v.website || null } }, fd.get('cf-turnstile-response'));
 }
 
 export async function submitOwnerApplication(_: unknown, fd: FormData): Promise<ActionResult<{ leadId: string }>> {

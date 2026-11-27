@@ -27,6 +27,7 @@
      "**Demo portals**: a renter and an owner portal with made-up data, to see each process stage by stage",
      "**From sale to pickup** on every booking: the steps to close the sale and get the customer ready",
      "Staff play the game in Rewards for points too",
+     "Applicants get reminders to finish their interview, and an expired interview link opens a new one with one tap",
      "**Self-healing**: the site finds its own problems (site checks, errors, Search Console, scheduled jobs, stuck emails and texts, the server), applies the matching fix from its fix library, checks it worked and tells the Admins once only when it cannot fix it safely; Admins save what fixed a problem as a new fix in Site health > Self-healing",
      "Booking pages and other staff and Admin pages show every date and time in Toronto time on the server and in the browser alike, so they load without the \"page error\" flash; booking changes read the times as Toronto time from any browser; the Admin home loads its site health again; a staff or renter policy expiry that is not a real date is said before the upload instead of failing it",
      "The weekly townhall's Platform updates slide lists the week's releases and the staff bug reports fixed that week, each with its reporter named as a shout-out, and the count of bugs still open",
@@ -56,6 +57,8 @@
    {
     "area": "Website & search",
     "items": [
+     "Every search page offers the GPS tracker, listing your car, a chauffeur and a car rental, each one tap from its form",
+     "New pages for renting with your own auto policy (OPCF 27) and for rental companies looking for software",
      "Our location is now 1940 Eglinton Ave E, Toronto, ON M1L 4R1, on the site, in search results and for delivery distances",
      "Every button, form and list answers a press on every page and portal: a tick and \"Saved\" or \"Sent\" on the button, a short shake on a field to fix, \"Copied\" on copy buttons, totals that roll when they change, rows that fold away, sheets you drag down to close on a phone, and the phone's haptics in the app",
      "The earnings calculator now counts the car's year: cars of about the same year when we have them, otherwise the model's average moved for an older or newer car",

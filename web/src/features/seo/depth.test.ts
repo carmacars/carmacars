@@ -49,7 +49,9 @@ test('every number on the page comes from the input (no invented figure)', () =>
   const d = buildDepth(full);
   const text = JSON.stringify({ s: d.sections, f: d.faq });
   const allowed = new Set(['49', '69', '119', '89', '294', '414', '714', '534', '1,078', '1,518', '2,618', '1,958', '500', '200', '5', '8', '95', '25', '9', '1.2', '0.4', '2.1', '18', '20', '21', '24', '25',
-    '35', '15', '30', '250', '1,000', '2,500', '13', '407', '2024', '2023', '2022', '2021', '100', '300', '27', '401', '403', '410', '427', '10', '1', '2', '3', '4', '22', '6', '0']);
+    '35', '15', '30', '250', '1,000', '2,500', '13', '407', '2024', '2023', '2022', '2021', '100', '300', '27', '401', '403', '410', '427', '10', '1', '2', '3', '4', '22', '6', '0',
+    // r50 hotfix 2: the input's fuel prices (155, +20 and 15 cents)
+    '1.55', '1.75', '0.15']);
   const mins = String(Math.max(10, Math.round(((24.6 * 1.35) / 48) * 60 / 5) * 5));
   allowed.add(mins);
   for (const m of text.matchAll(/\d[\d,]*(?:\.\d+)?/g)) assert.ok(allowed.has(m[0].replace(/,$/, '')), `unexpected number ${m[0]} in ${text.slice(Math.max(0, m.index! - 60), m.index! + 20)}`);
@@ -194,4 +196,21 @@ test('sample pages: the depth sections make a place page about 3 to 5 times long
     if (process.env.SHOW_WORDS) console.log(`${s.page}: ${s.before} words before, ${s.after} after (${ratio.toFixed(1)}x)`);
     assert.ok(ratio >= 2.5, `${s.page}: ${s.before} -> ${s.after}`);
   }
+});
+
+test('r50 hotfix 2: a full tank or charge and its range from real figures only; the fuel prices on Ontario place pages', async () => {
+  const { fullTank } = await import('./depth.ts');
+  const fuel = { gasCents: 155, premiumExtraCents: 20, kwhCents: 15 };
+  assert.deepEqual(fullTank({ tankL: 50, l100: 6.8 }, fuel), { what: 'A full tank', cents: 7750, basis: '50 L at $1.55 a litre of regular', ev: false, rangeKm: 735, rangeFrom: ' (the tank over the combined rating)' });
+  assert.equal(fullTank({ tankL: 60, premium: true, rangeKm: 700 }, fuel)!.cents, 10500);
+  assert.equal(fullTank({ tankL: 60, premium: true, rangeKm: 700 }, fuel)!.rangeKm, 700);
+  assert.equal(fullTank({ batteryKwh: 75, kwh100: 16 }, fuel)!.cents, 1125);
+  assert.equal(fullTank({ batteryKwh: 75, kwh100: 16 }, fuel)!.rangeKm, 469);
+  assert.equal(fullTank({ l100: 7 }, fuel), null, 'no tank size: nothing invented');
+  assert.equal(fullTank({ tankL: 50 }, null), null, 'no prices: nothing');
+  const specs = [['tank_l', '50'], ['fuel_combined_l100', '6.8'], ['tire_size', '225/45R17'], ['rim_size', '17']].map(([field, value]) => ({ field: field!, value: value!, source: 'oem', source_url: 'https://example.test/x' }));
+  const d = buildDepth({ path: '/cars/x', facts: FACTS, cars: [], omit: ['requirements'], vehicle: { name: '2024 Toyota Corolla', specs } });
+  assert.match(d.sections.find((s) => s.id === 'car')!.paras.join(' '), /A full tank of the 2024 Toyota Corolla: about \$77\.50 \(50 L at \$1\.55 a litre of regular\), for about 735 km/);
+  const place = buildDepth(full).sections.find((s) => s.id === 'logistics')!;
+  assert.match(place.paras.join(' '), /we price gas at \$1\.55 a litre of regular and \$1\.75 of premium, and charging at \$0\.15 a kWh/);
 });

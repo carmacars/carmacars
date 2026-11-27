@@ -2,6 +2,7 @@
 import Link from '@/components/Link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { WhyDisabled } from '@/components/WhyDisabled';
+import { renewInterviewAction } from '@/server/actions/interview-renew';
 import {
   AUDIO_BITS, AUDIO_TYPES_PREFERRED, cannotRecordWhy, clock, DEFAULT_ANSWER_SECONDS, LOW_SECONDS, MAX_VIDEO_BYTES, VIDEO_BITS, VIDEO_CONSTRAINTS, VIDEO_TYPES,
   type InterviewView, type NextQuestion
@@ -142,7 +143,11 @@ export function Interview({ token, initial }: { token: string; initial: Intervie
   const mins = total % 60 ? clock(total) : `${total / 60} minute${total === 60 ? '' : 's'}`;
 
   if (v.state === 'expired') return (<div className="stack-lg" data-testid="iv-expired">{head}<h1 className="d2">This interview link has expired</h1>
-    <p>Links work for 7 days. If you still want the role, reply to our email and we will send you a new one.</p>
+    {v.can_renew
+      ? <><p>No problem: open a new link and do the interview now. It takes about 10 minutes{v.answered > 0 ? ', and it picks up where you left off' : ''}.</p>
+          <form action={renewInterviewAction}><input type="hidden" name="token" value={token} />
+            <button className="btn btn--primary btn--lg" type="submit" data-testid="iv-renew">Open a new link and start now</button></form></>
+      : <p>If you still want the role, reply to our email and we will send you a new one.</p>}
     <p><Link prefetch={false} className="link" href="/careers">Open roles</Link></p></div>);
   if (done) return (<div className="stack-lg" data-testid="iv-done">{head}
     <h1 className="d2" tabIndex={-1}>Thank you, {v.first_name}. Your interview is done.</h1>

@@ -4,10 +4,10 @@ import '@/styles/seo-kit.css';
 import { promoCards, type ServiceKey } from './catalog';
 import { getServiceFacts } from './data';
 
-// The services module of every search page (release 48): the tracker first, then the owner program, the chauffeur,
-// delivery, coverage, the kinds of renters and the add-ons, as cards with an icon, one line, a price when the database
+// The services module of every search page (release 48): the tracker, the owner program, the chauffeur and a car rental
+// first (r50 hotfix 2), then delivery, coverage, the kinds of renters and the add-ons, as cards with an icon, one line, a price when the database
 // has one, and a link. A snap carousel on a phone, a grid on a wide screen. Server-rendered; nothing shows if the read fails.
-export async function ServicePromo({ exclude = null, pageKey = '', title = 'More from CarmaCars', n = 8, bare = false }: { exclude?: ServiceKey | null; pageKey?: string; title?: string; n?: number; /** inside a page's own column: no gutter of its own */ bare?: boolean }) {
+export async function ServicePromo({ exclude = null, pageKey = '', title = 'More from CarmaCars', n = 10, bare = false }: { exclude?: ServiceKey | readonly ServiceKey[] | null; pageKey?: string; title?: string; n?: number; /** inside a page's own column: no gutter of its own */ bare?: boolean }) {
   const f = await getServiceFacts().catch(() => null);
   if (!f) return null;
   const cards = promoCards(f, exclude, pageKey, n);

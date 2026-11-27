@@ -38,7 +38,7 @@ export default async function CardCoverage() {
           <div className="c-8 stack-lg">
             <div className="alert alert--error" data-testid="card-coverage-limits">
               <span className="alert__title">Most cards stop at $65,000 or $85,000</span>
-              <span>Credit card coverage only applies to a car priced under the card’s limit: its manufacturer’s suggested retail price (MSRP) for its model year and trim, before taxes. Many luxury cars, including many Mercedes-Benz models, are priced above these limits, and some makes (Porsche, for example) are excluded outright by many cards. If the car you want is over your card’s limit, choose OPCF 27 on your own auto policy or the CarmaCars Protection Plan instead.</span>
+              <span>Credit card coverage only applies to a car priced under the card’s limit: its manufacturer’s suggested retail price (MSRP) for its model year and trim, before taxes. Many luxury cars, including many Mercedes-Benz models, are priced above these limits, and some makes (Porsche, for example) are excluded outright by many cards. If the car you want is over your card’s limit, choose <Link className="link" href="/car-rental/opcf-27">OPCF 27 on your own auto policy</Link> or the CarmaCars Protection Plan instead.</span>
             </div>
             <div className="cc-limits">
               <div><p className="cc-limits__n">{at(65000)}</p><p className="small">Canadian cards in this list stop at <b>$65,000</b> MSRP</p></div>

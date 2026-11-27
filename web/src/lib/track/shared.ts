@@ -20,6 +20,8 @@ export function deviceOf(ua: string | null | undefined): 'phone' | 'tablet' | 'd
 export interface Beacon {
   sid: string; vid: string; consent: 'analytics' | 'essential'; device?: string; ref?: string; landing?: string;
   utm?: Record<string, string>; ad?: '1';
+  /** r50 hotfix 2 (5162): sent by the iPhone and Android app's shell (monthly active users of the app) */
+  app?: '1';
   /** 0103: the last batch of the page (pagehide): the session ends after its events are stored. Not sent to the database. */
   end?: '1';
   events: Array<{ k: string; path?: string; slug?: string; bn?: string; m?: string; ms?: number; d?: Record<string, string> }>;
@@ -45,6 +47,7 @@ export function cleanBeacon(raw: unknown, ua: string | null): Beacon | null {
     ref: str(b.ref, 120), landing: str(b.landing, 300), events: []
   };
   if (b.ad === '1' || b.ad === 1 || b.ad === true) out.ad = '1';
+  if (b.app === '1') out.app = '1';
   if (b.end === '1' || b.end === 1 || b.end === true) out.end = '1';
   if (b.utm && typeof b.utm === 'object') {
     out.utm = {};

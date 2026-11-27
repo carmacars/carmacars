@@ -46,3 +46,9 @@ test('the beacon waits for the database only so long, and never fails because of
   assert.equal(await within(new Promise((r) => setTimeout(() => r('late'), 200)), 20), undefined);
   assert.equal(await within(Promise.reject(new Error('down')), 50), undefined);
 });
+
+test('r50 hotfix 2: the app shell\'s beacon carries app "1" (monthly active users of the app); nothing else sets it', () => {
+  const sid = '11111111-1111-4111-8111-111111111111', vid = '22222222-2222-4222-8222-222222222222';
+  assert.equal(cleanBeacon({ sid, vid, app: '1', events: [] }, null)!.app, '1');
+  for (const v of [true, 1, 'yes', undefined]) assert.equal(cleanBeacon({ sid, vid, app: v, events: [] }, null)!.app, undefined, String(v));
+});

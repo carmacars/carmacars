@@ -41,7 +41,23 @@ test('the module of a page: the tracker and the owner program lead, the page\'s 
   assert.ok(!promoCards(F, 'chauffeur', '/chauffeur').some((c) => c.key === 'chauffeur'));
   assert.ok(!promoCards(F, 'trackers', '/trackers').some((c) => c.key === 'trackers'));
   const seen = new Set<string>();
-  for (const city of ['toronto', 'mississauga', 'brampton', 'markham', 'vaughan', 'oakville', 'ajax', 'whitby', 'oshawa', 'milton', 'barrie', 'guelph', 'hamilton', 'pickering', 'aurora', 'newmarket']) for (const c of promoCards(F, null, `/car-rental/${city}`, 6)) seen.add(c.key);
-  assert.equal(seen.size, serviceCards(F).length, 'across pages every service is linked');
+  for (const city of ['toronto', 'mississauga', 'brampton', 'markham', 'vaughan', 'oakville', 'ajax', 'whitby', 'oshawa', 'milton', 'barrie', 'guelph', 'hamilton', 'pickering', 'aurora', 'newmarket']) for (const c of promoCards(F, null, `/car-rental/${city}`)) seen.add(c.key);
+  assert.equal(seen.size, serviceCards(F).length + 1, 'across pages every service is linked, the rental card too');
   assert.deepEqual(promoCards(F, null, '/x', 4).map((c) => c.key), promoCards(F, null, '/x', 4).map((c) => c.key), 'the same page always shows the same cards');
+});
+
+test('r50 hotfix 2: every search page carries every lead offer (less its own), each a link to a form', () => {
+  const LEAD = ['trackers', 'owner', 'chauffeur', 'rental', 'monthly', 'replacement', 'bodyshop', 'detailing'];
+  for (const key of ['/buy', '/t/car-hire', '/places/3', '/buy/toyota/camry/2022', '/cars/toyota/corolla', '/car-rental/ajax/monthly']) {
+    assert.deepEqual(promoCards(F, null, key).slice(0, 8).map((c) => c.key), LEAD, key);
+  }
+  // a page's own service is left out, the others stay
+  assert.deepEqual(promoCards(F, 'detailing', '/detailing/full-detail/mississauga').slice(0, 7).map((c) => c.key), LEAD.filter((k) => k !== 'detailing'));
+  assert.deepEqual(promoCards(F, 'rental', '/car-rental/ajax').slice(0, 7).map((c) => c.key), LEAD.filter((k) => k !== 'rental'));
+  const both = promoCards(F, ['monthly', 'rental'], '/car-rental/monthly').map((c) => c.key);
+  assert.ok(!both.includes('monthly') && !both.includes('rental') && both.includes('replacement'));
+  const href = Object.fromEntries(promoCards(F, null, '/x').map((c) => [c.key, c.href]));
+  assert.deepEqual(LEAD.map((k) => href[k]), ['/trackers#waitlist', '/list-your-car/apply', '/chauffeur/request', '/cars', '/car-rental/monthly', '/car-rental/insurance-replacement', '/body-shop#request', '/detailing#request']);
+  // the tracker switched off: the others still lead
+  assert.deepEqual(promoCards({ ...F, trackerOn: false }, null, '/x', 3).map((c) => c.key), ['owner', 'chauffeur', 'rental']);
 });

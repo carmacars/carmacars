@@ -42,4 +42,12 @@ for (const [kind, dim] of [['query', 'query'], ['page', 'page']]) {
   }
 }
 if (rows.length) fs.writeFileSync(OUT, JSON.stringify({ window_end: iso(end), rows }));
+// r50 hotfix 2: the 100 searches with the most impressions in the run's summary, so keyword research can read them
+// without database access (docs/seo/keywords-2026-11.md); searches only, never a person's data
+if (process.env.GITHUB_STEP_SUMMARY && rows.length) {
+  const top = rows.filter((x) => x.kind === 'query').sort((a, b) => b.impressions - a.impressions).slice(0, 100);
+  const cell = (s) => String(s).replace(/[|\n\r]/g, ' ');
+  fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `\n### Searches with the most impressions, ${iso(start)} to ${iso(end)}\n\n| Search | Impressions | Clicks | Position |\n|---|---:|---:|---:|\n`
+    + top.map((x) => `| ${cell(x.key)} | ${x.impressions} | ${x.clicks} | ${x.position === null ? '' : Number(x.position).toFixed(1)} |`).join('\n') + '\n');
+}
 console.log(`::notice title=gsc pages::${rows.filter((x) => x.kind === 'query').length} queries and ${rows.filter((x) => x.kind === 'page').length} pages for ${iso(start)} to ${iso(end)}`);

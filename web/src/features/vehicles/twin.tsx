@@ -18,6 +18,7 @@ import { chooseText, writeKit } from '@/features/kit';
 import { KitText } from '@/features/kit/KitText';
 import { vehicleInput, vehicleKit } from '@/features/kit/pages';
 import { stockPhoto } from './photo';
+import { ServicePromo } from '@/features/services/ServicePromo';
 import { termTreeRedirect } from '@/features/places/synonyms';
 import { vehicleDepth } from '@/features/seo/depth-data';
 import { SiteReviews } from '@/features/seo/SiteReviews';
@@ -231,6 +232,8 @@ export async function TermIndex({ tree }: { tree: Tree }) {
       <VehicleHead trail={trail} h1={`${label}: every make, model, year and trim`} lead={`${label} for every car: its own figures from the EPA and NHTSA, by place and colour.`} img="/sample-photos/studio/sedan/grey/lead/CARMACARS.svg" alt="A car in the studio, a representative image" facts={[]} cta={['#h-makes', 'Choose a make']} also={tree.term?.also} />
       <div className="wrap vp-body"><section className="vp-sec" aria-labelledby="h-makes"><h2 className="d3" id="h-makes">Makes</h2>
         <ul className="chips">{makes.map((m) => <li key={m.slug}><Link prefetch={false} className="chip" href={`${tree.base}/${m.slug}`}>{m.name}</Link></li>)}</ul></section></div>
+      {/* r50 hotfix 2: the tracker, owner, chauffeur and rental offers on every search page */}
+      <ServicePromo pageKey={tree.base} />
     </div>
   );
 }

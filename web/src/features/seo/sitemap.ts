@@ -6,6 +6,8 @@ import { env } from '@/lib/env';
 import { inCrawlScope } from '@/lib/edge/crawl-scope';
 import { withEpoch } from './lastmod';
 import { TRACKER_PATHS } from '@/features/trackers/pages';
+import { familiesOf, FIXED, pagePaths, SOFTWARE_PATH } from './sitemap-paths';
+import { trackerOn } from '@/features/services/data';
 
 // The sitemaps read as the server (public paths only), not as a visitor: a file walks thousands of pages, which the
 // visitor's 2.5 s limit (0106) cut off (/sitemap.xml and /sitemap-vehicles/makes.xml answered 500, Oct 22).
@@ -14,7 +16,6 @@ const SR = { role: 'service_role' as const };
 // The sitemaps (docs/blueprint/14-seo.md section 9, migration 0061): an index, then the fixed pages with the model
 // pages, the cars with their photos, the landing pages and the guides. lastmod only where the date is the content's
 // own (Google uses it only when it is reliably accurate); no priority or changefreq (Google ignores them).
-export const FIXED = ['/', '/cars', '/car-rental', '/guides', '/how-it-works', '/requirements', '/credit-card-rental-coverage', '/delivery', '/chauffeur', '/faq', '/contact', '/about', '/list-your-car', '/services', '/detailing', '/body-shop', '/partners/body-shops', '/partners/tow-trucks', '/place-data', '/places', '/makes', '/terms', '/privacy', '/cancellation-policy', '/gift-cards'];
 type Row = { path: string; kind: string; lastmod: string | null; images: Array<{ loc: string; title: string | null }> | null };
 // 0102: 'hubs', the model pages of the cars on the site (/cars/<make>/<model>, sitemap_all's model_hub rows). They were left
 // to the vehicle sitemaps of 0097, which list nothing while the vehicle catalog is not loaded (live, Oct 22: none), so the
@@ -85,15 +86,14 @@ async function hubRows(all: Row[]): Promise<Prio> {
 type Entry = { loc: string; lastmod: string | null; images?: string[]; alternates?: Array<[string, string]> };
 type Fam = Prio;
 type Langs = { languages: Array<{ code: string; hreflang: string }>; pages: Prio };
+// r50 hotfix 2: a failed read throws (guarded answers 503 with Retry-After, and Google tries again). It answered an
+// empty file before: Search Console showed /sitemap-families.xml with an error and 0 addresses (Nov 26), so the tracker
+// pages were in no sitemap. The tracker's own pages are in the pages file now (familiesOf), only its install pages here.
 async function familyRows(): Promise<Fam> {
-  // r48 (3231): the tracker's intent pages and its install pages of the Ontario cities we reach join the families file
-  // (the product page itself is in the database's list while the product is on)
-  try {
-    const fam = ((await memo('sitemap_families', () => rpc('sitemap_families', {}, SR))) ?? []) as unknown as Fam;
-    if (!fam.some((r) => r.path === '/trackers')) return fam;
-    const places = ((await memo('tracker_install_places', () => rpc('tracker_install_places', { p_limit: 200 }, SR)).catch(() => [])) ?? []) as unknown as Array<{ slug: string }>;
-    return [...fam, ...TRACKER_PATHS.filter((p) => p !== '/trackers').map((path) => ({ path, lastmod: null })), ...places.map((x) => ({ path: `/trackers/install/${x.slug}`, lastmod: null }))];
-  } catch { return []; }
+  const fam = ((await memo('sitemap_families', () => rpc('sitemap_families', {}, SR))) ?? []) as unknown as Fam;
+  if (!fam.some((r) => r.path === '/trackers')) return fam;
+  const places = ((await memo('tracker_install_places', () => rpc('tracker_install_places', { p_limit: 200 }, SR)).catch(() => [])) ?? []) as unknown as Array<{ slug: string }>;
+  return familiesOf(fam, places);
 }
 async function languageRows(): Promise<Langs> {
   try { return ((await memo('sitemap_languages', () => rpc('sitemap_languages', {}, SR))) ?? { languages: [], pages: [] }) as unknown as Langs; } catch { return { languages: [], pages: [] }; }
@@ -107,17 +107,18 @@ export function languageEntries(l: Langs, base: string, lastmod: (d: string | nu
   }).slice(0, 50_000);
 }
 
-function entries(name: SitemapName, all: Row[], prio: Prio = [], hubs: Prio = [], core = false, fam: Fam = [], langs: Langs = { languages: [], pages: [] }): Entry[] {
+function entries(name: SitemapName, all: Row[], prio: Prio = [], hubs: Prio = [], core = false, fam: Fam = [], langs: Langs = { languages: [], pages: [] }, trackers = false): Entry[] {
   const base = siteUrl();
   const url = (p: string) => base + (p === '/' ? '' : p);
   switch (name) {
     // the model pages are in the vehicle sitemaps (0097: /cars/<make>/<model> replaced the model hubs)
-    case 'pages': return [...FIXED.map((p) => ({ loc: url(p), lastmod: null })), ...all.filter((r) => r.kind === 'careers').map((r) => ({ loc: url(r.path), lastmod: own(r.lastmod) }))];
+    case 'pages': { const careers = all.filter((r) => r.kind === 'careers');
+      return [...pagePaths({ trackers, careers: [] }).map((p) => ({ loc: url(p), lastmod: null })), ...careers.map((r) => ({ loc: url(r.path), lastmod: own(r.lastmod) }))]; }
     // 0128: each address in one sitemap file. The priority list leaves out the addresses of the site's own files (the
     // fleet's cars, the landing pages, the fixed pages, the guides and the hubs: listed right after it, at the top of
     // the index); it keeps its own selection (the makes, the popular models, the place pages nearest us).
     case 'priority': {
-      const seen = new Set<string>([...FIXED, ...all.filter((r) => r.kind !== 'model_hub').map((r) => r.path), ...hubs.map((r) => r.path)]);
+      const seen = new Set<string>([...FIXED, ...TRACKER_PATHS, SOFTWARE_PATH, ...all.filter((r) => r.kind !== 'model_hub').map((r) => r.path), ...hubs.map((r) => r.path)]);
       // R23, Core: only addresses in the crawl scope (the place pages and the trees below the trim are out)
       const landing = new Set(all.filter((r) => r.kind === 'landing').map((r) => r.path));
       return prio.filter((r) => (!core || inCrawlScope(r.path, landing)) && !seen.has(r.path) && !!seen.add(r.path)).slice(0, 50_000).map((r) => ({ loc: url(r.path), lastmod: iso(r.lastmod) }));
@@ -250,7 +251,7 @@ export async function sitemapIndex(n = 1): Promise<Response> {
 export async function sitemapFile(name: Exclude<SitemapName, 'priority'>): Promise<Response> {
   const all = await rows();
   const [fam, langs] = await Promise.all([name === 'families' ? familyRows() : Promise.resolve([]), name === 'languages' ? languageRows() : Promise.resolve(undefined)]);
-  return urlset(entries(name, all, [], name === 'hubs' ? await hubRows(all) : [], await coreScope(), fam, langs), name === 'cars');
+  return urlset(entries(name, all, [], name === 'hubs' ? await hubRows(all) : [], await coreScope(), fam, langs, name === 'pages' && await trackerOn()), name === 'cars');
 }
 /** Part n of the priority sitemap (/sitemap-priority-<n>.xml, 0124); 404 past the last part. */
 export async function prioritySitemapFile(n: number): Promise<Response> {
