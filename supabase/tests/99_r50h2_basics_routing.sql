@@ -77,11 +77,29 @@ select test.eq('the payroll line notes the held commission and stays payable; no
   (select string_agg(coalesce(app.payroll_line_json(l) ->> 'academy_hold' like 'Academy not finished:%', false)::text, '/' order by statement_number) from field_pay_lines l where run_id = test.id('run:bas') and status = 'pending'), 'false/true');
 select test.eq('Record all payments pays every line, hours included, and counts the commission held', (select (r ->> 'paid') || '/' || (r ->> 'commission_held') from (
   select app.payroll_pay_all(test.id('bas_admin'), jsonb_build_object('run_id', test.id('run:bas'), 'method', 'cash')) r) x), '2/1');
+-- review 5: told once a pay period, however often Record all payments runs
+do $$ begin perform app.payroll_pay_all(test.id('bas_admin'), jsonb_build_object('run_id', test.id('run:bas'), 'method', 'cash')); exception when others then null; end $$;
+select test.eq('the commission held alert: once a person a pay period', (select count(*) from app_events e join field_pay_lines y on y.id = e.entity_id
+  where e.entity = 'field_pay_line' and e.payload ->> 'rule' = 'academy_pay_held' and y.staff_id = test.id('bas_sales')), 1::bigint);
+-- review 4: the line says Commission held only when a commission of its period is actually held
+insert into field_pay_runs (id, period_start, period_end, status, settings) values (test.id('run:bas_old'), app.today() - 40, app.today() - 27, 'approved', '{}');
+insert into field_pay_lines (id, run_id, staff_id, rate_cents, wage_cents, gross_cents, statement_number) values
+  (test.id('line:bas_sa_old'), test.id('run:bas_old'), test.id('bas_sales'), 2000, 10000, 10000, 'BAS-4');
+select test.eq('no Commission held on a line whose period has no held commission (approved after it ended)',
+  app.payroll_line_json((select l from field_pay_lines l where l.id = test.id('line:bas_sa_old'))) ->> 'academy_hold', null::text);
+-- review 3: the pay_statement method skips the hold only on the statement path itself
+select test.throws('a commission payout marked pay statement outside a pay line is held too',
+  $$insert into staff_commission_payouts (staff_id, method, reference, paid_on, pay_period, amount_cents, recorded_by) values (test.id('bas_sales'), 'pay_statement', 'X', app.today(), app.month_start(app.today()), 2000, test.id('bas_admin'))$$, 'Academy not finished');
+select test.throws('an Admin''s manual commission payout (Record payout) meets the hold, whatever the method',
+  $$select app.commission_payout_record(test.id('bas_admin'), jsonb_build_object('staff', test.id('bas_sales'), 'method', 'pay_statement', 'pay_period', app.today()))$$, 'Academy not finished');
+select test.throws('...by e-Transfer too',
+  $$select app.commission_payout_record(test.id('bas_admin'), jsonb_build_object('staff', test.id('bas_sales'), 'method', 'e_transfer', 'reference', 'ET-555'))$$, 'Academy not finished');
 select test.ok('the held person is told their commission waits', exists (select 1 from app_events e where e.entity = 'field_pay_line' and e.entity_id = test.id('line:bas_sa')));
 insert into academy_waivers (user_id, reason, waived_by) values (test.id('bas_sales'), 'Trained in person', test.id('bas_admin'));
 select test.eq('the waiver releases commission: it joins the next pay line', app.fp_commissions(test.id('bas_sales'), app.today()) ->> 'cents', '2000');
-insert into staff_commission_payouts (staff_id, method, reference, paid_on, amount_cents, recorded_by) values (test.id('bas_sales'), 'e_transfer', 'REF2', app.today(), 2000, test.id('bas_admin'));
+select test.ok('the waiver releases commission: the Admin''s Record payout goes through', app.commission_payout_record(test.id('bas_admin'), jsonb_build_object('staff', test.id('bas_sales'), 'method', 'e_transfer', 'reference', 'REF2')) is not null);
 select test.eq('the waiver releases commission: the payout is recorded', (select count(*) from staff_commission_payouts where staff_id = test.id('bas_sales') and reference = 'REF2'), 1::bigint);
+select test.eq('a pay line''s commission is paid on the statement path (the flag is cleared after)', coalesce(current_setting('app.pay_line_commission', true), ''), '');
 update academy_waivers set revoked_at = now(), revoked_by = test.id('bas_admin') where user_id = test.id('bas_sales');
 
 -- ================================================================ 3. an Admin opens any lesson and quiz (5170)
@@ -123,6 +141,28 @@ select test.eq('the audit: the prep certificate answer follows the lesson', (sel
   where s.slug = 'new-r35-field-prep' and q.sort = 2), 'The certificate PDF or photo, uploaded');
 select test.ok('repetition: the renter''s side is customer service''s only', 'renter_side' = any (app.academy_paths_of(test.id('bas_cs'))) and not ('renter_side' = any (app.academy_paths_of(test.id('bas_fleet')))));
 
+-- ================================================================ 5b. review: no stuck section while the agreement is unsigned; an Admin clears one
+create temp table bas_gate as select staff_agreement_gate as g from program_settings where id = (app.settings()).id;
+update program_settings set staff_agreement_gate = true where id = (app.settings()).id;
+select test.mk_user('bas_unsigned', 'va', 'cs');
+update staff_profiles set onboarding_exempt = false, agreement_waived_at = null, agreement_waived_by = null, agreement_waived_reason = null, agreement_lock_from = null
+ where user_id = test.id('bas_unsigned');
+select test.ok('the agreement is unsigned: locked', app.agreement_locked(test.id('bas_unsigned')));
+select test.eq('stuck while the agreement is unsigned: no section is assigned (the academy is not open to them yet)',
+  public.academy_assign_stuck(test.id('bas_unsigned'), jsonb_build_object('area', '/staff/bookings', 'lesson', 'cs/cs-requests', 'reason', 'stuck_idle')) ->> 'why', 'agreement');
+insert into academy_assignments (id, user_id, section_id, path_code, area, reason)
+select test.id('asg:bas_unsigned'), test.id('bas_unsigned'), s.id, 'cs', '/staff/bookings', 'stuck_idle' from academy_sections s where s.slug = 'cs-requests';
+select test.eq('an open section never holds them while the agreement is unsigned (no loop from the documents)', jsonb_array_length(app.academy_required(test.id('bas_unsigned'))), 0);
+update staff_profiles set agreement_waived_at = now(), agreement_waived_by = test.id('bas_admin'), agreement_waived_reason = 'Signed on paper' where user_id = test.id('bas_unsigned');
+select test.eq('signed or waived: the section holds that area again', jsonb_array_length(app.academy_required(test.id('bas_unsigned'))), 1);
+select test.throws('clear: Admins only', $$select public.door(test.id('bas_fleet'), 'aal2', 'admin_do', 'academy_assignment_clear', jsonb_build_object('id', test.id('asg:bas_unsigned'), 'reason', 'Shown in person'))$$, null);
+select test.throws('clear: with a reason', $$select public.door(test.id('bas_admin'), 'aal2', 'admin_do', 'academy_assignment_clear', jsonb_build_object('id', test.id('asg:bas_unsigned'), 'reason', ''))$$, 'reason');
+select test.eq('clear: an Admin clears it', public.door(test.id('bas_admin'), 'aal2', 'admin_do', 'academy_assignment_clear', jsonb_build_object('id', test.id('asg:bas_unsigned'), 'reason', 'Shown in person')) ->> 'ok', 'true');
+select test.ok('clear: logged with who and why, and the area opens', exists (select 1 from academy_assignments a where a.id = test.id('asg:bas_unsigned') and a.done_at is not null and a.cleared_by = test.id('bas_admin') and a.clear_reason = 'Shown in person')
+  and exists (select 1 from audit_log l where l.after ->> 'clear_reason' = 'Shown in person') and jsonb_array_length(app.academy_required(test.id('bas_unsigned'))) = 0);
+select test.throws('clear: only an open one', $$select app.academy_assignment_clear(test.id('bas_admin'), jsonb_build_object('id', test.id('asg:bas_unsigned'), 'reason', 'Again'))$$, 'not required');
+update program_settings set staff_agreement_gate = (select g from bas_gate) where id = (app.settings()).id;
+
 -- ================================================================ 6. field routing with shifts paused (5173)
 -- the settings 5173 leaves (other files of a CI slice set field_jobs_auto_assign to none for their own cases)
 update program_settings set field_slots_auto = false, field_jobs_auto_assign = 'least_busy' where id = (app.settings()).id;
@@ -157,7 +197,7 @@ select pg_temp.job('job:bas_tmr_ret', 'return_check_in', pg_temp.at(1, 10));    
 select pg_temp.job('job:bas_tmr_pick', 'handover', pg_temp.at(1, 9));                                  -- tomorrow morning, no shift
 select set_config('app.fx_no_slot', 'off', false);
 -- the routing run of a moment inside today's shift (the hourly job passes now)
-select test.eq('the run routes the open work', app.field_route_run(pg_temp.at(0, 12)), '5 field job(s) routed to a shift');
+select test.eq('the run routes the open work', app.field_route_run(pg_temp.at(0, 12)), '5 field job(s) routed to a shift, 0 with no shift');
 create function pg_temp.where_is(p_label text) returns text language sql as $$
   select coalesce((select case j.shift_slot_id when test.id('slot:bas_today') then 'today' when test.id('slot:bas_d2') then 'd2' when test.id('slot:bas_yday') then 'yday' else 'other' end
                      || ':' || coalesce(split_part(u.full_name, ' ', 2), 'nobody')
@@ -187,6 +227,18 @@ select test.ok('(b) Today: the work up to the next shift, to prep the car', (sel
 select test.eq('(b) Take it: the person on shift takes the day''s job from the Admin', (app.fx_job_take(test.id('bas_field'), jsonb_build_object('job', test.id('job:bas_admin'))) ->> 'id')::uuid, test.id('job:bas_admin'));
 select test.eq('(b) taken: on their shift', pg_temp.where_is('job:bas_admin'), 'today:Field');
 -- (a) later: today's shift ended with work not done: it carries over to the next shift
-select test.eq('(a) after the shift: the work not done moves to the next shift', app.field_route_run(pg_temp.at(0, 18)) <> '0 field job(s) routed to a shift', true);
+select test.eq('(a) after the shift: the work not done moves to the next shift', app.field_route_run(pg_temp.at(0, 18)) not like '0 field job(s) routed%', true);
 select test.eq('(a) carried over to the shift after', pg_temp.where_is('job:bas_night'), 'd2:Field2');
-select test.ok('the hourly job runs the routing', app.job_field_shift_plan(now()) like '%field job(s) routed to a shift');
+select test.ok('the hourly job runs the routing', app.job_field_shift_plan(now()) like '%field job(s) routed to a shift%');
+-- review 2: never onto a shift nobody works; a job left on one moves; with no shift anybody works, unassigned and one Fleet To do
+select pg_temp.shift('slot:bas_empty', null, 3);
+select test.eq('a shift nobody works is never chosen (a return on its day goes to the worked shift before)', app.fx_route_slot('return_check_in', pg_temp.at(3, 12), pg_temp.at(0, 18)), test.id('slot:bas_d2'));
+select set_config('app.fx_no_slot', 'on', false);
+select pg_temp.job('job:bas_onempty', 'handover', pg_temp.at(3, 12), test.id('slot:bas_empty'));
+select pg_temp.job('job:bas_far', 'handover', pg_temp.at(30, 12), test.id('slot:bas_empty'));
+select set_config('app.fx_no_slot', 'off', false);
+select test.eq('the run: a job on a shift nobody works moves; one with no worked shift near it is left unassigned', app.field_route_run(pg_temp.at(0, 18)), '1 field job(s) routed to a shift, 1 with no shift');
+select test.eq('moved to the worked shift', pg_temp.where_is('job:bas_onempty'), 'd2:Field2');
+select test.eq('no worked shift: unassigned, off the empty shift', (select coalesce(shift_slot_id::text, 'none') || '/' || coalesce(assigned_to::text, 'nobody') from field_jobs where id = test.id('job:bas_far')), 'none/nobody');
+select app.field_route_run(pg_temp.at(0, 18));
+select test.eq('Fleet gets one To do for it, not one a run', (select count(*) from tasks where dedupe_key = 'field_jobs_no_shift' and queue = 'fleet' and status = 'open'), 1::bigint);

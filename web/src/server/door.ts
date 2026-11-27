@@ -95,7 +95,8 @@ export async function requireStaff(kind: 'va' | 'field', next: string): Promise<
   // 1151: then the WhatsApp groups; nothing else opens until all three are done (the database holds the same line)
   if (roles.onboarding_locked && !ONBOARDING_OPEN.test(next)) redirect('/staff/welcome');
   // 5171: stuck on a page: its academy section first, then that area opens again
-  const req = requiredFor(roles.academy_required, next);
+  // (never while the agreement is unsigned: the academy does not open to them yet, so the section would be a dead end)
+  const req = roles.agreement_locked ? null : requiredFor(roles.academy_required, next);
   if (req) redirect(`${req.href}?required=1`);
   return { user, roles };
 }

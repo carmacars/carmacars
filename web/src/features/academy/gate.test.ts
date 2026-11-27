@@ -117,3 +117,9 @@ test('5171: a section required for an area holds that area only, never the acade
   assert.equal(areaOf('/staff/field/jobs'), '/staff/field/jobs');
   assert.equal(areaOf('/staff'), '/staff');
 });
+
+test('review: the onboarding pages never wait for a stuck section (no loop from the documents to sign)', () => {
+  const r = [{ area: '/staff', href: '/staff/academy/cs/cs-requests' }, { area: '/staff/documents', href: '/staff/academy/cs/cs-requests' }];
+  for (const p of ['/staff/documents', '/staff/documents/abc', '/staff/sign/xyz', '/staff/field/sign/1', '/staff/welcome', '/staff/profile']) assert.equal(requiredFor(r, p), null, p);
+  assert.match(readFileSync(new URL('../../server/door.ts', import.meta.url), 'utf8'), /roles\.agreement_locked \? null : requiredFor\(/);
+});

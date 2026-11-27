@@ -47,6 +47,9 @@ begin
 end $$;
 
 -- ================================================================ 1. the switches
+-- a database without its settings row (a fresh one) gets it, so the switches hold there too (0014's row, column defaults)
+insert into program_settings (effective_from, field_slots_auto, field_jobs_auto_assign)
+select date '2026-01-01', false, 'least_busy' where not exists (select 1 from program_settings);
 update program_settings set field_slots_auto = false, field_jobs_auto_assign = 'least_busy'
  where field_slots_auto is distinct from false or field_jobs_auto_assign is distinct from 'least_busy';
 -- the open slots still to come that nobody holds (their jobs are routed again by fx_slot_jobs_after, then field_route_run)
@@ -77,7 +80,8 @@ create function app.fx_route_slot(p_kind text, p_at timestamptz, p_now timestamp
 language sql stable security definer set search_path = public, app, pg_temp as $$
   with s as (select x.id, x.starts_at, x.ends_at, app.local_date(x.starts_at) as day from field_shift_slots x
               where x.cancelled_at is null and x.ends_at > p_now
-                and x.starts_at < p_at + interval '14 days' and x.ends_at > p_at - interval '14 days'),
+                and x.starts_at < p_at + interval '14 days' and x.ends_at > p_at - interval '14 days'
+                and exists (select 1 from app.fx_slot_people(x.id))),
        j as (select app.local_date(p_at) as day, p_kind in ('return_check_in', 'pickup_from_renter') as after_leg),
        -- the day: its own; else a return the next day with a shift (else the one before), a pickup or prep the day before
        -- with a shift (else the next)
@@ -92,7 +96,7 @@ language sql stable security definer set search_path = public, app, pg_temp as $
             least(abs(extract(epoch from (s.starts_at - t.at))), abs(extract(epoch from (s.ends_at - t.at)))), s.starts_at, s.id
    limit 1
 $$;
-comment on function app.fx_route_slot(text, timestamptz, timestamptz) is 'The shift a field job goes on (5173): a live shift on its own day first, else by timing (a pickup the day before with a shift, a return the day after), the shift of its hour on that day.';
+comment on function app.fx_route_slot(text, timestamptz, timestamptz) is 'The shift a field job goes on (5173): only shifts someone works (fx_slot_people: held, field, not academy-locked); null when none. A live shift on its own day first, else by timing (a pickup the day before with a shift, a return the day after), the shift of its hour on that day.';
 
 select pg_temp.patch_fn('app.field_jobs_shift()'::regprocedure,
   'app.fx_slot_for(new.scheduled_at, app.local_date(new.scheduled_at) > app.today())',
@@ -105,23 +109,39 @@ declare
   j record;
   v_slot uuid;
   n integer := 0;
+  v_none integer := 0;
 begin
   if (app.settings()).field_jobs_auto_assign <> 'least_busy' then return 'field routing off (field_jobs_auto_assign none)'; end if;
+  -- open jobs with nobody: on no shift, on an ended or cancelled shift, or on a live shift nobody works (review: never left there)
   for j in select f.id, f.kind, f.scheduled_at, f.shift_slot_id from field_jobs f
             where f.status in ('scheduled', 'acknowledged')
               and f.scheduled_at > p_now - interval '7 days'
               and (f.booking_id is null or exists (select 1 from bookings b where b.id = f.booking_id and b.status in ('confirmed', 'on_rent', 'returned')))
               and ((f.shift_slot_id is null and f.assigned_to is null)
-                   or (f.shift_slot_id is not null and not app.fx_slot_live(f.shift_slot_id, p_now)))
+                   or (f.shift_slot_id is not null and not app.fx_slot_live(f.shift_slot_id, p_now))
+                   or (f.shift_slot_id is not null and f.assigned_to is null and not exists (select 1 from app.fx_slot_people(f.shift_slot_id))))
             order by f.scheduled_at, f.id loop
     v_slot := app.fx_route_slot(j.kind, j.scheduled_at, p_now);
-    if v_slot is null or v_slot is not distinct from j.shift_slot_id then continue; end if;
+    if v_slot is null then
+      -- no shift anybody works: unassigned (off a dead or empty shift), counted for the one Fleet To do below
+      if j.shift_slot_id is not null then update field_jobs set shift_slot_id = null, shift_pinned = false where id = j.id; end if;
+      v_none := v_none + 1;
+      continue;
+    end if;
+    if v_slot is not distinct from j.shift_slot_id then continue; end if;
     update field_jobs set shift_slot_id = v_slot, shift_pinned = false where id = j.id;
     n := n + 1;
   end loop;
-  return format('%s field job(s) routed to a shift', n);
+  if v_none > 0 then
+    insert into tasks (queue, task_type, title, detail, priority, status, dedupe_key)
+    values ('fleet', 'field_jobs_no_shift', left(format('%s field job(s) have no shift anybody works', v_none), 200),
+            'Field shifts are paused and no held shift can take these pickups, returns or preps. Open Field jobs (Staff portal > Fleet, or Admin > Field jobs) and assign each job to a person, or add a shift and ask someone to take it.',
+            'high', 'open', 'field_jobs_no_shift')
+    on conflict do nothing;
+  end if;
+  return format('%s field job(s) routed to a shift, %s with no shift', n, v_none);
 end $$;
-comment on function app.field_route_run(timestamptz) is 'Every hour (5173): open field jobs on no shift and with nobody, or on an ended or cancelled shift, go on the shift of fx_route_slot: work not done carries over.';
+comment on function app.field_route_run(timestamptz) is 'Every hour (5173): open field jobs with nobody on no shift, on an ended or cancelled shift, or on a live shift nobody works, go on the shift of fx_route_slot: work not done carries over. With no shift anybody works they stay unassigned and Fleet gets one To do.';
 
 select pg_temp.patch_fn('app.job_field_shift_plan(timestamptz)'::regprocedure,
   '|| app.job_field_shift_plan_pre2864(p_now);',

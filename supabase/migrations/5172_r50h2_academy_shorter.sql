@@ -17,7 +17,7 @@
 --      new-r35-cs-calls-answers 3), new-r35-fleet-shifts-delivery 1 (new-r45-field-shifts-checkins 4), finance-deposits-refunds 3
 --      (trip-rules 6), new-bookings-r28-r32 2 (prices-and-deposits 2), new-r45-calls-in-the-browser 4 (new-r37-calls-first 1).
 --   4. A quiz started with a fix pending (5070) on a changed section starts again (its kept answers name the old questions).
--- Passes already earned stay. No applied migration is edited: academy_paths_of is replaced (same signature, grants kept).
+-- Re-run safe: a second run removes and changes nothing. Passes already earned stay. No applied migration is edited: academy_paths_of is replaced (same signature, grants kept).
 set local check_function_bodies = off;
 
 -- ================================================================ 1. the renter's side for customer service only
@@ -28,7 +28,8 @@ language sql stable security definer set search_path = public, app, pg_temp as $
 $$;
 
 -- ================================================================ 2 and 3. the questions
-create temporary table q5172 (slug text, sort int) on commit drop;
+create temporary table if not exists q5172 (slug text, sort int) on commit drop;
+truncate q5172;
 insert into q5172 values
   ('r48-map-people', 5), ('new-r45-calls-in-the-browser', 6), ('new-r33-photos', 4), ('new-r33-photos', 5), ('new-r33-photos', 6),
   ('r50-sign-first', 5), ('new-r35-field-prep', 5),
@@ -46,7 +47,8 @@ begin
   delete from academy_questions q using academy_sections s, q5172 x
    where s.id = q.section_id and s.slug = x.slug and q.sort = x.sort;
   get diagnostics n = row_count;
-  if n <> 14 then raise exception '5172: expected 14 questions to remove, found %', n; end if;
+  -- a count is reported, never a reason to stop a deploy (a re-run removes none; an Admin may have edited the quizzes)
+  if n <> 14 then raise notice '5172: expected 14 questions to remove, removed %', n; end if;
 end $$;
 
 update academy_questions q set options = jsonb_set(q.options, '{1}', to_jsonb('The certificate PDF or photo, uploaded'::text)),

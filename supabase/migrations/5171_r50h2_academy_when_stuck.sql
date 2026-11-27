@@ -44,7 +44,11 @@ create table academy_assignments (
   reason       text not null check (reason in ('stuck_idle', 'stuck_errors', 'stuck_loop', 'client_errors')),
   created_at   timestamptz not null default now(),
   done_at      timestamptz,
-  done_attempt uuid references academy_attempts (id) on delete set null
+  done_attempt uuid references academy_attempts (id) on delete set null,
+  -- cleared by an Admin instead of passed (logged with the reason; the audit log keeps the row before and after)
+  cleared_by   uuid references users (id),
+  clear_reason text check (clear_reason is null or length(btrim(clear_reason)) between 3 and 500),
+  check ((cleared_by is null) = (clear_reason is null))
 );
 create unique index academy_assignments_open on academy_assignments (user_id, section_id) where done_at is null;
 create index academy_assignments_user on academy_assignments (user_id, created_at desc);
@@ -82,6 +86,8 @@ begin
   if p_by is null or not app.staff_is_member(p_by) or app.staff_is_test(p_by) then return jsonb_build_object('assigned', false, 'why', 'not staff'); end if;
   select * into sp from staff_profiles where user_id = p_by;
   if sp.onboarding_exempt or app.academy_waived(p_by) then return jsonb_build_object('assigned', false, 'why', 'exempt'); end if;
+  -- the agreement first: before it is signed the academy does not open to them, so nothing is assigned (no dead end)
+  if app.agreement_locked(p_by) then return jsonb_build_object('assigned', false, 'why', 'agreement'); end if;
   if v_area is null or v_area !~ '^/staff(/[a-z0-9_-]+)*$' or length(v_area) > 200 then raise exception 'Not a staff area' using errcode = '22023'; end if;
   if v_reason is null or v_reason not in ('stuck_idle', 'stuck_errors', 'stuck_loop', 'client_errors') then raise exception 'Not a reason' using errcode = '22023'; end if;
   select s.* into v_sec from academy_sections s join academy_path_sections ps on ps.section_id = s.id and ps.path_code = v_path
@@ -152,6 +158,7 @@ language sql stable security definer set search_path = public, app, pg_temp as $
     from academy_assignments a join academy_sections s on s.id = a.section_id
    where a.user_id = p_user and a.done_at is null
      and not app.academy_waived(p_user)
+     and not app.agreement_locked(p_user)
      and not exists (select 1 from staff_profiles sp where sp.user_id = p_user and sp.onboarding_exempt)
 $$;
 
@@ -175,6 +182,39 @@ language sql stable security definer set search_path = public, app, pg_temp as $
   select app.academy_home_pre5171(p_user) || jsonb_build_object('required', app.academy_required(p_user))
 $$;
 select pg_temp.copy_grants('app.academy_home(uuid)', 'app.academy_home_pre5171(uuid)');
+
+-- ================================================================ 5. an Admin clears one (review, Nov 27)
+create function app.academy_assignment_clear(p_admin uuid, p jsonb) returns jsonb
+language plpgsql security definer set search_path = public, app, pg_temp as $$
+declare
+  v_id uuid := nullif(p ->> 'id', '')::uuid;
+  v_reason text := nullif(btrim(coalesce(p ->> 'reason', '')), '');
+  a academy_assignments;
+begin
+  perform app.assert_admin(p_admin);
+  if v_id is null then raise exception 'Choose the section to clear' using errcode = '22023'; end if;
+  if v_reason is null or length(v_reason) < 3 then raise exception 'Give the reason' using errcode = '22023'; end if;
+  update academy_assignments set done_at = now(), cleared_by = p_admin, clear_reason = left(v_reason, 500)
+   where id = v_id and done_at is null returning * into a;
+  if a.id is null then raise exception 'This section is not required of them any more' using errcode = '23514'; end if;
+  perform app.staff_onboarding_refresh(a.user_id);
+  return jsonb_build_object('ok', true, 'id', a.id, 'user_id', a.user_id);
+end $$;
+comment on function app.academy_assignment_clear(uuid, jsonb) is 'An Admin clears a stuck-page section required of a person (5171), with the reason (kept on the row and in the audit log).';
+
+alter function app.door(uuid, text, text, text, jsonb) rename to door_pre5171;
+create function app.door(p_user uuid, p_aal text, p_call text, p_name text, p jsonb default '{}'::jsonb) returns jsonb
+language plpgsql security definer set search_path = public, app, pg_temp as $$
+begin
+  if p_call = 'admin_do' and p_name = 'academy_assignment_clear' then
+    perform app.door_begin(p_user, p_aal);
+    return app.academy_assignment_clear(p_user, coalesce(p, '{}'::jsonb) - '_va');
+  end if;
+  return app.door_pre5171(p_user, p_aal, p_call, p_name, p);
+end $$;
+select pg_temp.copy_grants('app.door(uuid, text, text, text, jsonb)'::regprocedure, 'app.door_pre5171(uuid, text, text, text, jsonb)'::regprocedure);
+revoke all on function app.academy_assignment_clear(uuid, jsonb) from public, anon, authenticated;
+grant execute on function app.academy_assignment_clear(uuid, jsonb) to service_role;
 
 revoke all on function app.academy_assigned(uuid, uuid) from public, anon, authenticated;
 grant execute on function app.academy_assigned(uuid, uuid) to service_role;

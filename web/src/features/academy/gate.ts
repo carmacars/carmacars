@@ -17,9 +17,10 @@ export const ONBOARDING_OPEN = AGREEMENT_OPEN;
 export const opensWhileOnboarding = (path: string) => ONBOARDING_OPEN.test(path);
 
 /** 5171: the section a page waits for: the first one required for the page's area (the area and the pages under it; a portal
- *  home, /staff or /staff/field, is that page only). The academy, the guide and the profile always open. */
+ *  home, /staff or /staff/field, is that page only). The onboarding pages (AGREEMENT_OPEN: the academy, the guide, the profile,
+ *  the documents to sign, Welcome) always open, so a person signing their agreement is never sent round in a loop. */
 export function requiredFor<T extends { area: string; href: string }>(required: T[] | undefined, path: string): T | null {
-  if (!required?.length || ACADEMY_OPEN.test(path)) return null;
+  if (!required?.length || AGREEMENT_OPEN.test(path)) return null;
   const p = path.split('?')[0]!.replace(/\/+$/, '') || '/staff';
   return required.find((r) => (r.area === '/staff' || r.area === '/staff/field') ? p === r.area : p === r.area || p.startsWith(`${r.area}/`)) ?? null;
 }

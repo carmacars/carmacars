@@ -7,7 +7,7 @@ const BOOKING_REVIEW = ['booking_request', 'request_open_to_sales', 'offer_chang
 const VERIFY = ['verify_renter', 'chase_verification', 'protection_plan_request', 'coverage_review'];
 const CHANGES = ['review_extension', 'booking_change_approval'];
 const MONEY = ['etransfer_check', 'refund_cancellation', 'take_deposit', 'release_deposit', 'settle_holdback', 'price_findings', 'charge_question'];
-const FLEET = ['schedule_handover', 'schedule_detail', 'late_return', 'job_unacknowledged', 'vehicle_swap', 'incident', 'breakdown'];
+const FLEET = ['field_jobs_no_shift', 'schedule_handover', 'schedule_detail', 'late_return', 'job_unacknowledged', 'vehicle_swap', 'incident', 'breakdown'];
 
 export function taskHref(t: Task): string {
   const n = t.booking_number ? encodeURIComponent(t.booking_number) : null;
