@@ -92,8 +92,8 @@ select test.ok('privileges: the renter and search functions are the server''s on
 -- ================================================================ 4. every salesperson in the lists (5133)
 select test.eq('sales list: Jamal (field staff with Sales) is listed as Sales',
   (select x ->> 'function' || '/' || (x ->> 'sales') from jsonb_array_elements(app.sales_staff_options(test.id('rss_admin'))) x where x ->> 'id' = test.id('rss_jamal')::text), 'sales/true');
-select test.eq('sales list: customer service is not Sales',
-  (select x ->> 'sales' from jsonb_array_elements(app.sales_staff_options(test.id('rss_admin'))) x where x ->> 'id' = test.id('rss_cs')::text), 'false');
+select test.eq('sales list: customer service only is not listed (no sales credit, 2330)',
+  (select count(*)::int from jsonb_array_elements(app.sales_staff_options(test.id('rss_admin'))) x where x ->> 'id' = test.id('rss_cs')::text), 0);
 
 -- ================================================================ 5. no commission on an extension the salesperson did not start (5133)
 select test.mk_booking('RSS-3', 'rss_real', 'rss_rita', '2031-07-01 10:00', '2031-07-08 10:00', 'on_rent');
