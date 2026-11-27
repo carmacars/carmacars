@@ -52,6 +52,20 @@ export function Effects() {
     return () => { window.clearTimeout(t); io?.disconnect(); };
   }, [path]);
 
+  // r50 hotfix2: a car photo that does not load (a missing file, the photo host down) shows the branded placeholder,
+  // never the browser's broken-image icon ("?" on an iPhone)
+  useEffect(() => {
+    const SEL = '.pu-photo img, .car-card img, .gallery img';
+    const broken = (img: HTMLImageElement) => {
+      img.style.visibility = 'hidden';
+      img.closest('.pu-photo')?.classList.add('pu-photo--empty');
+    };
+    const onError = (e: Event) => { const t = e.target; if (t instanceof HTMLImageElement && t.matches(SEL)) broken(t); };
+    document.addEventListener('error', onError, true);
+    document.querySelectorAll<HTMLImageElement>(SEL).forEach((img) => { if (img.complete && img.naturalWidth === 0 && img.currentSrc) broken(img); });
+    return () => document.removeEventListener('error', onError, true);
+  }, [path]);
+
   // page transitions: link clicks, back and forward
   useEffect(() => {
     if (!motionOK()) return;

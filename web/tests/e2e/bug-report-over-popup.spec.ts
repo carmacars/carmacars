@@ -33,6 +33,15 @@ test('Report a bug works from inside an open modal and captures it', async ({ pa
     // the modal makes the page behind it inert: the copy of the button is inside the modal, and it can be pressed
     const float = modal.getByTestId('bug-report-float');
     await expect(float).toBeVisible();
+    // r50 hotfix2: the copy never lies over the pop-up's own controls (on a phone it sat across a sheet's full width)
+    const fb = (await float.boundingBox())!;
+    for (const b of await modal.locator('button, a, input, select, textarea').all()) {
+      if (!(await b.isVisible()) || (await b.getAttribute('data-testid')) === 'bug-report-float') continue;
+      const o = await b.boundingBox();
+      if (!o) continue;
+      const overlaps = fb.x < o.x + o.width && o.x < fb.x + fb.width && fb.y < o.y + o.height && o.y < fb.y + fb.height;
+      expect(overlaps, `the bug button covers ${await b.textContent()}`).toBe(false);
+    }
     await float.click();
     const form = page.getByTestId('bug-report-dialog');
     await expect(form).toBeVisible();

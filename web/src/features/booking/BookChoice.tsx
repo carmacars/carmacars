@@ -8,7 +8,7 @@ export type { BookHow };
 
 // r50 (3900): the renter chooses how to book, on the car page and in the booking flow: Book instantly (pay now and it is
 // confirmed) or Request to book (no charge; staff approve, then send a pay link or an offer). Book instantly is open only
-// to a renter the database lets book at once (app.instant_book_check: Gold, licence verified, nothing owing) and only for
+// to a renter the database lets book at once (app.instant_book_check: a complete profile, licence verified, nothing owing; 5113) and only for
 // a car and dates it can take at once; everyone else sees why. Request to book is the default, as it always was.
 
 /** The hint this device's renter may book instantly (set by the renter portal and the booking flow; only a hint: the

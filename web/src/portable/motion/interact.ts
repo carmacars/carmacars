@@ -49,9 +49,34 @@ export function nudge(el: Element | null | undefined) {
 }
 
 // ---------------------------------------------------------------- the success morph
+// r50 hotfix2 (the offer that showed Sent, then Send the offer again, and was never sent): a success is said only when
+// the action worked, and then it stays. The button keeps its done word and refuses another press until the person
+// changes something in its form or section, or the page gives the button another label (it moved on); it never flips
+// back to its idle label by itself. "Copied" alone is a moment. A failure rings the button and leaves its label.
 const dialogOpener = new WeakMap<Element, HTMLElement>();
-/** A button's answer: ok shows the word ("Saved") and a tick for a moment; not ok nudges it and rings it in the
- *  error colour. A button that is gone (its dialog closed) hands the morph to the button that opened the dialog. */
+const holds = new WeakMap<HTMLElement, () => void>();
+/** The part of the page a button acts for: its form, dialog or card (errors and edits there belong to it). */
+export const scopeOf = (b: Element): Element => b.closest('form, dialog, [role="dialog"], [data-mo-scope], .pt-card, section') ?? document.body;
+function clearDone(b: HTMLElement) {
+  b.removeAttribute('data-mo-result'); b.removeAttribute('data-mo-done');
+  if (b.getAttribute('aria-disabled') === 'true' && b.dataset.moHeld) b.removeAttribute('aria-disabled');
+  delete b.dataset.moHeld;
+  if (b.dataset.moPos) { b.style.position = ''; delete b.dataset.moPos; }
+  holds.get(b)?.(); holds.delete(b);
+}
+function hold(b: HTMLElement) {
+  holds.get(b)?.();
+  const scope = scopeOf(b);
+  const label = labelOf(b);
+  const edit = (e: Event) => { if (e.target instanceof Element && !b.contains(e.target)) clearDone(b); };
+  const watch = new MutationObserver(() => { if (!b.isConnected || labelOf(b) !== label) clearDone(b); });
+  watch.observe(b, { subtree: true, childList: true, characterData: true });
+  scope.addEventListener('input', edit, true); scope.addEventListener('change', edit, true);
+  holds.set(b, () => { watch.disconnect(); scope.removeEventListener('input', edit, true); scope.removeEventListener('change', edit, true); });
+  if (!b.hasAttribute('aria-disabled')) { b.setAttribute('aria-disabled', 'true'); b.dataset.moHeld = '1'; }
+}
+/** A button's answer: ok shows the word ("Saved") and a tick, and keeps it (see above); not ok nudges it and rings it
+ *  in the error colour. A button that is gone (its dialog closed) hands the morph to the button that opened the dialog. */
 export function moResult(el: Element | null | undefined, ok: boolean, word?: string | null) {
   if (!el) return;
   let b = el as HTMLElement;
@@ -65,15 +90,15 @@ export function moResult(el: Element | null | undefined, ok: boolean, word?: str
     b.setAttribute('data-mo-done', w.replace(/\.$/, ''));
     b.setAttribute('data-mo-result', 'ok');
     feedback('success');
+    if (w === 'Copied') b.dataset.moResultT = String(window.setTimeout(() => clearDone(b), 1500));
+    else hold(b);
   } else {
+    clearDone(b);
     b.setAttribute('data-mo-result', 'error');
     nudge(b);
     feedback('error');
+    b.dataset.moResultT = String(window.setTimeout(() => { if (b.getAttribute('data-mo-result') === 'error') b.removeAttribute('data-mo-result'); }, 1200));
   }
-  b.dataset.moResultT = String(window.setTimeout(() => {
-    b.removeAttribute('data-mo-result'); b.removeAttribute('data-mo-done');
-    if (b.dataset.moPos) { b.style.position = ''; delete b.dataset.moPos; }
-  }, ok ? 1500 : 1200));
 }
 
 // the error texts on the page now (alerts and invalid fields), to tell a failed answer from a good one
@@ -83,6 +108,8 @@ function errorsNow(): Set<string> {
   document.querySelectorAll(ERR).forEach((e) => { if (shown(e)) out.add(`${e.tagName}|${e.id}|${(e.textContent ?? '').trim().slice(0, 140)}`); });
   return out;
 }
+/** An error shown in the button's own form or section: the same refusal again counts as a failure, never a success. */
+const errorIn = (b: Element) => [...scopeOf(b).querySelectorAll(ERR)].some((e) => shown(e) && !e.matches('.alert--warn, .alert--info'));
 
 /** Starts the feedback listeners; returns the function that stops them. */
 export function startFeedback(hooks: FeedbackHooks = {}): () => void {
@@ -97,9 +124,13 @@ export function startFeedback(hooks: FeedbackHooks = {}): () => void {
   let touched = 0;
   on(document, 'click', (e) => {
     const b = (e.target as Element | null)?.closest?.<HTMLElement>(BTN);
+    // a button that said it is done does not do it again (an offer is never sent twice by a second tap)
+    if (b?.dataset.moHeld) { e.preventDefault(); e.stopImmediatePropagation(); return; }
     if (b) { last = { el: b, at: Date.now() }; touched = Date.now(); }
   }, true);
   on(document, 'submit', (e) => {
+    const held = ((e as SubmitEvent).submitter as HTMLElement | null)?.dataset?.moHeld;
+    if (held) { e.preventDefault(); e.stopImmediatePropagation(); return; }
     touched = Date.now();
     const s = (e as SubmitEvent).submitter as HTMLElement | null ?? (e.target as HTMLFormElement).querySelector<HTMLElement>('button[type="submit"], button:not([type]), input[type="submit"]');
     if (s) last = { el: s, at: Date.now() };
@@ -129,10 +160,13 @@ export function startFeedback(hooks: FeedbackHooks = {}): () => void {
       window.setTimeout(() => {
         if (Number(r.el.dataset.moResultAt ?? 0) > Date.now() - 1500) return; // its component answered
         const now = errorsNow();
-        const failed = [...now].some((k) => !r.before.has(k));
+        const failed = [...now].some((k) => !r.before.has(k)) || (r.el.isConnected && errorIn(r.el));
         if (failed) { moResult(r.el, false); const code = r.el.closest('form, [role="dialog"], dialog')?.querySelector('input[autocomplete="one-time-code"]'); if (code) nudge(code); return; }
         const w = doneWord(labelOf(r.el));
-        if (w) moResult(r.el, true, w);
+        if (!w) return;
+        moResult(r.el, true, w);
+        // an answer the component shows late (a second request, a refresh): an error then takes the success back
+        window.setTimeout(() => { if (r.el.isConnected && r.el.getAttribute('data-mo-result') === 'ok' && errorIn(r.el)) moResult(r.el, false); }, 1200);
       }, 280);
     }
   });

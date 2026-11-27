@@ -7,6 +7,9 @@ import { OwnerPayForm } from '@/features/owner/OwnerPayForm';
 import { debitLine, invoiceStatus, invoiceTitle, PAY_METHOD_LABEL } from '@/features/owner/types';
 import { ownerInvoice, requireOwner } from '@/server/owner/data';
 import { getFacts } from '@/lib/site';
+import { cardPayments } from '@/server/card-provider';
+import { cardOn } from '@/features/money/card-pay';
+import { PayOffline } from '@/features/money/PayOffline';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Invoice', path: '/owner/invoices', noindex: true, description: 'An owner invoice and how to pay it.' });
@@ -17,7 +20,7 @@ const LINE_HST = (cents: number) => (cents ? money(cents, { cents: true }) : '')
 // pre-authorized debit. The same page serves the upfront invoice and the monthly fee invoices.
 export default async function OwnerInvoicePage({ params, searchParams }: { params: Promise<{ number: string }>; searchParams: Promise<Record<string, string | undefined>> }) {
   const [{ user, home }, p, sp] = await Promise.all([requireOwner('/owner/invoices'), params, searchParams]);
-  const [i, facts] = await Promise.all([ownerInvoice(user, decodeURIComponent(p.number)), getFacts()]);
+  const [i, facts, card] = await Promise.all([ownerInvoice(user, decodeURIComponent(p.number)), getFacts(), cardPayments()]);
   const billing = facts.email_aliases.billing ?? facts.email_aliases.contact ?? '';
   const s = invoiceStatus(i);
   const paid = i.payments.find((x) => x.status === 'succeeded');
@@ -53,6 +56,8 @@ export default async function OwnerInvoicePage({ params, searchParams }: { param
               <h2 className="d3" id="ow-pending">Your debit is processing</h2>
               <p>{money(pending.amount_cents, { cents: true })} from the account ending {pending.card_last4 ?? '----'}. A pre-authorized debit takes 3 to 5 business days to clear. We email you when it does; nothing else to do.</p>
             </section>
+          ) : i.payable && !cardOn(card) ? (
+            <PayOffline card={card ? { ...card, e_transfer_email: billing || card.e_transfer_email } : card} reference={i.invoice_number} amount={money(i.balance_cents, { cents: true })} testId="invoice-pay-offline" />
           ) : i.payable ? (
             <section className="pt-card" aria-labelledby="ow-pay">
               <h2 className="d4" id="ow-pay">Pay {money(i.balance_cents, { cents: true })}</h2>
@@ -62,9 +67,7 @@ export default async function OwnerInvoicePage({ params, searchParams }: { param
           ) : (
             <section className="pt-card"><h2 className="d4">Nothing to pay online</h2><p>This invoice is {s.label.toLowerCase()}. Questions: call or message us.</p></section>
           )}
-          <section className="pt-card" aria-labelledby="ow-other"><h2 className="d4" id="ow-other">Paying by e-Transfer instead</h2>
-            <p className="small">Send {money(i.balance_cents || i.total_cents, { cents: true })} by Interac e-Transfer to {billing} with <b>{i.invoice_number}</b> in the message. We mark the invoice paid when it arrives, usually the same business day.</p>
-          </section>
+          {cardOn(card) && <PayOffline card={card ? { ...card, e_transfer_email: billing || card.e_transfer_email } : card} reference={i.invoice_number} amount={money(i.balance_cents || i.total_cents, { cents: true })} title="Paying by e-Transfer or direct deposit instead" testId="invoice-pay-other" />}
         </div>
         <aside className="pt-split__aside pt-first">
           <section className="pt-card" aria-labelledby="ow-lines"><h2 className="d4" id="ow-lines">What this invoice covers</h2>

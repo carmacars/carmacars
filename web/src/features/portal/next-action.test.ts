@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { nextAction, newlyDone, splitActions, stageSummary, stages, todos } from './next-action.ts';
+import { needLabel, nextAction, newlyDone, splitActions, stageSummary, stages, todos } from './next-action.ts';
 import type { NextStep, Progress } from './status.ts';
 import type { BookingSummary } from './types.ts';
 import type { StillNeeded } from './still-needed.ts';
@@ -117,4 +117,11 @@ test('the card shows the primary button and two more; the rest go behind More', 
   assert.deepEqual(s.shown.map((x) => x.k), ['step', 'pay', 'extend']);
   assert.deepEqual(s.more.map((x) => x.k), ['trip', 'message']);
   assert.equal(splitActions([{ k: 'a', primary: false }]).more.length, 0);
+});
+
+test('r50 hotfix2: a checklist button names what it adds (never "Next: Add it")', () => {
+  assert.equal(needLabel('Add it', 'Your date of birth'), 'Add your date of birth');
+  assert.equal(needLabel('Upload them', 'Photos of the licence'), 'Upload photos of the licence');
+  assert.equal(needLabel('Upload the licence', 'Your licence'), 'Upload the licence');
+  assert.equal(needLabel('Add it', null), 'Add it');
 });

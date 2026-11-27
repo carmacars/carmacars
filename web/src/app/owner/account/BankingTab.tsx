@@ -7,7 +7,7 @@ import { money } from '@/lib/format';
 import type { OwnerCtx } from '@/features/owner/ctx';
 
 // Account > Banking: where we pay you, and how your fees are paid.
-export function BankingTab({ home }: OwnerCtx) {
+export function BankingTab({ home, cardsOn = true }: OwnerCtx & { cardsOn?: boolean }) {
   const current = home.payout_accounts.find((a) => a.is_current);
   const waiting = home.payout_accounts.filter((a) => !a.verified_at);
   const d = home.auto_debit;
@@ -38,7 +38,8 @@ export function BankingTab({ home }: OwnerCtx) {
                 <p className="small muted">We emailed you a confirmation of it when your bank account was set up.</p>
               </details>
             )}
-            {d.enabled && <DebitSetupForm ownerType={home.owner.owner_type} terms={d.terms} replace={d.mandate} holderName={home.owner.owner_type === 'corporation' ? (home.owner.corporation_name ?? home.owner.legal_name) : home.owner.legal_name} />}
+            {/* r50 hotfix2: the debit is set up through the card processor: not offered while it is off */}
+            {d.enabled && cardsOn && <DebitSetupForm ownerType={home.owner.owner_type} terms={d.terms} replace={d.mandate} holderName={home.owner.owner_type === 'corporation' ? (home.owner.corporation_name ?? home.owner.legal_name) : home.owner.legal_name} />}
           </section>
           <section className="pt-card" aria-labelledby="ow-pm"><h2 className="d4" id="ow-pm">Saved payment methods</h2>
             {home.payment_methods.length ? <Dl rows={home.payment_methods.map((m) => [m.kind === 'card' ? 'Card' : 'Pre-authorized debit', `${m.brand_or_bank ?? ''} ending ${m.last4 ?? ''}${m.is_default ? ', default' : ''}${m.status === 'pending' ? ', being confirmed' : ''}`.trim()])} />

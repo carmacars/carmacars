@@ -6,6 +6,9 @@ import { AddonPayForm } from '@/features/addons/AddonPayForm';
 import { money } from '@/lib/format';
 import { myBooking } from '@/server/portal/data';
 import { unpaidAddons } from '@/server/portal/addon-payment';
+import { cardPayments } from '@/server/card-provider';
+import { cardOn } from '@/features/money/card-pay';
+import { PayOffline } from '@/features/money/PayOffline';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Pay for your add-ons', path: '/account/bookings', noindex: true, description: 'Pay for the add-ons on your booking.' });
@@ -13,7 +16,7 @@ export const metadata = pageMeta({ title: 'Pay for your add-ons', path: '/accoun
 // Add-ons bought after booking with no card on file (migration 0079): what is due, and the card form.
 export default async function AddonPayPage({ params }: { params: Promise<{ number: string }> }) {
   const { user, b } = await myBooking((await params).number, 'addons/pay');
-  const u = await unpaidAddons(b.id, user.id);
+  const [u, card] = await Promise.all([unpaidAddons(b.id, user.id), cardPayments()]);
   return (
     <>
       <Back href={bookingPath(b.booking_number)}>Booking {b.booking_number}</Back>
@@ -29,9 +32,9 @@ export default async function AddonPayPage({ params }: { params: Promise<{ numbe
         </div>
       ) : (
         <div className="pt-split">
-          <section className="pt-card" aria-labelledby="ap-card"><h2 className="d4" id="ap-card">Card</h2>
+          {cardOn(card) ? <section className="pt-card" aria-labelledby="ap-card"><h2 className="d4" id="ap-card">Card</h2>
             <AddonPayForm number={b.booking_number} amountCents={u.total_cents} />
-          </section>
+          </section> : <PayOffline card={card} reference={b.booking_number} amount={money(u.total_cents, { cents: true })} testId="addon-pay-offline" />}
           <aside className="pt-split__aside pt-first">
             <section className="pt-card" aria-labelledby="ap-sum" data-testid="addon-pay-summary"><h2 className="d4" id="ap-sum">What you pay now</h2>
               <ul className="pt-list">{u.items.map((i) => <li key={i.booking_addon_id} className="pt-card__head"><span>{i.name}</span><span className="num">{money(i.total_cents, { cents: true })}</span></li>)}</ul>

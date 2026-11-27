@@ -103,7 +103,7 @@ export const ADMIN_TOOLS: Tool[] = [
 
   write('send_offer', 'Send an offer', 'Send the offer of a request (Admin > the booking > Send the offer), with an optional message and expiry.', ['booking'],
     { ...booking, message: str('A message to the renter'), expires_at: { type: 'string', format: 'date-time' }, book_now: { type: 'boolean', description: 'Book it now: the offer is approved at once as if the renter had approved it; the booking waits for the renter to sign and pay (the Sign and pay link is emailed) and holds the car. Use when the renter already agreed.' }, book_now_reason: str('Why it is booked without the renter\'s approval (kept in the booking\'s history)') }),
-  write('create_offer', 'Make an offer', 'Make and send an offer for a renter and a car (the staff offer form): renter_id (or renter {full_name, email, mobile, date_of_birth}), vehicle_id, pickup_at, return_at, and optionally the price fields of the form, rental_pay_method, deposit_pay_method, message, notify, channels.',
+  write('create_offer', 'Make an offer', 'Make and send an offer for a renter and a car (the staff offer form): renter_id (or renter {full_name, email, mobile, date_of_birth}), vehicle_id, pickup_at, return_at, and optionally the price fields of the form, coverage_option (1 the renter\'s own insurance with OPCF 27: the booking asks the renter to upload the policy and the OPCF 27; 2 credit card coverage; 3 the Protection Plan), rental_pay_method, deposit_pay_method, message, notify, channels.',
     ['vehicle_id', 'pickup_at', 'return_at'], { renter_id: id('A renter on file'), renter: { type: 'object' }, vehicle_id: id('The car'), pickup_at: { type: 'string', format: 'date-time' },
       return_at: { type: 'string', format: 'date-time' }, source: str('phone, walk_in, email, ...'), rental_pay_method: str('card, cash, e_transfer, ...'), deposit_pay_method: str('card, cash, ...'),
       message: str('A message to the renter'), notify: { type: 'boolean' }, channels: { type: 'object' }, rental_charge_cents: cents('A rental charge agreed with the renter'),
@@ -475,3 +475,10 @@ export function normalizeToolArgs(args: unknown): unknown {
   const t = typeof a.price_tax === 'string' ? PRICE_TAX_ALIAS[a.price_tax.trim().toLowerCase()] : undefined;
   return t ? { ...a, price_tax: t } : args;
 }
+
+// r50 hotfix2 (5112): one Program or Site setting by its key, as Admin > Settings saves it; secrets and bank details refused
+export const SETTING_TOOLS: Tool[] = [
+  write('set_setting', 'Change one setting', 'Change one Program setting or Site setting by its key (get_settings lists the keys and values), validated exactly as Admin > Settings saves it; a Program setting changes from today as a dated row. Secret-like keys (API keys, tokens, secrets, verify tokens, bank details) are refused: change those in Admin > Settings.', ['key', 'value'],
+    { key: str('The setting\'s key, for example card_payments or e_transfer_email'), value: { description: 'The new value: text, a number, true or false, or null' } })
+];
+TOOLS.push(...SETTING_TOOLS);

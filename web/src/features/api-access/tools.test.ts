@@ -350,3 +350,14 @@ test('r50: list_company_documents reads (admin:read); company_document_upload an
   assert.match(SQL5060, /app\.api_key_check\(p_hash, 'admin:write', p_tool, a - 'pdf_base64' - 'body_md' - 'fields', p_client\)/);
   assert.ok(!/search_path = public, app\s*as/.test(SQL5060), 'search_path ends with pg_temp');
 });
+
+// r50 hotfix2 (5112): set_setting is the database's, admin:write, two-step
+test('5112: set_setting is two-step admin:write and the database runs it', () => {
+  const t = TOOLS.find((x) => x.name === 'set_setting')!;
+  const sql = readFileSync(new URL('../../../../supabase/migrations/5112_r50h2_connector_set_setting.sql', import.meta.url), 'utf8');
+  assert.equal(t.scope, 'admin:write');
+  const schema = t.inputSchema as { properties: Record<string, unknown>; required: string[] };
+  assert.ok(schema.properties.confirm && schema.properties.preview_id && schema.required.includes('key') && schema.required.includes('value'));
+  assert.match(sql, /p_tool <> 'set_setting'/);
+  assert.match(sql, /cc_pay_/);
+});

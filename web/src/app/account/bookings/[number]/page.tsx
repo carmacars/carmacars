@@ -251,7 +251,7 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
             {['requested', 'pending_payment'].includes(b.status) && <div><Withdraw number={b.booking_number} /></div>}
           </PortalCard>
 
-          {tips?.on && <TipPicker number={b.booking_number} options={tips} source="receipt" />}
+          {tips?.on && !cardOff && <TipPicker number={b.booking_number} options={tips} source="receipt" />}
           {protection && protection.option !== 4 && (
             <PortalCard id="pt-protection" title="Protection" testId="renter-protection">
               <MyProtection number={b.booking_number} x={protection} cards={protectionCards} />

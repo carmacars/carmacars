@@ -46,6 +46,8 @@ function Browser({ cars, labels, classes, maxDays, gate, p, sync }: Props & { p:
   const [cls, setCls] = useState<string[]>(() => (p.get('cls') ?? '').split(',').filter((c) => classes.includes(c)));
   const [seats, setSeats] = useState(p.get('seats') ?? 'any');
   const [trans, setTrans] = useState(p.get('trans') ?? 'any');
+  // r50 hotfix2: only the cars a renter with a complete profile can book at once (never a sample car; the database says)
+  const [inst, setInst] = useState(p.get('instant') === '1');
   // make, model and colour (the owner's request of October 31, 2026): the lists come from the cars on the site
   // r48 AN (3151): one make and one model family per car (car-identity.ts, the database's rule); the trim is a detail on
   // the card, never its own option ("CLA 250" and "CLA-Class", "330i" and "3 Series" are one model)
@@ -115,6 +117,7 @@ function Browser({ cars, labels, classes, maxDays, gate, p, sync }: Props & { p:
     if (cls.length) q.set('cls', cls.join(','));
     if (seats !== 'any') q.set('seats', seats);
     if (trans !== 'any') q.set('trans', trans);
+    if (inst) q.set('instant', '1');
     if (make) q.set('make', make);
     if (modelOk) q.set('model', modelOk);
     if (col.length) q.set('colour', col.join(','));
@@ -126,7 +129,7 @@ function Browser({ cars, labels, classes, maxDays, gate, p, sync }: Props & { p:
     // app router restore its tree from the address, which renders this again (Safari stopped a loop of these at 100)
     const next = `/cars${s ? '?' + s : ''}`;
     if (sync && window.location.pathname + window.location.search !== next) window.history.replaceState(window.history.state, '', next);
-  }, [sync, hasDates, dates.from, dates.to, tf, tt, mode, cls, seats, trans, make, modelOk, col, max, sort, maxP, qText]);
+  }, [sync, hasDates, dates.from, dates.to, tf, tt, mode, cls, seats, trans, inst, make, modelOk, col, max, sort, maxP, qText]);
 
   useEffect(() => { document.documentElement.style.overflow = panel ? 'hidden' : ''; return () => { document.documentElement.style.overflow = ''; }; }, [panel]);
 
@@ -157,6 +160,7 @@ function Browser({ cars, labels, classes, maxDays, gate, p, sync }: Props & { p:
       const st = c.seats ?? 0;
       if (seats === '2' && st !== 2) ok = false; if (seats === '5' && st < 5) ok = false; if (seats === '7' && st < 7) ok = false;
       if (trans !== 'any' && c.transmission !== trans) ok = false;
+      if (inst && !c.instant_book) ok = false;
       if (make && makeOf(c) !== make) ok = false;
       if (modelOk && famOf(c).model !== modelOk) ok = false;
       if (col.length && !col.includes(colourOf(c))) ok = false;
@@ -174,7 +178,7 @@ function Browser({ cars, labels, classes, maxDays, gate, p, sync }: Props & { p:
     };
     // real cars always before the sample cars (0104), whatever the sort
     return list.sort((x, y) => Number(x.busy) - Number(y.busy) || Number(!!x.c.is_sample) - Number(!!y.c.is_sample) || (by[sort] ?? by.featured!)(x, y));
-  }, [cars, cls, seats, trans, make, modelOk, col, max, avail, hasDates, sort, words, labels]);
+  }, [cars, cls, seats, trans, inst, make, modelOk, col, max, avail, hasDates, sort, words, labels]);
 
   const shown = rows.filter((r) => r.ok && (!r.busy || showBooked));
   const free = shown.filter((r) => !r.busy).length;
@@ -183,14 +187,15 @@ function Browser({ cars, labels, classes, maxDays, gate, p, sync }: Props & { p:
     ...cls.map((k) => ['cls:' + k, labels[k] ?? k] as [string, string]),
     ...(seats !== 'any' ? [['seats', seats === '2' ? '2 seats' : `${seats}+ seats`] as [string, string]] : []),
     ...(trans !== 'any' ? [['trans', trans] as [string, string]] : []),
+    ...(inst ? [['instant', 'Instant booking'] as [string, string]] : []),
     ...(make ? [['make', make] as [string, string]] : []),
     ...(modelOk ? [['model', modelOk] as [string, string]] : []),
     ...col.map((k) => ['col:' + k, k] as [string, string]),
     ...(max < maxP ? [['max', `Up to ${money(max * 100)}`] as [string, string]] : []),
     ...(qText ? [['q', `"${qText}"`] as [string, string]] : [])
   ];
-  const clearAll = () => { setCls([]); setSeats('any'); setTrans('any'); setMake(''); setModel(''); setCol([]); setMax(maxP); setQ(''); };
-  const removeChip = (k: string) => { if (k === 'make') { setMake(''); setModel(''); return; } if (k === 'model') { setModel(''); return; } if (k.startsWith('col:')) { setCol(col.filter((c) => c !== k.slice(4))); return; } if (k.startsWith('cls:')) setCls(cls.filter((c) => c !== k.slice(4))); else if (k === 'seats') setSeats('any'); else if (k === 'trans') setTrans('any'); else if (k === 'q') setQ(''); else setMax(maxP); };
+  const clearAll = () => { setCls([]); setSeats('any'); setTrans('any'); setInst(false); setMake(''); setModel(''); setCol([]); setMax(maxP); setQ(''); };
+  const removeChip = (k: string) => { if (k === 'make') { setMake(''); setModel(''); return; } if (k === 'model') { setModel(''); return; } if (k.startsWith('col:')) { setCol(col.filter((c) => c !== k.slice(4))); return; } if (k.startsWith('cls:')) setCls(cls.filter((c) => c !== k.slice(4))); else if (k === 'seats') setSeats('any'); else if (k === 'trans') setTrans('any'); else if (k === 'instant') setInst(false); else if (k === 'q') setQ(''); else setMax(maxP); };
   const carHref = (slug: string) => {
     if (!hasDates) return `/cars/${slug}`;
     const q = new URLSearchParams({ from: dates.from, to: dates.to, tf, tt });
@@ -241,6 +246,9 @@ function Browser({ cars, labels, classes, maxDays, gate, p, sync }: Props & { p:
                   <label className="check" key={c}><input type="checkbox" name="cls" value={c} checked={cls.includes(c)} onChange={(e) => setCls(e.target.checked ? [...cls, c] : cls.filter((x) => x !== c))} /><span>{labels[c] ?? c}</span></label>
                 ))}
               </fieldset>
+              <div className="filters__group">
+                <label className="check"><input type="checkbox" name="instant" checked={inst} onChange={(e) => setInst(e.target.checked)} data-testid="filter-instant" /><span>Instant booking <span className="small muted">(pay and it is confirmed, with a complete profile)</span></span></label>
+              </div>
               <fieldset className="filters__group"><legend>Seats</legend>
                 <div className="seg">{SEATS.map(([v, l]) => <label key={v}><input type="radio" name="seats" value={v} checked={seats === v} onChange={() => setSeats(v)} />{l}</label>)}</div>
               </fieldset>

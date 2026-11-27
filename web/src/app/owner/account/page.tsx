@@ -1,4 +1,5 @@
 import { pageMeta } from '@/features/seo/meta';
+import { cardPaymentsOn } from '@/server/card-provider';
 import { PageHeader } from '@/features/portal/Chrome';
 import { requireOwner } from '@/server/owner/data';
 import { rpc } from '@/lib/db/repo';
@@ -24,7 +25,7 @@ export default async function OwnerAccount({ searchParams }: { searchParams: Pro
     <>
       <PageHeader title="Account" purpose={tab.key === 'banking' ? 'Where we pay you, and how your fees are paid.' : tab.key === 'notifications' ? undefined : 'Your contact details and the details your agreements and registry forms use.'} />
       <PortalTabs label="Account" tabs={OWNER_ACCOUNT_TABS} current={tab.key} counts={{ notifications: unread || 0, banking }} />
-      {tab.key === 'banking' ? <BankingTab {...ctx} /> : tab.key === 'notifications' ? <NotificationsTab {...ctx} /> : <ProfileTab {...ctx} />}
+      {tab.key === 'banking' ? <BankingTab {...ctx} cardsOn={await cardPaymentsOn()} /> : tab.key === 'notifications' ? <NotificationsTab {...ctx} /> : <ProfileTab {...ctx} />}
     </>
   );
 }

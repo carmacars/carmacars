@@ -25,6 +25,7 @@ import { TypedInput } from '@/components/DateInput';
 import type { Revert } from '@/features/request-history/model';
 
 import { WhyDisabled } from '@/components/WhyDisabled';
+import { moResult } from '@/portable/motion/runtime';
 // Review and adjust a booking request (03-admin.md section 4.2). Staff change the booking itself; every
 // edit is priced by the database (adjust_booking and the pricing functions inside a rolled-back
 // transaction) and shown as the renter will see the offer. r48: one form (car and dates, price, extras and fees, how
@@ -351,6 +352,16 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
   // r48: after a save the screen starts again from the booking as saved (the next render's b), so what shows is what the
   // database kept, never the boxes as typed (a box typed by hand stayed "changed" and was sent again with the next save)
   const saved = useRef(false);
+  // r50 hotfix2: the button says Sent or Saved only when the database saved it, keeps it, and the confirmation is shown
+  // and scrolled to; a refusal shows the database's words and the button stays as it was (never a Sent that was not)
+  const pressed = useRef<HTMLElement | null>(null);
+  const doneRef = useRef<HTMLParagraphElement>(null);
+  const [doneLabel, setDoneLabel] = useState<string | null>(null);
+  const answer = (ok: boolean, label?: string) => {
+    if (!ok) { setDoneLabel(null); moResult(pressed.current, false); return; }
+    setDoneLabel(label ?? 'Saved');
+    requestAnimationFrame(() => { doneRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' }); doneRef.current?.focus({ preventScroll: true }); });
+  };
   useEffect(() => {
     if (!saved.current) return;
     saved.current = false;
@@ -371,10 +382,11 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
     const r = await offersDo<{ version: number | null; before: Record<string, unknown>; after: Record<string, unknown>; text?: { ok: boolean; reason?: string } | null }>('offer_revise', {
       ...payload, ...pays(), internal_note: v.note, message: v.message, expires_at: expiresAt(), notify, channels: channels(), expected_version: shownVersion(b) },
       [`/admin/bookings/${b.booking_number}`, `/staff/bookings/${b.booking_number}`]);
-    if (!r.ok) { saved.current = false; setProblem(r.message); return; }
+    if (!r.ok) { saved.current = false; setProblem(r.message); answer(false); return; }
     setRevised(describeRevision(r.data.before as never, r.data.after as never, (c) => money(c, { cents: true }), when));
     setDone(r.data.version ? `Saved as offer version ${r.data.version}: ${notify ? 'the renter has the update' : 'the renter was not told'}.${r.data.text && !r.data.text.ok ? ` The text was not sent: ${r.data.text.reason}` : ''}` : 'Saved.');
     saved.current = true;
+    answer(true, notify ? 'Sent' : 'Saved');
     router.refresh();
   } finally { busy.current = false; } }); };
 
@@ -396,18 +408,19 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
     }
     saved.current = true;
     const r = await adminAct(action, body, va ? [] : [`/admin/bookings/${b.booking_number}`, '/admin/requests']);
-    if (!r.ok) { saved.current = false; setProblem(r.message); return; }
+    if (!r.ok) { saved.current = false; setProblem(r.message); answer(false); return; }
     const bn = action === 'send_offer' ? (r.data as { book_now?: { status?: string } } | null)?.book_now?.status : undefined;
     setDone(bn === 'approved' ? 'Booked without the renter\'s approval: the car is held and the booking waits for payment. The renter has one link to sign and pay; or have them sign and pay on this device.'
       : bn === 'requested' ? 'Offer sent. Book it now waits for an Admin\'s approval.'
       : action === 'send_offer' ? 'Offer sent. The renter has it by email and in their account.' : 'Saved. Nothing was sent to the renter.');
     saved.current = true;
+    answer(true, action === 'send_offer' ? 'Sent' : 'Saved');
     router.refresh();
   } finally { busy.current = false; } }); };
   // the one main action and the one other action of the screen
-  const primary = () => (out ? revise(tellRenter) : act('send_offer'));
-  const quiet = () => (out ? revise(false) : act('booking_save'));
-  const primaryLabel = pending ? (out ? 'Saving' : 'Sending') : out ? (tellRenter ? 'Send the update' : 'Save the update (not sent)') : 'Send the offer';
+  const primary = (e?: { currentTarget: EventTarget | null }) => { pressed.current = (e?.currentTarget as HTMLElement | null) ?? null; return out ? revise(tellRenter) : act('send_offer'); };
+  const quiet = (el?: HTMLElement | null) => { pressed.current = el ?? null; return out ? revise(false) : act('booking_save'); };
+  const primaryLabel = pending ? (out ? 'Saving' : 'Sending') : doneLabel ? `${doneLabel} ✓` : out ? (tellRenter ? 'Send the update' : 'Save the update (not sent)') : 'Send the offer';
   const sendable = editable && (out || b.status === 'requested');
   const moreInUse = v.bill_to !== 'renter' || !v.blocks_calendar || String(v.expires_hours) !== String(va ? Math.min(offerHours, 48) : offerHours) || ['booking_type', 'bill_to', 'blocks_calendar', 'by_email', 'by_text', 'note',
     'daily_rate_cents', 'weekend_rate_cents', 'weekly_rate_cents', 'monthly_rate_cents', 'overage_cents_per_km', 'staff_discount_cents', 'staff_discount_reason', 'lead_time_pct', 'price_limit_override'].some(changed) || bookNow || (!!choice && !va);
@@ -416,7 +429,8 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
     <Ctx.Provider value={{ v, set, changed, editable }}>
     <div className="ad-review" data-testid="booking-review" data-guide="review" id="booking-review">
       {/* r48: one form, one main action. Enter in a box saves without sending (never sends to the renter by itself) */}
-      <form className="pt-card ad-card ad-form ad-form--narrow rv-form" aria-label={out ? 'Edit the offer' : 'Review and send the offer'} onSubmit={(e) => { e.preventDefault(); if (editable) quiet(); }}>
+      <form className="pt-card ad-card ad-form ad-form--narrow rv-form" aria-label={out ? 'Edit the offer' : 'Review and send the offer'} onSubmit={(e) => { e.preventDefault(); if (editable && !doneLabel) quiet((e.nativeEvent as SubmitEvent).submitter as HTMLElement | null); }}
+        onInputCapture={() => setDoneLabel(null)} onChangeCapture={() => setDoneLabel(null)}>
         <h2 className="d4">{out ? 'Edit the offer' : b.status === 'requested' ? 'Review and send the offer' : 'The booking'}</h2>
         {ownerTrip && <p className="alert alert--info small" role="note" data-testid="review-owner-trip"><span>Owner&apos;s own trip ($0): the owner books their own car. There is nothing to price; only the dates and places matter.</span></p>}
         {revert && <p className="alert alert--info small" role="status" data-testid="review-reverted"><span>Version {revert.version} is loaded as a new offer ({money(revert.total_cents, { cents: true })} when it was sent). The changes are highlighted: check the price, then send it. Nothing changes until you send.</span></p>}
@@ -546,16 +560,16 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
           </div>
         </details>
 
-        {editable && <div className="stack rv-send" id="rv-send" data-testid="review-revise">
+        {editable && <div className="stack rv-send" id="rv-send" data-testid="review-revise" data-mo-explicit>
           {diffs.length > 0 && <ul className="pt-changes small" aria-label="What changes" data-testid="review-send-diffs">{diffs.map(([k, a, z]) => <li key={k}><span className="small muted">{k}</span><span><del>{a}</del> <span className="vh">changed to</span> <ins>{z}</ins></span></li>)}</ul>}
           {!fresh && <p className="small muted" role="status" data-testid="review-updating">Updating the price for what you changed…</p>}
           {sendable && passed && <p className="alert alert--error" role="alert" data-testid="review-pickup-passed"><span>{PICKUP_PASSED}</span></p>}
           {problem && <p className="alert alert--error" role="alert" data-testid="review-problem"><span>{problem}</span></p>}
           <div className="oc-actions">
-            {sendable && <><button className="btn btn--primary" type="button" disabled={pending || !fresh || passed} onClick={primary} data-testid="review-send" data-guide="review-send" aria-describedby="why-bookingreview-554">{primaryLabel}</button><WhyDisabled id="why-bookingreview-554" why={((!fresh) || (passed)) ? (passed ? 'The pickup time has passed: choose a later pickup first' : 'Refresh the price first') : null} /></>}
-            <><button className={sendable ? 'btn btn--quiet' : 'btn btn--primary'} type="submit" disabled={pending || !fresh} data-testid="review-save" aria-describedby="why-bookingreview-555">{pending && !sendable ? 'Saving' : 'Save without sending'}</button><WhyDisabled id="why-bookingreview-555" why={((!fresh)) ? 'Refresh the reading first' : null} /></>
+            {sendable && <><button className="btn btn--primary" type="button" disabled={pending || !fresh || passed || !!doneLabel} onClick={primary} data-testid="review-send" data-guide="review-send" aria-describedby="why-bookingreview-554">{primaryLabel}</button><WhyDisabled id="why-bookingreview-554" why={((!fresh) || (passed)) ? (passed ? 'The pickup time has passed: choose a later pickup first' : 'Refresh the price first') : null} /></>}
+            <><button className={sendable ? 'btn btn--quiet' : 'btn btn--primary'} type="submit" disabled={pending || !fresh} data-testid="review-save" aria-describedby="why-bookingreview-555">{pending && !sendable ? 'Saving' : doneLabel && !sendable ? `${doneLabel} ✓` : 'Save without sending'}</button><WhyDisabled id="why-bookingreview-555" why={((!fresh)) ? 'Refresh the reading first' : null} /></>
           </div>
-          {done && <p className="alert alert--ok" role="status" data-testid="review-done" data-guide="review-done"><span>{done}</span></p>}
+          {done && <p ref={doneRef} tabIndex={-1} className="alert alert--ok" role="status" data-testid="review-done" data-guide="review-done"><span>{done}</span></p>}
           {revised && revised.length > 0 && <ul className="small" data-testid="review-revised">{revised.map((x) => <li key={x}>{x}</li>)}</ul>}
         </div>}
       </form>

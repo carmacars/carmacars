@@ -79,6 +79,15 @@ export function EtransferPay({ s, title = 'Pay by e-Transfer', upload = true, si
               {parts.deposit > 0 && <div><dt>Deposit</dt><dd><span className="etp__val num" data-testid="etp-deposit">{fmt(parts.deposit)}</span><Copy text={(parts.deposit / 100).toFixed(2)} label="deposit amount" /></dd></div>}
               {both && <div className="etp__total"><dt>Total</dt><dd><b className="etp__val num" data-testid="etp-total">{fmt(parts.total)}</b><Copy text={(parts.total / 100).toFixed(2)} label="total" /></dd></div>}
             </dl>
+            {s.card?.direct_deposit && <details className="small" data-testid="etp-direct-deposit"><summary className="link">Or pay by direct deposit (bank transfer)</summary>
+              <dl className="pt-dl etp__dl">
+                {s.card.direct_deposit.account_name && <div><dt>Account name</dt><dd>{s.card.direct_deposit.account_name}</dd></div>}
+                {s.card.direct_deposit.bank && <div><dt>Bank</dt><dd>{s.card.direct_deposit.bank}</dd></div>}
+                <div><dt>Institution</dt><dd className="num">{s.card.direct_deposit.institution}</dd></div>
+                <div><dt>Transit</dt><dd className="num">{s.card.direct_deposit.transit}</dd></div>
+                <div><dt>Account</dt><dd><span className="etp__val num">{s.card.direct_deposit.account}</span><Copy text={s.card.direct_deposit.account} label="account number" /></dd></div>
+                <div><dt>Reference</dt><dd>{s.booking_number}</dd></div>
+              </dl></details>}
             {parts.deposit > 0 && <p className="small" data-testid="etp-deposit-note">The deposit is refundable: we send it back to you by e-Transfer after the trip, less anything owed.{s.deposit_card_cents > 0 && parts.deposit !== s.deposit_card_cents ? ` By e-Transfer it is ${fmt(parts.deposit)} (the card hold would be ${fmt(s.deposit_card_cents)}).` : ''} You can also pay it in cash at pickup instead.</p>}
           </>}
           {parts.cashRental > 0 && <p className="small" data-testid="etp-cash-rental">The rental of {fmt(parts.cashRental)} is paid in cash, as agreed with our team.</p>}

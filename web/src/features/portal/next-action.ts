@@ -20,6 +20,12 @@ export interface Deadline { label: string; at: string; initial: string; span: st
 export interface NextAction extends RenterNow { kind: ActionKind; deadline: Deadline | null }
 
 const HOUR = 3600e3;
+/** r50 hotfix2: a checklist button says what it is for ("Add your date of birth", never "Next: Add it") */
+export function needLabel(action: string, item: string | null | undefined): string {
+  const what = (item ?? '').trim();
+  if (!what || !/\b(it|them)$/i.test(action.trim())) return action;
+  return action.trim().replace(/\b(it|them)$/i, what.charAt(0).toLowerCase() + what.slice(1));
+}
 const deadline = (label: string, at: string | null | undefined, now: number, after = `${label} was {t} ago`): Deadline | null => {
   if (!at) return null;
   const left = new Date(at).getTime() - now;
@@ -62,14 +68,15 @@ export function nextAction(b: BookingSummary, step: NextStep, opts: {
     ? orderNeeds(opts.needs.items).find((i) => (i.status === 'missing' || i.status === 'rejected') && i.action) : undefined;
   if (need?.action) {
     kind = 'verify';
+    const act = needLabel(need.action.label, need.label);
     const when = b.status === 'on_rent' ? '' : ' Needed before pickup.';
     out = {
       ...base,
       kicker: `${DO_NEXT} · ${b.booking_number}`,
       headline: need.status === 'rejected' ? `Send your ${String(need.label ?? 'document').toLowerCase()} again` : (need.label ?? 'Send what is still needed'),
-      detail: need.reason ? `${need.reason}.${when}` : `${need.action.label} takes a minute.${when}`,
+      detail: need.reason ? `${need.reason}.${when}` : `${act} takes a minute.${when}`,
       urgent: true,
-      actions: [{ key: 'need', label: need.action.label, href: needHref(b.booking_number, need.action.path), primary: true, testId: 'now-need' },
+      actions: [{ key: 'need', label: act, href: needHref(b.booking_number, need.action.path), primary: true, testId: 'now-need' },
         ...base.actions.map((a) => ({ ...a, primary: false }))]
     };
   } else if (b.status === 'closed' && opts.reviewDue && b.booking_type !== 'owner') {
