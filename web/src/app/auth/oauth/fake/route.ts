@@ -1,3 +1,4 @@
+import { localRedirect } from '@/lib/http/local-redirect';
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { env } from '@/lib/env';
@@ -21,7 +22,7 @@ export async function GET(req: Request) {
   const provider = u.searchParams.get('provider');
   const state = u.searchParams.get('state') ?? '';
   if (!flow || !isOAuthProvider(provider) || flow.p !== provider || flow.state !== state) return new NextResponse('This sign-in has expired. Start again.', { status: 400 });
-  if (u.searchParams.get('cancel') === '1') return NextResponse.redirect(new URL('/auth/callback?error=access_denied&error_description=The+user+denied+access', u.origin));
+  if (u.searchParams.get('cancel') === '1') return localRedirect('/auth/callback?error=access_denied&error_description=The+user+denied+access');
   let email = (u.searchParams.get('email') ?? '').trim().toLowerCase();
   let name = (u.searchParams.get('name') ?? '').trim();
   let verified = u.searchParams.get('verified') === 'on';
@@ -31,7 +32,7 @@ export async function GET(req: Request) {
   if (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
     const { localOAuthCode } = await import('@/lib/auth/local');
     const code = await localOAuthCode({ provider, email, name, verified, state });
-    const res = NextResponse.redirect(new URL(`/auth/callback?code=${encodeURIComponent(code)}`, u.origin));
+    const res = localRedirect(`/auth/callback?code=${encodeURIComponent(code)}`);
     res.cookies.set(REMEMBER, JSON.stringify({ email, name }), { httpOnly: true, sameSite: 'lax', path: '/', maxAge: 600 });
     return res;
   }

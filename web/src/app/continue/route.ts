@@ -1,3 +1,4 @@
+import { localRedirect } from '@/lib/http/local-redirect';
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { rpc } from '@/lib/db/repo';
@@ -15,10 +16,7 @@ export async function GET(req: Request) {
   const u = new URL(req.url);
   const t = u.searchParams.get('t') ?? '';
   const away = (path: string) => {
-    const res = NextResponse.redirect(new URL(path, u.origin));
-    res.headers.set('cache-control', 'no-store');
-    res.headers.set('referrer-policy', 'no-referrer');
-    return res;
+    return localRedirect(path, 302, { 'cache-control': 'no-store', 'referrer-policy': 'no-referrer' });
   };
   if (!/^[0-9a-f]{64}$/.test(t)) return away('/link-expired?kind=password');
   const r = (await rpc('server_capture_continue_open', { p_token: t }, SR).catch(() => null)) as unknown as

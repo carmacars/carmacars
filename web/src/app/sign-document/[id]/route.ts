@@ -1,4 +1,4 @@
-import { localRedirect } from '@/lib/http/local-redirect';
+import { fileLocation, localRedirect } from '@/lib/http/local-redirect';
 import { rpc } from '@/lib/db/repo';
 import { storage, type Bucket } from '@/integrations/storage';
 import { currentUser } from '@/server/portal/data';
@@ -16,5 +16,5 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   if (!d) return new Response('Not found', { status: 404 });
   const ext = d.path.split('.').pop() ?? 'pdf';
   const url = await (await storage()).signedDownloadUrl(d.bucket as Bucket, d.path, 300, `${(d.title ?? 'document').replace(/[^\w.-]+/g, '-')}.${ext}`);
-  return new Response(null, { status: 302, headers: { location: new URL(url, req.url).toString(), 'cache-control': 'no-store', 'referrer-policy': 'no-referrer' } });
+  return new Response(null, { status: 302, headers: { location: fileLocation(url), 'cache-control': 'no-store', 'referrer-policy': 'no-referrer' } });
 }
