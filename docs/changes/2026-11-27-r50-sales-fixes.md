@@ -1,4 +1,4 @@
-# Sales fixes and tools (Release 50 hotfix 2: 5130 to 5138)
+# Sales fixes and tools (Release 50 hotfix 2: 5130 to 5139)
 
 The owner's nine Sales requests of Nov 27, in one branch (`r50-hotfix2-sales`). Tests: `supabase/tests/99_r50s_sales.sql`
 (every item) and `web/tests/e2e/r50s-sales.spec.ts` (items 1, 3 and 6).
@@ -51,6 +51,12 @@ The owner's nine Sales requests of Nov 27, in one branch (`r50-hotfix2-sales`). 
    whole call when the transcript has no speakers) for a phone number and `call_flag_words` (swearing, off-platform
    payment, personal number, cash only, threats, discrimination; Admin edits the list). `call_flags` keep the line;
    Admin is alerted (`call_flagged`) and reviews them on Call flags (beside Sales team).
+
+10. **Find a renter is masked for Sales** (5139, privacy). `app.phone_renter_search` (the phone inbox's Find a renter)
+   gave Sales the renter's email in full, and the mobile in full when their active function was not Sales, against 0970.
+   It now masks both for Sales (`app.user_sales_only` or `app.viewer_masks_phones`): the masked mobile is kept in
+   `phone_masks` so the server's Call and Text find it, and the link goes by the renter's record id. Admins and customer
+   service see full values.
 
 New tables (RLS, `admin_all`, audit trigger): `booking_request_notes`, `lead_gen_credits`, `shift_claims`, `call_flags`,
 `call_flag_words`. No applied migration is edited.

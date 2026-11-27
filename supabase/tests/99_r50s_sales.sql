@@ -214,3 +214,18 @@ select test.rss_admin('call_flag_review', jsonb_build_object('flag', (select id 
 select test.eq('call: Admin reviews a flag', (app.door(test.id('rss_admin'), 'aal2', 'admin_read', 'call_flags', '{}') ->> 'open'), (select count(*)::text from call_flags where reviewed_at is null));
 select test.ok('tables: row-level security with admin_all on each new table',
   (select count(*) from pg_policies where policyname = 'admin_all' and tablename in ('booking_request_notes', 'lead_gen_credits', 'shift_claims', 'call_flags', 'call_flag_words')) = 5);
+
+-- ================================================================ privacy: Find a renter masks for Sales (5139)
+update renters set mobile = '+14165550188', email = 'rss_rita.find@example.test' where id = test.id('renter:rss_rita');
+select test.eq('renter search: Sales gets the mobile and the email masked, and the record id to link by',
+  (select (x ->> 'mobile') || '/' || (x ->> 'email') || '/' || (x ->> 'id') from jsonb_array_elements(app.phone_renter_search(test.id('rss_sam'), '{"q": "rss_rita.find"}')) x),
+  '(416) ' || repeat(chr(8226), 3) || '-' || repeat(chr(8226), 2) || '88/r' || repeat('*', 12) || '@example.test/' || test.id('renter:rss_rita'));
+select test.eq('renter search: Sales still finds the renter by the full number (matched on the server)',
+  jsonb_array_length(app.phone_renter_search(test.id('rss_sam'), '{"q": "416 555 0188"}')), 1);
+select test.ok('renter search: the masked number is kept so the server''s Call and Text find it',
+  exists (select 1 from phone_masks where user_id = test.id('rss_sam') and number = '+14165550188'));
+select test.eq('renter search: Admin gets the full mobile and email',
+  (select (x ->> 'mobile') || '/' || (x ->> 'email') from jsonb_array_elements(app.door(test.id('rss_admin'), 'aal2', 'admin_read', 'phone_renter_search', '{"q": "rss_rita.find"}')) x),
+  '+14165550188/rss_rita.find@example.test');
+select test.eq('renter search: through the door, Sales gets no full value either',
+  (select (x ->> 'mobile') not like '%5550188%' and (x ->> 'email') <> 'rss_rita.find@example.test' from jsonb_array_elements(app.door(test.id('rss_sam'), 'aal2', 'va_read', 'phone_renter_search', '{"q": "rss_rita.find"}')) x), true);
