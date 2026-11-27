@@ -311,6 +311,12 @@ update program_settings set esign_strict = false, agreement_claim_check = false;
 -- of next week at 14:00 UTC (9 or 10 am Toronto), 7 to 13 days ahead, so a suite that adds days to it prices the same on any date.
 create or replace function test.base(p_isodow integer default 1) returns timestamptz language sql stable as $$
   select date_trunc('week', now()) + interval '7 days 14 hours' + make_interval(days => p_isodow - 1) $$;
+-- A date a fixture needs in the FUTURE, written as it was first chosen (an Admin's glance: 'this is the first Wednesday of
+-- December') and moved by whole weeks so it is never in the past: the weekday, the hour and the gaps between dates stay, so
+-- prices and rules that depend on them do not change. R50 hotfix 2: fixtures with literal dates (a pickup on Nov 20)
+-- broke CI the day the date passed. Text in, text out ('YYYY-MM-DD HH24:MI'). The anchor is the day the date was chosen.
+create or replace function test.fut(p text, p_anchor date default date '2026-11-27') returns text language sql stable as $$
+  select to_char(p::timestamp + make_interval(days => 7 * greatest(0, ceil((app.local_date(now()) - p_anchor)::numeric / 7)::int)), 'YYYY-MM-DD HH24:MI') $$;
 -- Lead-time pricing (0360, on by default) is off for the earlier suites: their prices were written before a request's
 -- price depended on how far ahead it is made. 99_lead_time_partner_pricing.sql switches it on, tests it and switches it
 -- off again.

@@ -13,7 +13,7 @@ export const SECTIONS = [
     guides: ['va/your-workday', 'va/academy', 'field/academy', 'admin/people-and-access', 'admin/academy'],
     lessons: [
       L('Before your portal opens',
-        S('Four steps', 'A new person opens their portal after four steps, in order: the academy, the staff agreement, the team\'s WhatsApp groups, then an approval by an Admin or a Fleet VA.', steps('In order', ['Pass the academy', 'Sign your staff agreement', 'Confirm the WhatsApp groups', 'Wait for the approval'])),
+        S('Four steps', 'A new person opens their portal after four steps, in order: the academy, the staff agreement, the team\'s WhatsApp groups, then an approval by an Admin or a Fleet team member.', steps('In order', ['Pass the academy', 'Sign your staff agreement', 'Confirm the WhatsApp groups', 'Wait for the approval'])),
         S('A rejection', 'If the approval is rejected, the person sees the reason, fixes it and asks again.', rule('Approval', 'Everyone already working waits for the same approval once.', 'warn'))),
       L('Passing a quiz',
         S('90 percent', 'A quiz passes at 90 percent. The questions come in a random order and open only after the section\'s reading time.', title('Pass mark', '90%')),
@@ -28,7 +28,7 @@ export const SECTIONS = [
       Q('What is the pass mark of an academy quiz?', ['70%', '80%', '90%', '100%'], 2, 'A quiz passes at 90%.'),
       Q('You failed a quiz. When can you try again?', ['At once', 'After 30 minutes', 'Tomorrow only', 'After an Admin resets it'], 1, 'After a failed try you wait 30 minutes.'),
       Q('How many tries of a quiz do you have a day?', ['1', '3', '5', 'No limit'], 1, 'Three tries a day.'),
-      Q('What is the last onboarding step before the portal opens?', ['The academy', 'The staff agreement', 'An approval by an Admin or a Fleet VA', 'The WhatsApp groups'], 2, 'The fourth step is the approval.'),
+      Q('What is the last onboarding step before the portal opens?', ['The academy', 'The staff agreement', 'An approval by an Admin or a Fleet team member', 'The WhatsApp groups'], 2, 'The fourth step is the approval.'),
       Q('When is the idle alert paused?', ['Never', 'On a break, on a call or in the townhall', 'Only at night', 'When you close the tab'], 1, 'Breaks, calls and the townhall pause it.'),
       Q('What happens after two missed townhalls in a row?', ['Nothing', 'A warning email only', 'The account locks until an Admin restores it', 'Your pay is cut'], 2, 'Two misses in a row lock the account.')
     ]
@@ -87,7 +87,7 @@ export const SECTIONS = [
       L('Shifts',
         S('The board', 'The shift board shows each field person\'s availability, the standing weekly shifts, who is under the minimum and the people to ask for each slot.', list('On the board', ['Availability', 'Standing shifts', 'Under the minimum', 'People to ask'])),
         S('Unclaimed', 'A published shift nobody has claimed 48 hours before it starts alerts Fleet and the Admins with the people to ask.', rule('48 hours', 'Ask the people suggested for the slot.', 'warn')),
-        S('Approvals', 'Fleet VAs can approve a new person at the fourth onboarding step, or reject with a reason they see.', steps('Approve', ['Open the person', 'Check the first three steps', 'Approve or reject with a reason']))),
+        S('Approvals', 'Fleet team members can approve a new person at the fourth onboarding step, or reject with a reason they see.', steps('Approve', ['Open the person', 'Check the first three steps', 'Approve or reject with a reason']))),
       L('Delivery and fuel',
         S('Delivery by distance', 'Delivery is priced by distance from 1940 Eglinton Ave E: a base, the kilometres included and a rate per km, all in Program settings.', title('From the office', 'Base, km included, per km')),
         S('Fuel', 'The fuel line at the return is a suggestion from the car\'s tank, the weekly pump price and a multiplier, plus the refuelling fee. You check it on the deposit review; nothing is charged by itself.', rule('Check first', 'Fuel is never charged without a check.', 'ok')),
@@ -97,7 +97,7 @@ export const SECTIONS = [
       Q('A shift has no one 48 hours before it starts. What happens?', ['Nothing', 'Fleet and the Admins are alerted with the people to ask', 'It is deleted', 'It is given to a random person'], 1, 'An unclaimed shift alerts Fleet and the Admins.'),
       Q('Where is delivery measured from?', ['The renter\'s home', '1940 Eglinton Ave E', 'The airport', 'The owner\'s address'], 1, 'Delivery is priced by distance from the company\'s address.'),
       Q('Is the fuel line at the return charged by itself?', ['Yes, at once', 'No, it is a suggestion checked on the deposit review', 'Only on weekends', 'Only for electric cars'], 1, 'It is a suggestion to check.'),
-      Q('Who can approve a new person at the last onboarding step?', ['Anyone', 'An Admin or a Fleet VA', 'The new person', 'Sales'], 1, 'An Admin or a Fleet VA approves.'),
+      Q('Who can approve a new person at the last onboarding step?', ['Anyone', 'An Admin or a Fleet team member', 'The new person', 'Sales'], 1, 'An Admin or a Fleet team member approves.'),
       Q('Which car can be deleted?', ['Any car', 'A car with only test bookings', 'A car on rent', 'A car with a past real booking'], 1, 'Only a car whose bookings are all tests.')
     ]
   },

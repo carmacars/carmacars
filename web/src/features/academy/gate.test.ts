@@ -100,3 +100,10 @@ test('Welcome: the agreement says what it waits for, who gives it and how soon i
   assert.equal(agreementWaiting({ key: 'agreement', done: true, state: 'signed' }, profile), null);
   assert.ok(!JSON.stringify(a).match(/[A-Z]\d{4}-\d{5}/));
 });
+
+test('the townhall (the page, the deck and the call) opens at every step of onboarding', () => {
+  for (const p of ['/staff/townhall', '/staff/townhall/live', '/staff/townhall?week=2026-11-23']) {
+    assert.ok(opensWhileHeld(p), p); assert.ok(opensWhileUnsigned(p), p); assert.ok(opensBeforeSigning(p), p); assert.ok(opensWhileOnboarding(p), p);
+  }
+  assert.ok(!opensWhileHeld('/staff/townhallx'));
+});

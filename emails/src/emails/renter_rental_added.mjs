@@ -8,7 +8,7 @@ export default {
   category: 'transactional',
   from: FROM.bookings,
   digest: false,
-  trigger: 'CarmaCars staff add a rental by hand (Admin > Bookings > Add a rental, or the VA equivalent) and it is confirmed at once: paid another way, to be charged to the saved card when the renter signs, or to be invoiced later. Not sent when staff tick "Do not email the renter", for a past rental, or for a payment link (the offer email carries the link).',
+  trigger: 'CarmaCars staff add a rental by hand (Admin > Bookings > Add a rental, or the staff equivalent) and it is confirmed at once: paid another way, to be charged to the saved card when the renter signs, or to be invoiced later. Not sent when staff tick "Do not email the renter", for a past rental, or for a payment link (the offer email carries the link).',
   timing: 'Immediate',
   subject: 'Booked: {{vehicle_name}}, {{pickup_date}}',
   preheader: 'Booking {{booking_number}}. {{payment_line}} Next: sign your rental agreement.',

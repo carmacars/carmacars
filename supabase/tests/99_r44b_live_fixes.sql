@@ -19,7 +19,7 @@ create function test.zrb_do(p_user text, p_name text, p jsonb, p_call text defau
 
 -- ================================================================ 1. a line's change moves the booking's total
 -- a hand-set booking: the rental line $1,284.58 (plus HST), the total typed as $1,490.00 (other charges in it)
-select test.mk_booking('ZRB-1', 'zrb_car', 'zrb_renter', '2027-03-01 10:00', '2027-03-08 10:00', 'confirmed', 128458);
+select test.mk_booking('ZRB-1', 'zrb_car', 'zrb_renter', test.fut('2027-03-01 10:00'), test.fut('2027-03-08 10:00'), 'confirmed', 128458);
 update booking_line_items set payment_id = null where booking_id = test.id('booking:ZRB-1');
 delete from payments where booking_id = test.id('booking:ZRB-1');
 update bookings set total_due_at_booking_cents = 149000 where id = test.id('booking:ZRB-1');
@@ -52,7 +52,7 @@ select test.ok('total: it is in the booking history and the audit log',
 
 -- ================================================================ 3. the insurer's share on the Blind Spot form
 insert into insurers (id, name, billing_email) values (test.id('insurer:zrb'), 'Example Mutual zrb', 'claims@insurer.example.test');
-select test.mk_booking('ZRB-2', 'zrb_car', 'zrb_renter', '2027-04-01 10:00', '2027-05-06 10:00', 'confirmed', 564667);
+select test.mk_booking('ZRB-2', 'zrb_car', 'zrb_renter', test.fut('2027-04-01 10:00'), test.fut('2027-05-06 10:00'), 'confirmed', 564667);
 update bookings set bill_to = 'insurer', insurer_id = test.id('insurer:zrb'), insurer_authorized_daily_rate_cents = 8000, insurer_authorized_days = 35,
        insurer_claim_number = 'CLM-ZRB-1' where id = test.id('booking:ZRB-2');
 create table test.zrb_bs as select app.blindspot_extra(test.id('booking:ZRB-2')) -> 'insurer' -> 'share' as s;

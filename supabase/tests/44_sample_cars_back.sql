@@ -55,7 +55,7 @@ select test.eq('show again: nothing added, nothing changed', (test.sc('again') -
 -- ---------------------------------------------------------------- 3. a request on a sample car is an enquiry
 create or replace function test.screq(p_slug text, p_key text) returns jsonb language sql as $$
   select public.submit_booking_request(jsonb_build_object('request_key', p_key, 'vehicle_id', (select vehicle_id from vehicle_listings where slug = p_slug),
-    'pickup_at', '2026-11-20 10:00-05', 'return_at', '2026-11-23 10:00-05', 'booking_type', 'standard', 'note', 'Need it for a wedding',
+    'pickup_at', (test.base(3) at time zone 'America/Toronto')::text || '-05', 'return_at', ((test.base(3) + interval '3 days') at time zone 'America/Toronto')::text || '-05', 'booking_type', 'standard', 'note', 'Need it for a wedding',
     'renter', jsonb_build_object('email', 'Eve.Enquirer@example.test', 'full_name', 'Eve Enquirer', 'mobile', '647-555-0123', 'date_of_birth', '1990-01-01'),
     'consents', jsonb_build_object('marketing', jsonb_build_object('opted_in', false))), null, 'test', null) $$;
 set role service_role;

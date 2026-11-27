@@ -11,11 +11,11 @@ select test.mk_vehicle('XTB', 'xt_o');
 select test.mk_vehicle('XTC', 'xt_o');
 select test.mk_renter('xt_r');
 -- XT-1, XT-2 and XT-3 owe a rental line ($226.00 with HST) and have their $1,000 deposit to take; XT-4 expired
-select test.mk_booking('XT-1', 'XTA', 'xt_r', '2026-12-05 10:00', '2026-12-08 10:00', 'confirmed', 30000);
+select test.mk_booking('XT-1', 'XTA', 'xt_r', test.fut('2026-12-05 10:00'), test.fut('2026-12-08 10:00'), 'confirmed', 30000);
 select test.mk_line('XT-1', 'rental_charge', 20000, false);
-select test.mk_booking('XT-2', 'XTB', 'xt_r', '2026-12-05 10:00', '2026-12-08 10:00', 'confirmed', 30000);
+select test.mk_booking('XT-2', 'XTB', 'xt_r', test.fut('2026-12-05 10:00'), test.fut('2026-12-08 10:00'), 'confirmed', 30000);
 select test.mk_line('XT-2', 'rental_charge', 20000, false);
-select test.mk_booking('XT-3', 'XTC', 'xt_r', '2026-12-05 10:00', '2026-12-08 10:00', 'confirmed', 30000);
+select test.mk_booking('XT-3', 'XTC', 'xt_r', test.fut('2026-12-05 10:00'), test.fut('2026-12-08 10:00'), 'confirmed', 30000);
 select test.mk_line('XT-3', 'rental_charge', 20000, false);
 select test.mk_booking('XT-4', 'XTC', 'xt_r', '2027-01-05 10:00', '2027-01-08 10:00', 'expired', 30000);
 select test.mk_line('XT-4', 'rental_charge', 20000, false);

@@ -139,6 +139,7 @@ export function CallRoom({ join, title, slides, side, sideTitle = 'Details', liv
         <button type="button" className="btn btn--primary" onClick={() => void start()} disabled={phase === 'joining'} aria-busy={phase === 'joining'} title={phase === 'joining' ? 'Joining the call' : undefined} data-testid="call-join" data-guide="call-join">{phase === 'joining' ? 'Joining...' : 'Join the call'}</button>
         {fallbackUrl && <a className="btn btn--ghost btn--sm" href={fallbackUrl} target="_blank" rel="noopener noreferrer" data-testid="call-fallback">Use the outside call link</a>}
       </div>
+      {!!n && <details className="call-lobby__deck" open={!!error} data-testid="call-lobby-deck"><summary className="link small">Read the slides without the call</summary><DeckList slides={slides!} testId="call-lobby-deck-list" /></details>}
     </div>);
   }
 
@@ -199,6 +200,17 @@ export function CallRoom({ join, title, slides, side, sideTitle = 'Details', liv
       </aside>
     </div>
   );
+}
+
+/** Every slide, in order, with no call: the deck stays readable when the call cannot be joined (the media server is down or
+ *  off, the camera is refused, an outside link is in use). R50 hotfix 2: during the townhall nobody could see the deck. */
+export function DeckList({ slides, testId = 'call-deck-list' }: { slides: DeckSlide[]; testId?: string }) {
+  return (<ol className="stack" data-testid={testId}>{slides.map((x, i) => (
+    <li key={x.key} className="pt-card ad-card stack" data-testid={`${testId}-slide-${i}`}>
+      <h3 className="d4">{i + 1}. {x.title}</h3>
+      {!!x.points.length && <dl className="th-points">{x.points.map((p) => <div key={p.label}><dt className="small muted">{p.label}</dt><dd>{p.value}</dd></div>)}</dl>}
+      {!!x.lines.length && <ul className="small">{x.lines.map((l) => <li key={l}>{l}</li>)}</ul>}
+    </li>))}</ol>);
 }
 
 function Tile({ p, session, hand }: { p: Person; session: MediaSession | null; hand: boolean }) {

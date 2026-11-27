@@ -116,7 +116,7 @@ insert into chat_messages (conversation_id, sender, body, at) values (test.id('c
 update renters set staff_note = 'Wants an SUV for the family' where id = pg_temp.renter('staff');
 insert into renter_notes (renter_id, body, author_name, author_role) values (pg_temp.renter('note'), 'Asked for an SUV on the phone', 'Rfx Cs', 'cs');
 select test.mk_vehicle('RFX2', 'rfx_olga');
-select test.mk_booking('RFX-NOTE', 'RFX2', 'rfx_i_bnote', '2026-12-01 10:00', '2026-12-03 10:00', 'confirmed', 10000);
+select test.mk_booking('RFX-NOTE', 'RFX2', 'rfx_i_bnote', test.fut('2026-12-01 10:00'), test.fut('2026-12-03 10:00'), 'confirmed', 10000);
 update bookings set notes = 'Would rather have an SUV', created_at = now() where id = test.id('booking:RFX-NOTE');
 update renters set mobile = '+16475551299' where id = pg_temp.renter('wa');
 insert into auto_replies (channel, sender, question, status) values ('whatsapp', '+1 (647) 555-1299', 'Hello, is an SUV available?', 'handoff');

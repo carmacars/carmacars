@@ -15,7 +15,7 @@ select test.mk_owner('crx_own');
 select test.mk_vehicle('CRXA', 'crx_own');
 select test.mk_renter('crx_rita');
 update renters set mobile = '(647) 555-0299', legal_name = 'Crx Rita' where id = test.id('renter:crx_rita');
-select test.mk_booking('CRX-1', 'CRXA', 'crx_rita', '2027-03-01 10:00', '2027-03-04 10:00', 'confirmed');
+select test.mk_booking('CRX-1', 'CRXA', 'crx_rita', test.fut('2027-03-01 10:00'), test.fut('2027-03-04 10:00'), 'confirmed');
 
 create temp table crx_call as select (app.server_twilio_call_start(jsonb_build_object('user_id', test.id('crx_sales'), 'number', '+16475550299', 'booking_number', 'CRX-1')) ->> 'id')::uuid id;
 select app.server_twilio_call_event(jsonb_build_object('id', id, 'kind', 'started', 'call_sid', 'CA' || repeat('2', 32))) from crx_call;

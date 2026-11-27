@@ -168,7 +168,7 @@ select app.usage_measure('quo_texts', now());
 select test.ok('measured from the texts sent', exists (select 1 from usage_readings where service = 'quo_texts'));
 
 -- ================================================================ 6. a credit card by default, an Admin's override per booking (0230)
-select test.mk_booking('R23-D1', 'r23_car', 'r23_renter', '2026-12-01 10:00', '2026-12-04 10:00', 'confirmed');
+select test.mk_booking('R23-D1', 'r23_car', 'r23_renter', test.fut('2026-12-01 10:00'), test.fut('2026-12-04 10:00'), 'confirmed');
 create function test.r23d() returns uuid language sql stable as $$ select id from bookings where booking_number = 'R23-D1' $$;
 select test.ok('by default a credit card is required: debit and prepaid refused, credit taken',
   not app.booking_card_ok(test.r23d(), '{"funding": "debit"}') and not app.booking_card_ok(test.r23d(), '{"funding": "prepaid"}') and app.booking_card_ok(test.r23d(), '{"funding": "credit"}')

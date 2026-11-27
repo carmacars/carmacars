@@ -12,11 +12,11 @@ select test.mk_vehicle('G3B', 'g3_o');
 select test.mk_vehicle('G3C', 'g3_o');
 select test.mk_renter('g3_r', false);
 -- G3A: two confirmed, paid bookings (the owner's "two active bookings"); G3B: one test and one real; G3C: nothing marked
-select test.mk_booking('G3-1', 'G3A', 'g3_r', '2026-12-02 10:00', '2026-12-04 10:00', 'confirmed', 20000);
-select test.mk_booking('G3-2', 'G3A', 'g3_r', '2026-12-10 10:00', '2026-12-12 10:00', 'confirmed', 20000);
-select test.mk_booking('G3-3', 'G3B', 'g3_r', '2026-12-02 10:00', '2026-12-04 10:00', 'confirmed', 20000);
-select test.mk_booking('G3-4', 'G3B', 'g3_r', '2026-12-10 10:00', '2026-12-12 10:00', 'confirmed', 20000);
-select test.mk_booking('G3-5', 'G3C', 'g3_r', '2026-12-02 10:00', '2026-12-04 10:00', 'confirmed', 20000);
+select test.mk_booking('G3-1', 'G3A', 'g3_r', test.fut('2026-12-02 10:00'), test.fut('2026-12-04 10:00'), 'confirmed', 20000);
+select test.mk_booking('G3-2', 'G3A', 'g3_r', test.fut('2026-12-10 10:00'), test.fut('2026-12-12 10:00'), 'confirmed', 20000);
+select test.mk_booking('G3-3', 'G3B', 'g3_r', test.fut('2026-12-02 10:00'), test.fut('2026-12-04 10:00'), 'confirmed', 20000);
+select test.mk_booking('G3-4', 'G3B', 'g3_r', test.fut('2026-12-10 10:00'), test.fut('2026-12-12 10:00'), 'confirmed', 20000);
+select test.mk_booking('G3-5', 'G3C', 'g3_r', test.fut('2026-12-02 10:00'), test.fut('2026-12-04 10:00'), 'confirmed', 20000);
 update bookings set confirmed_at = now() where booking_number like 'G3-%';
 
 select test.eq('before: confirmed, paid bookings stop the delete',

@@ -150,7 +150,9 @@ test('Assistant (Admin): opened from the header and Ctrl+/, a read answers with 
   await askIt(page, 'What needs doing today?');
   await expect(page.getByTestId('assistant-results').first()).toContainText(/things need you|Nothing needs you/);
   await expect(page.getByTestId('assistant-results').last()).toContainText(/Pickups \d+ and returns \d+ today/);
-  await askIt(page, 'Is the Corolla free from 2026-12-02 to 2026-12-04?');
+  // two weeks ahead, whatever day the suite runs
+  const day = (n: number) => new Date(Date.now() + n * 86_400_000).toISOString().slice(0, 10);
+  await askIt(page, `Is the Corolla free from ${day(14)} to ${day(16)}?`);
   await expect(page.getByTestId('assistant-text').last()).toContainText(/Corolla/);
 
   // a change: the card first, nothing runs

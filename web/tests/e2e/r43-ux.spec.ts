@@ -29,7 +29,7 @@ test('A staff member waiting for onboarding approval is approvable from the top 
   test.setTimeout(120_000);
   const sql = db();
   const admin = await mkAdmin(sql);
-  // a Fleet VA who did the academy, the agreement and the WhatsApp groups, and asked to be approved (not exempt, not approved)
+  // a Fleet team member who did the academy, the agreement and the WhatsApp groups, and asked to be approved (not exempt, not approved)
   const id = randomUUID(); const email = `fleet.r43.${Date.now()}.${tag()}@example.test`;
   await sql`insert into local_auth.users (id, email, password_hash) values (${id}, ${email}, ${hash(PW)})`;
   await sql`insert into users (id, email, full_name) values (${id}, ${email}, ${`Wanda Waiting ${tag()}`})`;

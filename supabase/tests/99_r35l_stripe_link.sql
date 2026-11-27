@@ -12,15 +12,15 @@ select test.mk_vehicle('XSC', 'xs_o');
 select test.mk_renter('xs_r');
 select test.mk_renter('xs_q');
 -- XS-1 and XS-5 owe a rental line ($226.00 with HST); XS-2, XS-3 and XS-6 have their $1,000 deposit to take
-select test.mk_booking('XS-1', 'XSA', 'xs_r', '2026-12-05 10:00', '2026-12-08 10:00', 'confirmed', 30000);
+select test.mk_booking('XS-1', 'XSA', 'xs_r', test.fut('2026-12-05 10:00'), test.fut('2026-12-08 10:00'), 'confirmed', 30000);
 select test.mk_line('XS-1', 'rental_charge', 20000, false);
-select test.mk_booking('XS-2', 'XSA', 'xs_q', '2026-12-15 10:00', '2026-12-18 10:00', 'confirmed', 30000);
-select test.mk_booking('XS-3', 'XSB', 'xs_q', '2026-12-05 10:00', '2026-12-08 10:00', 'confirmed', 30000);
+select test.mk_booking('XS-2', 'XSA', 'xs_q', test.fut('2026-12-15 10:00'), test.fut('2026-12-18 10:00'), 'confirmed', 30000);
+select test.mk_booking('XS-3', 'XSB', 'xs_q', test.fut('2026-12-05 10:00'), test.fut('2026-12-08 10:00'), 'confirmed', 30000);
 -- XS-5's pickup is in 5 days (the amount guess looks 30 days around the payment)
 select test.mk_booking('XS-5', 'XSC', 'xs_q', to_char((now() + interval '5 days') at time zone 'America/Toronto', 'YYYY-MM-DD HH24:00'),
   to_char((now() + interval '8 days') at time zone 'America/Toronto', 'YYYY-MM-DD HH24:00'), 'confirmed', 30000);
 select test.mk_line('XS-5', 'rental_charge', 20111, false);   -- an amount no other suite's booking has open
-select test.mk_booking('XS-6', 'XSB', 'xs_q', '2027-01-05 10:00', '2027-01-08 10:00', 'confirmed', 30000);
+select test.mk_booking('XS-6', 'XSB', 'xs_q', test.fut('2027-01-05 10:00'), test.fut('2027-01-08 10:00'), 'confirmed', 30000);
 create function test.xs_link(p_booking text, p_as text, p_verified jsonb, p_user text default 'xs_admin') returns jsonb language sql as $$
   select app.door(test.id(p_user), 'aal2', 'admin_do', 'link_stripe_payment', jsonb_build_object('booking', p_booking, 'as', p_as, 'verified', p_verified)) $$;
 create function test.xs_v(p_id text, p_status text, p_cents bigint, p_currency text default 'cad', p_last4 text default '4242') returns jsonb language sql immutable as $$

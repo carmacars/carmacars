@@ -3,7 +3,7 @@ import { waitingWords, type ApprovalRow } from './model';
 
 const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString('en-CA', { timeZone: 'America/Toronto', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '');
 
-// Onboarding step 4 (1154): the staff members who confirmed the WhatsApp groups and wait for an Admin or a Fleet VA to approve.
+// Onboarding step 4 (1154): the staff members who confirmed the WhatsApp groups and wait for an Admin or a Fleet team member to approve.
 // Approve opens their portal; Reject (with the reason, shown on their Welcome) keeps them held until they ask again. Shared by
 // Admin > Settings > Staff onboarding and the Fleet portal's Field jobs page.
 export function OnboardingApprovals({ rows, refresh, admin }: { rows: ApprovalRow[]; refresh: string[]; admin?: boolean }) {

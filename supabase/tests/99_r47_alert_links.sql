@@ -9,7 +9,7 @@ select test.mk_user('al47_field', 'field');
 select test.mk_owner('al47_own');
 select test.mk_vehicle('AL47V', 'al47_own');
 select test.mk_renter('al47_ren');
-select test.mk_booking('AL4701', 'AL47V', 'al47_ren', '2026-12-01 10:00', '2026-12-05 10:00', 'confirmed');
+select test.mk_booking('AL4701', 'AL47V', 'al47_ren', test.fut('2026-12-01 10:00'), test.fut('2026-12-05 10:00'), 'confirmed');
 
 create temp table al47 as select (app.settings()).notify_base_url b, test.id('booking:AL4701') bk, test.id('al47:ticket') tk, test.id('al47:dispute') dp;
 create function pg_temp.at(p_who text, p_url text, p_code text, p_entity text default null, p_id uuid default null, p_event bigint default null) returns text

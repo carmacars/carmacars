@@ -81,7 +81,7 @@ select test.throws('to do: Admins only', $$select test.ar_read('ar_cs', 'admin_t
 select test.eq('search: a plate finds the car', (select g -> 'rows' -> 0 ->> 'href' from jsonb_array_elements(test.ar_read('ar_admin', 'admin_search', jsonb_build_object('q', (select plate from vehicles where id = test.id('vehicle:ARS')))) -> 'groups') g where g ->> 'key' = 'cars'),
   '/admin/vehicles/' || test.id('vehicle:ARS'));
 select test.mk_renter('ARB');
-select test.mk_booking('CC-98765', 'ARS', 'ARB', '2027-12-01 10:00', '2027-12-03 10:00', 'requested');
+select test.mk_booking('CC-98765', 'ARS', 'ARB', test.fut('2027-12-01 10:00'), test.fut('2027-12-03 10:00'), 'requested');
 select test.eq('search: a booking number as written, with its dash, finds the booking',
   (select g -> 'rows' -> 0 ->> 'href' from jsonb_array_elements(test.ar_read('ar_admin', 'admin_search', '{"q":"CC-98765"}') -> 'groups') g where g ->> 'key' = 'bookings'),
   '/admin/bookings/CC-98765');

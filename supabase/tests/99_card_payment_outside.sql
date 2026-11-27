@@ -5,8 +5,8 @@ select test.mk_user('q21co_fin', 'va', 'finance');
 select test.mk_owner('q21co_o');
 select test.mk_vehicle('COA', 'q21co_o');
 select test.mk_renter('q21co_r');
-select test.mk_booking('CO-1', 'COA', 'q21co_r', '2026-12-05 10:00', '2026-12-08 10:00', 'confirmed', 30000);
-select test.mk_booking('CO-2', 'COA', 'q21co_r', '2026-12-15 10:00', '2026-12-18 10:00', 'confirmed', 30000);
+select test.mk_booking('CO-1', 'COA', 'q21co_r', test.fut('2026-12-05 10:00'), test.fut('2026-12-08 10:00'), 'confirmed', 30000);
+select test.mk_booking('CO-2', 'COA', 'q21co_r', test.fut('2026-12-15 10:00'), test.fut('2026-12-18 10:00'), 'confirmed', 30000);
 create function test.r21co(p_user text, p jsonb) returns jsonb language sql as $$ select app.door(test.id(p_user), 'aal2', 'ops_do', 'record_card_payment', p) $$;
 
 select test.throws('the last 4 digits are asked', $$select test.r21co('q21co_admin', '{"booking": "CO-1", "covers": "later", "amount_cents": 5000}')$$, 'last 4 digits');

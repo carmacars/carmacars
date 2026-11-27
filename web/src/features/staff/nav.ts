@@ -16,6 +16,16 @@ const sec = (key: string, label?: string, k?: string): NavLink => ({ href: '', l
 
 export const STAFF_FN_LABEL: Record<StaffFn, string> = { cs: 'Customer service', fleet: 'Fleet', finance: 'Finance', sales: 'Sales', field: 'Field work' };
 
+/** r50 hotfix 2 (5180): the sign-in roles of a person in words. The roles 'va' and 'field' are the staff portal's two doors, never a job title: the job
+ *  is the person's function (Sales, Fleet, Field work), listed beside it. "VA" is only for a remote virtual assistant, and then it is the
+ *  hiring role's own title, never a role label. */
+export const SIGN_IN_ROLE_WORDS: Record<string, string> = { admin: 'Admin', va: 'Staff', field: 'Staff', owner: 'Owner', renter: 'Renter', investor: 'Investor' };
+export function signInRoleWords(roles: readonly string[] | null | undefined): string {
+  const out: string[] = [];
+  for (const r of roles ?? []) { const w = SIGN_IN_ROLE_WORDS[r] ?? r; if (!out.includes(w)) out.push(w); }
+  return out.join(', ');
+}
+
 // The menu of each role (r27 audit, the owner on November 1, 2026: "Lots of the tabs under admin and under each staff
 // account are redundant and can be merged", then "i think u can reduce staff menu links even further"). The same few
 // anchors for every office role: To do (the home; Today at a glance is its tab), the role's most frequent jobs, one

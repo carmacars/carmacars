@@ -78,7 +78,7 @@ select test.mk_user('hfs_cs', 'va', 'cs');
 select test.mk_owner('hfs_olive');
 select test.mk_vehicle('hfs_car', 'hfs_olive');
 select test.mk_renter('hfs_rena');
-select test.mk_booking('HFS-1', 'hfs_car', 'hfs_rena', '2026-12-20 10:00', '2026-12-22 10:00', 'pending_payment', 20000);
+select test.mk_booking('HFS-1', 'hfs_car', 'hfs_rena', test.fut('2026-12-20 10:00'), test.fut('2026-12-22 10:00'), 'pending_payment', 20000);
 update bookings set coverage_option = 1, coverage_confirmed_at = null where id = test.id('booking:HFS-1');
 select test.throws('only an Admin approves coverage by hand',
   format('select app.coverage_confirm_admin(%L, %L)', test.id('hfs_cs'), jsonb_build_object('booking', test.id('booking:HFS-1'), 'reason', 'Checked by email')), 'Only an Admin');

@@ -329,7 +329,7 @@ select test.gm_do('gm_admin', 'paper_signature_void', jsonb_build_object('id', t
 select test.eq('registry form: void puts it back to ready', (select status || '/' || coalesce(signed_method, 'none') from government_form_fills where id = test.id('fill:gm')), 'ready/none');
 
 -- the rental agreement
-select test.mk_booking('GM-2', 'GMV', 'gm_rena', '2026-12-01 10:00', '2026-12-03 10:00', 'pending_payment');
+select test.mk_booking('GM-2', 'GMV', 'gm_rena', test.fut('2026-12-01 10:00'), test.fut('2026-12-03 10:00'), 'pending_payment');
 update bookings set current_offer_version = 1, offer_approved_version = 1, offer_approved_at = now(), offer_approved_by = test.id('gm_renter_user') where id = test.id('booking:GM-2');
 select test.throws('rental: the agreement must be opened first', $$select test.gm_do('gm_cs', 'paper_signature_record', jsonb_build_object('doc_type', 'rental_agreement', 'target_id', test.id('booking:GM-2'),
   'signer_name', 'Gm Rena', 'signed_on', app.today(), 'scan', jsonb_build_object('path', 'paper/bookings/gm2.pdf', 'sha256', test.gm_sha('ra'))))$$, 'Open the rental agreement');
@@ -347,7 +347,7 @@ select test.eq('rental: void voids the agreement (a signature is never changed);
   (select string_agg(status, ',' order by opened_at) from rental_agreements where booking_id = test.id('booking:GM-2')), 'voided');
 
 -- an amendment to a booking
-select test.mk_booking('GM-3', 'GMV', 'gm_rena', '2027-01-10 10:00', '2027-01-12 10:00', 'confirmed');
+select test.mk_booking('GM-3', 'GMV', 'gm_rena', test.fut('2027-01-10 10:00'), test.fut('2027-01-12 10:00'), 'confirmed');
 insert into booking_change_requests (id, booking_id, requested_by_role, requested_by, status, changes, difference_cents, hst_cents, total_difference_cents, accept_by)
 values (test.id('chg:gm'), test.id('booking:GM-3'), 'staff', test.id('gm_admin'), 'proposed', '{}'::jsonb, 4425, 575, 5000, now() + interval '2 days');
 insert into test.gm select 'ps_am', (test.gm_do('gm_admin', 'paper_signature_record', jsonb_build_object('doc_type', 'rental_amendment', 'target_id', test.id('chg:gm'),

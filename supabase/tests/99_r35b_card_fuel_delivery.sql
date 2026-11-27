@@ -45,7 +45,7 @@ select test.eq('a luxury car is luxury', app.vehicle_coverage_types(test.id('veh
 update vehicles set class = 'premium' where id = test.id('vehicle:rb_ev');
 
 -- ================================================================ 3. the check
-select test.mk_booking('RB-CARD', 'rb_car', 'rb_rita', '2026-12-01 10:00', '2026-12-04 10:00', 'pending_payment');
+select test.mk_booking('RB-CARD', 'rb_car', 'rb_rita', test.fut('2026-12-01 10:00'), test.fut('2026-12-04 10:00'), 'pending_payment');
 update bookings set coverage_option = 2 where id = test.id('booking:RB-CARD');
 select test.eq('Avion Visa Infinite covers a $50,000 car for 3 days', app.card_product_check(test.id('booking:RB-CARD'), test.rbcard('RBC', 'Avion Visa Infinite')) ->> 'result', 'covered');
 select test.eq('Scene+ Visa does not', app.card_product_check(test.id('booking:RB-CARD'), test.rbcard('Scotiabank', 'Scene+ Visa')) #>> '{reasons,0,code}', 'no_cdw');
@@ -83,7 +83,7 @@ select test.throws('staff cannot approve a card that no longer covers the car',
   format($$select app.review_coverage_proof(%L, %L, true)$$, (select id from coverage_proofs where booking_id = test.id('booking:RB-CARD') and status = 'submitted'), test.id('rb_cs')), 'does not cover');
 update vehicles set black_book_value_cents = 5000000 where id = test.id('vehicle:rb_car');
 -- an unknown card typed by the renter goes to review
-select test.mk_booking('RB-CARD2', 'rb_car', 'rb_ron', '2026-12-10 10:00', '2026-12-12 10:00', 'pending_payment');
+select test.mk_booking('RB-CARD2', 'rb_car', 'rb_ron', test.fut('2026-12-10 10:00'), test.fut('2026-12-12 10:00'), 'pending_payment');
 update bookings set coverage_option = 2 where id = test.id('booking:RB-CARD2');
 select test.lives('a card not on the list is accepted for review', format($$select public.renter_submit_card_coverage(%L, %L, true, null, null, 'Example Credit Union Visa')$$, test.id('booking:RB-CARD2'), test.id('rb_ron')));
 select test.eq('it waits for staff with the typed name', (select card_other || '/' || (card_check ->> 'result') from coverage_proofs where booking_id = test.id('booking:RB-CARD2')), 'Example Credit Union Visa/review');
@@ -102,7 +102,7 @@ select test.throws('a renter does not read it', format($$select app.vehicle_valu
 select test.throws('a bad grade is refused', format($$select app.vehicle_value_set(%L, jsonb_build_object('vehicle_id', %L, 'fuel_grade', 'jet'))$$, test.id('rb_admin'), test.id('vehicle:rb_car')), 'regular, premium or diesel');
 
 -- ================================================================ 6. OPCF 27: the pink slip and the endorsement before payment and approval
-select test.mk_booking('RB-OPCF', 'rb_car', 'rb_ron', '2026-12-20 10:00', '2026-12-23 10:00', 'pending_payment');
+select test.mk_booking('RB-OPCF', 'rb_car', 'rb_ron', test.fut('2026-12-20 10:00'), test.fut('2026-12-23 10:00'), 'pending_payment');
 update bookings set coverage_option = 1 where id = test.id('booking:RB-OPCF');
 create function test.rb_opcf(p_page text) returns uuid language sql as $$
   select app.register_verification_upload(test.id('booking:RB-OPCF'), test.id('rb_ron'), 'coverage_proof', null, 'renters/rb/opcf-' || gen_random_uuid() || '.pdf', repeat('a', 64), 'application/pdf',
@@ -124,7 +124,7 @@ select test.throws('fleet does not review it', format($$select app.review_covera
 select test.throws('a rejection needs the reason', format($$select app.review_coverage_proof(%L, %L, false)$$, (select id from coverage_proofs where booking_id = test.id('booking:RB-OPCF')), test.id('rb_cs')), 'reason');
 select test.lives('customer service approves it', format($$select app.review_coverage_proof(%L, %L, true)$$, (select id from coverage_proofs where booking_id = test.id('booking:RB-OPCF')), test.id('rb_cs')));
 select test.eq('the proof is confirmed', (select status from coverage_proofs where booking_id = test.id('booking:RB-OPCF')), 'confirmed');
-select test.mk_booking('RB-OPCF2', 'rb_car', 'rb_ron', '2027-01-05 10:00', '2027-01-08 10:00', 'pending_payment');
+select test.mk_booking('RB-OPCF2', 'rb_car', 'rb_ron', test.fut('2027-01-05 10:00'), test.fut('2027-01-08 10:00'), 'pending_payment');
 update bookings set coverage_option = 1 where id = test.id('booking:RB-OPCF2');
 create temp table rb_prog as select id, opcf27_before_payment from program_settings where id = (app.settings()).id;
 update program_settings set opcf27_before_payment = false where id = (app.settings()).id;

@@ -3,7 +3,7 @@ select test.suite('99 booking calendar');
 select test.mk_owner('bcal_owner');
 select test.mk_vehicle('bcal_car', 'bcal_owner');
 select test.mk_renter('bcal_rita');
-select test.mk_booking('BCAL-1', 'bcal_car', 'bcal_rita', '2026-12-01 10:00', '2026-12-03 10:00', 'confirmed', 20000);
+select test.mk_booking('BCAL-1', 'bcal_car', 'bcal_rita', test.fut('2026-12-01 10:00'), test.fut('2026-12-03 10:00'), 'confirmed', 20000);
 select test.mk_booking('BCAL-2', 'bcal_car', 'bcal_rita', '2026-12-10 10:00', '2026-12-12 10:00', 'closed', 20000);
 select test.eq('a confirmed booking''s calendar facts by its token',
   public.server_booking_calendar((select calendar_token from bookings where booking_number = 'BCAL-1')) ->> 'number', 'BCAL-1');

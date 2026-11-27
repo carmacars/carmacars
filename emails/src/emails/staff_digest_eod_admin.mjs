@@ -6,7 +6,7 @@ export default digest({
   slot: 'eod',
   role: 'Admin',
   queue: 'admin',
-  contains: 'bookings confirmed today, money collected today, approvals still open, incidents updated today, anything a VA escalated that is not closed, tomorrow\'s pickups and returns',
+  contains: 'bookings confirmed today, money collected today, approvals still open, incidents updated today, anything a staff member escalated that is not closed, tomorrow\'s pickups and returns',
   summary: '3 bookings confirmed and $1,412.85 collected today. 2 approvals are still open.',
   stats: [{ label: 'Confirmed today', value: '3 bookings' }, { label: 'Collected today', value: '$1,412.85' }],
   sections: [

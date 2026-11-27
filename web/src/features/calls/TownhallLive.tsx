@@ -5,7 +5,7 @@ import { door } from '@/server/door';
 import { mediaConfig, type Joined } from '@/server/calls';
 import data from '@/features/investor/updates-data.json';
 import { releasesOfWeek, withReleases, type Release, type Townhall } from '@/features/townhall/model';
-import { CallRoom, type DeckSlide } from './CallRoom';
+import { CallRoom, DeckList, type DeckSlide } from './CallRoom';
 import '@/features/townhall/townhall.css';
 
 // r50 (5010): the weekly townhall in the site: the call beside this week's deck (the presenter, an Admin, moves the
@@ -29,6 +29,7 @@ export async function TownhallLive({ userId, base }: { userId: string; base: '/a
       {v.call_url ? <a className="btn btn--primary btn--sm" href="/api/townhall-join" target="_blank" rel="noopener noreferrer" data-testid="townhall-live-join-link">Join the call</a>
         : <p className="small muted">No outside link is set (Program settings, Townhall call link).</p>}
       <p className="small"><Link prefetch={false} className="link" href={back}>The townhall page</Link></p>
+      {!!slides.length && <><h3 className="d4">The deck</h3><DeckList slides={slides} testId="townhall-live-deck" /></>}
     </Card>);
   }
   let joined: Joined | null = null;
@@ -38,6 +39,7 @@ export async function TownhallLive({ userId, base }: { userId: string; base: '/a
     return (<Card title={v.next_at ? `Townhall: ${when(v.next_at)}` : 'Weekly townhall'} testId="townhall-live-wait" aside={toggle}>
       <p className="small" data-testid="townhall-live-why">{why}</p>
       <p className="small"><Link prefetch={false} className="link" href={back}>The deck and the townhall page</Link></p>
+      {!!slides.length && <DeckList slides={slides} testId="townhall-live-deck" />}
     </Card>);
   }
   return (<div className="call-layout">

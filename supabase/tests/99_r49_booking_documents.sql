@@ -6,7 +6,7 @@ grant execute on all functions in schema test to authenticated, anon, service_ro
 select test.mk_owner('r49d_o');
 select test.mk_vehicle('R49D', 'r49d_o');
 select test.mk_renter('r49d_r', false);
-select test.mk_booking('R49D-1', 'R49D', 'r49d_r', '2026-12-02 10:00', '2026-12-04 10:00', 'confirmed', 20000);
+select test.mk_booking('R49D-1', 'R49D', 'r49d_r', test.fut('2026-12-02 10:00'), test.fut('2026-12-04 10:00'), 'confirmed', 20000);
 
 insert into documents (kind, title, storage_bucket, storage_path, booking_id) values
   ('receipt', 'kept', 'documents', 'r49d/kept.pdf', test.id('booking:R49D-1')),

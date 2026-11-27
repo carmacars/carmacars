@@ -16,7 +16,7 @@ select test.mk_owner('zsc_own');
 select test.mk_vehicle('ZSCA', 'zsc_own');
 select test.mk_renter('zsc_rita');
 update renters set mobile = '(647) 555-0381', legal_name = 'Zsc Rita' where id = test.id('renter:zsc_rita');
-select test.mk_booking('ZSC-1', 'ZSCA', 'zsc_rita', '2027-03-01 10:00', '2027-03-04 10:00', 'confirmed');
+select test.mk_booking('ZSC-1', 'ZSCA', 'zsc_rita', test.fut('2027-03-01 10:00'), test.fut('2027-03-04 10:00'), 'confirmed');
 
 create function test.zsc_live(p_user text, p_call text default 'va_read') returns jsonb language sql as $$
   select app.door(test.id(p_user), 'aal2', p_call, 'caller_live', '{}'::jsonb) $$;

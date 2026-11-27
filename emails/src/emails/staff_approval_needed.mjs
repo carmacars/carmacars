@@ -8,7 +8,7 @@ export default {
   from: FROM.billing,
   digest: true,
   digestSlot: 'next',
-  trigger: 'A task that only an admin can approve is raised, other than a tracker disable: a refund outside the tier table or over the VA limit, a deposit release with a hold-back, a price override, a fee off the grid, or a write-off. Queued for the next admin digest. Sent immediately instead when its due time is within 4 hours.',
+  trigger: 'A task that only an admin can approve is raised, other than a tracker disable: a refund outside the tier table or over the staff limit, a deposit release with a hold-back, a price override, a fee off the grid, or a write-off. Queued for the next admin digest. Sent immediately instead when its due time is within 4 hours.',
   timing: 'Next digest. Immediate if due within 4 hours',
   subject: 'Approval needed: {{approval_type}}, {{amount}}',
   preheader: 'Asked by {{requested_by}}. {{approval_summary}}',

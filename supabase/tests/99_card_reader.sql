@@ -5,7 +5,7 @@ select test.mk_user('q21cr_cs', 'va', 'cs');
 select test.mk_owner('q21cr_o');
 select test.mk_vehicle('CRA', 'q21cr_o');
 select test.mk_renter('q21cr_r');
-select test.mk_booking('CR-1', 'CRA', 'q21cr_r', '2026-12-05 10:00', '2026-12-08 10:00', 'confirmed', 30000);
+select test.mk_booking('CR-1', 'CRA', 'q21cr_r', test.fut('2026-12-05 10:00'), test.fut('2026-12-08 10:00'), 'confirmed', 30000);
 create function test.r21cr(p_user text, p_call text, p_name text, p jsonb default '{}') returns jsonb language sql as $$ select app.door(test.id(p_user), 'aal2', p_call, p_name, p) $$;
 
 select test.throws('no reader yet: the reason says who pairs it',

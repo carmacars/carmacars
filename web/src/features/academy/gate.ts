@@ -1,16 +1,18 @@
 // The academy gate (0207, 0731, 0802) on the web side: the staff pages a held person still opens, and the Welcome steps of a
 // new hire (app.staff_welcome). No imports, so the unit tests run it as is (gate.test.ts).
 
-/** Held by the gate: the academy, the guide, the profile, Welcome (the onboarding checklist) and the no-access page only; for field
+/** R50 hotfix 2: every list below also opens the townhall (the page, the deck and the call): a person still in onboarding is
+ *  expected there like everyone, and two missed townhalls lock an account, so the gate must never keep them out.
+ *  Held by the gate: the academy, the guide, the profile, Welcome (the onboarding checklist) and the no-access page only; for field
  *  staff also Training, the field guide and My pay (the pay details step), r35 part X. */
-export const ACADEMY_OPEN = /^\/staff\/(academy|guide|profile|bug-reports|field\/profile|field\/training|field\/guide|field\/pay|no-access|welcome)(\/|\?|$)/;
+export const ACADEMY_OPEN = /^\/staff\/(academy|guide|profile|bug-reports|field\/profile|field\/training|field\/guide|field\/pay|no-access|welcome|townhall)(\/|\?|$)/;
 export const opensWhileHeld = (path: string) => ACADEMY_OPEN.test(path);
 /** Held by the agreement (1060: the academy first, then the agreement, then access): the academy's pages and the documents to sign. */
-export const AGREEMENT_OPEN = /^\/staff\/(academy|guide|profile|bug-reports|field\/profile|field\/training|field\/guide|field\/pay|field\/sign|sign|documents|no-access|welcome)(\/|\?|$)/;
+export const AGREEMENT_OPEN = /^\/staff\/(academy|guide|profile|bug-reports|field\/profile|field\/training|field\/guide|field\/pay|field\/sign|sign|documents|no-access|welcome|townhall)(\/|\?|$)/;
 export const opensWhileUnsigned = (path: string) => AGREEMENT_OPEN.test(path);
 /** r48 FE (3198): the agreement comes first (agreement, academy, WhatsApp, approval): before it is signed, the documents to sign,
  *  Welcome, the profile and the guide only (not the academy yet). */
-export const SIGN_FIRST_OPEN = /^\/staff\/(guide|profile|bug-reports|field\/profile|field\/guide|field\/pay|field\/sign|sign|documents|no-access|welcome)(\/|\?|$)/;
+export const SIGN_FIRST_OPEN = /^\/staff\/(guide|profile|bug-reports|field\/profile|field\/guide|field\/pay|field\/sign|sign|documents|no-access|welcome|townhall)(\/|\?|$)/;
 export const opensBeforeSigning = (path: string) => SIGN_FIRST_OPEN.test(path);
 /** Not fully onboarded (1151: the academy, the agreement, then the WhatsApp groups confirmed): the same onboarding pages only. */
 export const ONBOARDING_OPEN = AGREEMENT_OPEN;
@@ -20,7 +22,7 @@ export type StepKey = 'welcome' | 'profile' | 'availability' | 'academy' | 'agre
 export interface WelcomeTask { id: string; title: string; detail: string | null; done: boolean }
 export interface WelcomeStep { key: StepKey; done: boolean; phone?: boolean; phone_verified?: boolean; address?: boolean; passed?: number; sections?: number; waived?: boolean; tasks?: WelcomeTask[];
   /** 1060 */ preferred_name?: string | null; /** 1067 */ location?: string | null; state?: 'signed' | 'waived' | 'sent' | 'none'; request_id?: string | null; waiting_for_academy?: boolean; /** 3198: the academy opens once the agreement is signed */ waiting_for_agreement?: boolean; missing?: string[]; open?: boolean; groups?: Array<{ key: string; name: string; url: string; /** 1151 */ joined?: boolean; /** 3191 */ required?: boolean; member_tag?: string; tag_set?: boolean }>; /** 1151: one checkbox a group */ confirm?: boolean;
-  /** 1154: step 4, approved by an Admin or a Fleet VA */ asked_at?: string | null; rejected_at?: string | null; reject_reason?: string | null; approved_by?: string | null;
+  /** 1154: step 4, approved by an Admin or a Fleet team member */ asked_at?: string | null; rejected_at?: string | null; reject_reason?: string | null; approved_by?: string | null;
   /** 1770: field staff, when they can usually work (open from the start; required for the portal) */ slots?: string[]; note?: string | null; required?: boolean;
   /** 2373: the Field Staff Agreement waits for the driver's licence number the person gives here */ needs_licence?: boolean }
 export interface Welcome { name: string; portal: 'va' | 'field'; locked: boolean; steps: WelcomeStep[]; /** 1151 */ onboarding_step?: 'academy' | 'agreement' | 'whatsapp' | 'approval' | 'availability' | 'done' }
@@ -81,7 +83,7 @@ export function stepWords(s: WelcomeStep): string {
       : `Join ${s.groups.map((g) => g.name).join(' and ')} on WhatsApp, then tick each group you joined. Your portal opens once every group is ticked.`;
     case 'academy': return s.waived ? 'An Admin waived the academy for you.' : s.waiting_for_agreement && !s.done ? 'Opens once your staff agreement is signed.' : s.done ? 'Passed. The rest of your portal is open.' : `${s.passed ?? 0} of ${s.sections ?? 0} sections passed. Each quiz passes at 90%; after a failed try, wait 30 minutes (3 tries a day).`;
     case 'approval': return s.done ? `Approved${s.approved_by ? ` by ${s.approved_by}` : ''}.` : !s.open ? 'Opens once you confirm the WhatsApp groups.'
-      : s.reject_reason ? `Not approved yet: ${s.reject_reason}. Fix it, then ask again.` : 'Waiting for approval: an Admin or a Fleet VA checks your onboarding and opens your portal.';
+      : s.reject_reason ? `Not approved yet: ${s.reject_reason}. Fix it, then ask again.` : 'Waiting for approval: an Admin or a Fleet team member checks your onboarding and opens your portal.';
     case 'tasks': return !s.tasks?.length ? 'No first-day tasks for you.' : s.done ? 'All done.' : `${s.tasks.filter((t) => !t.done).length} left.`;
   }
 }

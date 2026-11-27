@@ -10,9 +10,9 @@ select test.mk_owner('xh_o');
 select test.mk_vehicle('XHA', 'xh_o');
 select test.mk_vehicle('XHB', 'xh_o');
 select test.mk_renter('xh_r');
-select test.mk_booking('XH-1', 'XHA', 'xh_r', '2026-12-05 10:00', '2026-12-08 10:00', 'confirmed', 30000);
+select test.mk_booking('XH-1', 'XHA', 'xh_r', test.fut('2026-12-05 10:00'), test.fut('2026-12-08 10:00'), 'confirmed', 30000);
 select test.mk_line('XH-1', 'rental_charge', 20000, false);
-select test.mk_booking('XH-2', 'XHB', 'xh_r', '2026-12-05 10:00', '2026-12-19 10:00', 'confirmed', 30000);
+select test.mk_booking('XH-2', 'XHB', 'xh_r', test.fut('2026-12-05 10:00'), test.fut('2026-12-19 10:00'), 'confirmed', 30000);
 create function test.xh_row(p_id text, p_key text, p_status text, p_booking text default null, p_tx bigint default null, p_charge boolean default false) returns jsonb language sql stable as $$
   select jsonb_build_object('id', p_id, 'key', p_key, 'kind', 'staff', 'capture', 'manual', 'status', p_status, 'amountCents', 100000, 'capturableCents', 0, 'capturedCents', 0,
     'refundedCents', 0, 'metadata', jsonb_strip_nulls(jsonb_build_object('booking_id', test.id('booking:' || p_booking), 'purpose', 'staff_request', 'covers', 'deposit')),

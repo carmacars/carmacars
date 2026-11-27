@@ -76,7 +76,7 @@ select test.eq('a booking of someone else is never added to the session', public
 select test.mk_owner('cap_owner');
 select test.mk_vehicle('cap_car', 'cap_owner');
 select test.mk_renter('cap_renter');
-select test.mk_booking('CAP-1', 'cap_car', 'cap_renter', '2026-12-01 10:00', '2026-12-04 10:00', 'offered');
+select test.mk_booking('CAP-1', 'cap_car', 'cap_renter', test.fut('2026-12-01 10:00'), test.fut('2026-12-04 10:00'), 'offered');
 insert into capture_accounts (user_id, opened_by_capture, sign_in_made) values (test.id('cap_renter'), true, true);
 update users set email_verified_at = null where id = test.id('cap_renter');
 select test.eq('unconfirmed: the gate says so', public.server_capture_unconfirmed(test.id('cap_renter')), true);

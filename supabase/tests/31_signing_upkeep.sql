@@ -165,8 +165,8 @@ select test.ok('forms: every draft names what each form is for and what it leave
 -- ================================================================ 6b. Sales opens what its inbox lists
 select test.mk_user('su_sales', 'va', 'sales');
 select test.mk_renter('su_rex');
-select test.mk_booking('SU-1', 'su_car', 'su_rex', '2027-03-10 10:00', '2027-03-12 10:00', 'pending_payment');
-select test.mk_booking('SU-2', 'su_car', 'su_rex', '2027-04-10 10:00', '2027-04-12 10:00', 'confirmed');
+select test.mk_booking('SU-1', 'su_car', 'su_rex', test.fut('2027-03-10 10:00'), test.fut('2027-03-12 10:00'), 'pending_payment');
+select test.mk_booking('SU-2', 'su_car', 'su_rex', test.fut('2027-04-10 10:00'), test.fut('2027-04-12 10:00'), 'confirmed');
 select test.eq('sales: a booking waiting for payment opens, without the money', (select (v ->> 'status') || '/' || (v ? 'payments') || '/' || (v ->> 'va_function')
   from app.va_booking(test.id('su_sales'), 'sales', '{"number": "SU-1"}') v), 'pending_payment/false/sales');
 select test.throws('sales: a confirmed booking someone else made stays closed', $$select app.va_booking(test.id('su_sales'), 'sales', '{"number": "SU-2"}')$$, 'requests and offers only');

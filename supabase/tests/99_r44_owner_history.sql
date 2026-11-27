@@ -31,8 +31,8 @@ select test.mk_booking('OHX-C3', 'OHX2', 'ohx_r5', '2026-10-26 10:00', '2026-10-
 insert into booking_cancellations (booking_id, received_at, cancelled_by, reason, channel, total_paid_cents)
 values (test.id('booking:OHX-C3'), timestamp '2026-10-26 12:00' at time zone 'America/Toronto', 'carmacars', 'no_show', 'system', 22600);
 -- U1: confirmed for later; Q1: a request never confirmed; T1: a test renter's booking
-select test.mk_booking('OHX-U1', 'OHX1', 'ohx_r6', '2027-01-10 10:00', '2027-01-12 10:00', 'confirmed', 20000);
-select test.mk_booking('OHX-Q1', 'OHX1', 'ohx_r8', '2027-02-10 10:00', '2027-02-12 10:00', 'requested', 20000);
+select test.mk_booking('OHX-U1', 'OHX1', 'ohx_r6', test.fut('2027-01-10 10:00'), test.fut('2027-01-12 10:00'), 'confirmed', 20000);
+select test.mk_booking('OHX-Q1', 'OHX1', 'ohx_r8', test.fut('2027-02-10 10:00'), test.fut('2027-02-12 10:00'), 'requested', 20000);
 select test.mk_booking('OHX-T1', 'OHX2', 'ohx_r7', '2026-10-05 10:00', '2026-10-07 10:00', 'closed', 20000);
 -- B1: another owner's car
 select test.mk_booking('OHX-B1', 'OHX9', 'ohx_r2', '2026-10-01 10:00', '2026-10-03 10:00', 'closed', 20000);

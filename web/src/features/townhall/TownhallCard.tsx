@@ -18,9 +18,10 @@ export async function TownhallCard({ userId, admin = false }: { userId: string; 
       <p className="small">{c.when}. {c.checkedIn ? 'You are checked in.' : 'Joining through the button checks you in.'}</p>
       {c.warn && <p className="alert alert--warn" role="status" data-testid="townhall-card-warn"><span>{c.warn}</span></p>}
       <div className="row">
-        {c.joinOpen && !c.checkedIn
+        {c.joinOpen && (v.in_site || !c.checkedIn)
           ? (v.in_site
-            ? <Link prefetch={false} className="btn btn--primary btn--sm" href={`${page}/live`} data-testid="townhall-card-join">Join the call</Link>
+            // R50 hotfix 2: in the site, Join stays after the first join: a dropped connection or a closed tab must be able to come back
+            ? <Link prefetch={false} className="btn btn--primary btn--sm" href={`${page}/live`} data-testid="townhall-card-join">{c.checkedIn ? 'Join the call again' : 'Join the call'}</Link>
             : v.has_link
             ? <a className="btn btn--primary btn--sm" href="/api/townhall-join" target="_blank" rel="noopener noreferrer" data-testid="townhall-card-join">Join / check in</a>
             : <Link prefetch={false} className="btn btn--primary btn--sm" href={page} data-testid="townhall-card-join">Check in</Link>)

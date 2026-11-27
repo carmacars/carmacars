@@ -5,7 +5,7 @@ update program_settings set phone_enabled = true;
 select test.mk_owner('ndt_owner');
 select test.mk_vehicle('ndt_car', 'ndt_owner');
 select test.mk_renter('ndt_rita');
-select test.mk_booking('NDT-1', 'ndt_car', 'ndt_rita', '2026-12-01 10:00', '2026-12-03 10:00', 'offered', 20000);
+select test.mk_booking('NDT-1', 'ndt_car', 'ndt_rita', test.fut('2026-12-01 10:00'), test.fut('2026-12-03 10:00'), 'offered', 20000);
 select test.eq('a first booking text goes', (select status from app.phone_outbox_put('+14165550199', 'CarmaCars: your offer is ready https://carmacars.ca/account/bookings/NDT-1/offer', 'booking', test.id('booking:NDT-1')) p) <> 'skipped', true);
 select test.eq('the same words to the same number minutes later are skipped',
   (select status from app.phone_outbox_put('+14165550199', 'CarmaCars: your offer is ready https://carmacars.ca/account/bookings/NDT-1/offer?m=11111111-2222-3333-4444-555555555555', 'booking', test.id('booking:NDT-1')) p), 'skipped');
