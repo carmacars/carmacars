@@ -828,15 +828,15 @@ alter function app.pdf_facts(text, text, uuid) rename to pdf_facts_pre5120;
 create function app.pdf_facts(p_kind text, p_key text, p_user uuid default null) returns jsonb
 language plpgsql stable security definer set search_path = public, app, pg_temp as $$
 declare
-  f jsonb := app.pdf_facts_pre5120(p_kind, left(p_key, 36), p_user);
+  -- only an insurer invoice's key carries a version (<invoice>:v<n>); every other kind's key goes through unchanged
+  f jsonb := app.pdf_facts_pre5120(p_kind, case when p_kind = 'insurer_invoice' then left(p_key, 36) else p_key end, p_user);
   ii insurer_invoices;
   x insurer_invoice_versions;
   s jsonb;
   v_n integer := (substring(p_key from ':v([0-9]{1,4})$'))::integer;
 begin
-  if f is null or p_kind <> 'insurer_invoice' then
-    return case when p_key ~ ':v[0-9]+$' then null else f end;
-  end if;
+  if p_kind <> 'insurer_invoice' then return f; end if;
+  if f is null then return null; end if;
   select * into ii from insurer_invoices where id = app.file_key_id(p_key);
   if v_n is not null then
     select * into x from insurer_invoice_versions where invoice_id = ii.id and version = v_n;
