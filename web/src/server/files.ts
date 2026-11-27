@@ -12,7 +12,8 @@ const SR = { role: 'service_role' as const };
 export interface FileOut { bytes: Uint8Array; fileName: string; contentType: string }
 
 export const isDocKind = (k: string): k is DocKind => (DOC_KINDS as readonly string[]).includes(k);
-export const validKey = (k: string) => /^[0-9a-f-]{36}(:[0-9]{4})?$/.test(k);
+// a record, a year of it (:2026), or a version of an insurer invoice (:v3, 5120)
+export const validKey = (k: string) => /^[0-9a-f-]{36}(:[0-9]{4}|:v[0-9]{1,4})?$/.test(k);
 
 export async function mayDownload(userId: string, kind: DocKind, key: string): Promise<boolean> {
   return (await rpc('server_file_access', { p_user: userId, p_kind: kind, p_key: key }, SR)) === true;
@@ -20,7 +21,9 @@ export async function mayDownload(userId: string, kind: DocKind, key: string): P
 
 export async function generatedFile(kind: DocKind, key: string, userId: string | null = null): Promise<FileOut | null> {
   const s = await storage();
-  const stored = (await rpc('server_file_stored', { p_kind: kind, p_key: key }, SR)) as unknown as { bucket: string; path: string; title: string | null } | null;
+  // 5120: an insurer invoice as it stands changes with each version (its versions, key <id>:v<n>, are stored once)
+  const live = kind === 'insurer_invoice' && !key.includes(':v');
+  const stored = live ? null : (await rpc('server_file_stored', { p_kind: kind, p_key: key }, SR)) as unknown as { bucket: string; path: string; title: string | null } | null;
   if (stored?.path) {
     const bytes = await s.get(stored.bucket as 'documents', stored.path);
     if (bytes) return { bytes, fileName: stored.path.split('/').pop() ?? `${kind}.pdf`, contentType: 'application/pdf' };

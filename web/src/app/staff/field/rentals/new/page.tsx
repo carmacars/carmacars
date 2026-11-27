@@ -2,6 +2,7 @@ import { pageMeta } from '@/features/seo/meta';
 import { door, requireStaff } from '@/server/door';
 import { ManualRentalForm, type MrDraft } from '@/features/supply/ManualRentalForm';
 import { MyDrafts } from '@/features/supply/UnfinishedRentals';
+import { DraftGone } from '@/features/insurance/DraftGone';
 import type { DraftRow } from '@/server/actions/supply';
 import { homeAddressOf } from '@/features/staff/HomeAddress';
 
@@ -26,7 +27,7 @@ export default async function FieldAddRental({ searchParams }: { searchParams: P
       <h1 className="d3">Add a rental</h1>
       <p className="small muted">For a renter you met or who called you, including one who already has the car (enter the pickup as when it left). The renter gets an email to sign and pay online; you take no payment for it yourself.</p>
       {home.missing ? <p className="alert alert--error" role="status" data-testid="rental-needs-address"><span>Add your home address at the top of the page before you add a rental.</span></p>
-        : <><MyDrafts rows={drafts} base="/staff/field" current={open?.id} /><ManualRentalForm key={open?.id ?? 'new'} cars={cars} base="/staff/field" isAdmin={false} draft={open} /></>}
+        : <>{uuid && !open && <DraftGone draft={draft as Parameters<typeof DraftGone>[0]['draft']} base="/staff/field" />}<MyDrafts rows={drafts} base="/staff/field" current={open?.id} /><ManualRentalForm key={open?.id ?? 'new'} cars={cars} base="/staff/field" isAdmin={false} draft={open} /></>}
     </div>
   );
 }

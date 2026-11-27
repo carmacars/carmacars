@@ -55,7 +55,7 @@
       "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
     }
   ],
-  "count": 296,
+  "count": 298,
   "emails": [
     {
       "code": "account_password_reset",
@@ -22052,6 +22052,69 @@
       "template_text": "templates/staff_insurer_invoice_due.txt"
     },
     {
+      "code": "staff_insurer_rental_added",
+      "audience": "staff_va_finance",
+      "also_sent_to": [
+        "staff_admin"
+      ],
+      "category": "transactional",
+      "trigger": "Release 50 (5120): an insurance replacement is added from Insurance replacements (the page or the CarmaCars_Admin connector). To Finance and the Admins, once per rental, so the claim is invoiced and chased.",
+      "timing": "Immediate, when the rental is added",
+      "digest": false,
+      "from": "CarmaCars <billing@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "Insurance replacement {{booking_number}}: {{insurer_name}}, claim {{claim_number}}",
+      "preheader": "{{renter_name}}, {{vehicle_name}}, {{period}}. Added by {{added_by}}.",
+      "sample_subject": "Insurance replacement CC-10482: Northern Mutual Insurance (sample), claim CL-88213-A",
+      "variables": [
+        {
+          "name": "added_by",
+          "type": "string",
+          "sample": "Jordan Example"
+        },
+        {
+          "name": "booking_number",
+          "type": "string",
+          "sample": "CC-10482",
+          "note": "Agreement and booking number shown to the customer."
+        },
+        {
+          "name": "claim_number",
+          "type": "string",
+          "sample": "CL-88213-A"
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "insurer_name",
+          "type": "string",
+          "sample": "Northern Mutual Insurance (sample)"
+        },
+        {
+          "name": "period",
+          "type": "string",
+          "sample": "Fri, Nov 27, 2026 to Mon, Dec 7, 2026"
+        },
+        {
+          "name": "renter_name",
+          "type": "string",
+          "sample": "Maya Chen"
+        },
+        {
+          "name": "vehicle_name",
+          "type": "string",
+          "sample": "2023 Toyota RAV4 XLE",
+          "note": "Year, make, model and trim."
+        }
+      ],
+      "template_html": "templates/staff_insurer_rental_added.html",
+      "template_text": "templates/staff_insurer_rental_added.txt"
+    },
+    {
       "code": "staff_owner_invoice_failed",
       "audience": "staff_va_finance",
       "also_sent_to": [
@@ -26391,6 +26454,123 @@
       ],
       "template_html": "templates/staff_townhall_invite.html",
       "template_text": "templates/staff_townhall_invite.txt"
+    },
+    {
+      "code": "insurer_estimate",
+      "audience": "insurer",
+      "category": "transactional",
+      "trigger": "An estimate for an insurance replacement is sent from Insurance replacements (Send as estimate, by email): what the rental will cost the insurer, with a 7-day link to the PDF of that version. It bills nothing. Sending again sends a new version.",
+      "timing": "When Finance or an Admin sends the estimate",
+      "digest": false,
+      "from": "Blind Spot Car Rental <blindspotcarrental@carmacars.ca>",
+      "reply_to": "blindspotcarrental@carmacars.ca",
+      "subject": "Estimate {{invoice_number}} for {{renter_name}}: {{invoice_total}}",
+      "preheader": "Rental of a {{vehicle_name}}, {{period}}. Claim {{claim_number}}. Not an invoice.",
+      "sample_subject": "Estimate INS-1004 for Maya Chen: $339.00",
+      "variables": [
+        {
+          "name": "claim_number",
+          "type": "string",
+          "sample": "CL-2026-77812"
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Clara",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "insurer_name",
+          "type": "string",
+          "sample": "Northbridge Mutual"
+        },
+        {
+          "name": "invoice_amount",
+          "type": "string",
+          "sample": "$300.00"
+        },
+        {
+          "name": "invoice_hst",
+          "type": "string",
+          "sample": "$39.00"
+        },
+        {
+          "name": "invoice_lines",
+          "type": "list",
+          "sample": [
+            {
+              "label": "Replacement rental, 3 days",
+              "amount": "$300.00"
+            }
+          ],
+          "fields": [
+            "label",
+            "amount"
+          ]
+        },
+        {
+          "name": "invoice_number",
+          "type": "string",
+          "sample": "INS-1004"
+        },
+        {
+          "name": "invoice_total",
+          "type": "string",
+          "sample": "$339.00"
+        },
+        {
+          "name": "invoice_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/d/sample-estimate-link"
+        },
+        {
+          "name": "link_expiry",
+          "type": "string",
+          "sample": "7 days",
+          "note": "How long the one-time link stays valid."
+        },
+        {
+          "name": "period",
+          "type": "string",
+          "sample": "Fri, Oct 23, 2026 to Mon, Oct 26, 2026"
+        },
+        {
+          "name": "renter_name",
+          "type": "string",
+          "sample": "Maya Chen"
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "vehicle_name",
+          "type": "string",
+          "sample": "2023 Toyota RAV4 XLE",
+          "note": "Year, make, model and trim."
+        },
+        {
+          "name": "version",
+          "type": "string",
+          "sample": "2"
+        }
+      ],
+      "template_html": "templates/insurer_estimate.html",
+      "template_text": "templates/insurer_estimate.txt"
     },
     {
       "code": "insurer_invoice",

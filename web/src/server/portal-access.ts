@@ -66,6 +66,8 @@ export const STAFF_ONLY = {
   renters: ['cs', 'finance', 'fleet'],
   addCar: ['cs', 'fleet', 'sales'],
   finance: ['finance'],
+  // r50 hotfix 2 (5120): Insurance replacements, for Finance and customer service (never Field)
+  insurance: ['finance', 'cs'],
 } as const satisfies Record<string, readonly Fn[]>;
 
 // the staff pages whose check the layout runs first (the homes and the shared Admin and staff pages)
@@ -80,6 +82,7 @@ const STAFF_RULES: Array<[RegExp, StaffRule]> = [
   [/^\/staff\/owners\/add-car\/?$/, { kind: 'va', only: STAFF_ONLY.addCar }],
   // r49 (3480): the Finance dashboard and bank lines, Finance only (app/staff/finance/page.tsx passes the same list)
   [/^\/staff\/finance\/?$/, { kind: 'va', only: STAFF_ONLY.finance }],
+  [/^\/staff\/insurance-replacements(\/[^/]+)?\/?$/, { kind: 'va', only: STAFF_ONLY.insurance }],
 ];
 
 export function staffRule(path: string): StaffRule | null {

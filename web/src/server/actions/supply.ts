@@ -148,7 +148,7 @@ export async function sampleCars(action: 'sample_cars_show' | 'sample_cars_hide'
 
 // ---------------------------------------------------------------- drafts (0148): Add a rental and Send an offer saved as typed
 export interface DraftRow { id: string; kind: 'rental' | 'offer'; title: string | null; quick: boolean; updated_at: string; created_at: string; by: string | null; mine: boolean;
-  vehicle: string | null; held_until: string | null; missing: string[] }
+  vehicle: string | null; held_until: string | null; missing: string[]; /** 5120 */ form?: string | null }
 export async function draftSave(p: { id?: string | null; kind: 'rental' | 'offer'; data: Record<string, unknown>; title?: string; hold?: boolean; quick?: boolean }): Promise<R<{ id: string; updated_at: string; held: boolean; hold_until: string | null; missing: string[] }>> {
   try { const { user, aal } = await me(); return { ok: true, data: await door(user.id, 'ops_do', 'draft_save', p, aal) }; } catch (e) { return fail(e); }
 }

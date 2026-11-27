@@ -626,7 +626,7 @@ select test.eq('I each receipt is a payment on the booking, outside the card pro
 select app.compute_booking_split(test.b('i1'));
 select test.eq('I and the rental now counts as collected for the Owner''s statement',
   (select uncollected_cents || '/' || rental_charge_cents || '/' || collected_cents from booking_splits where booking_id = test.b('i1')), '0/56000/71755');
-select test.throws('I nothing is left to invoice', $$select app.draft_insurer_invoice(test.b('i1'))$$, 'Nothing is left to invoice');
+select test.eq('I drafting again returns the same invoice: re-invoicing is its next version (5120, no "Nothing is left to invoice")', app.draft_insurer_invoice(test.b('i1')), test.b('inv1'));
 select test.throws('I a write-off needs who and why', $$update insurer_invoices set status = 'written_off' where id = test.b('inv1')$$, 'check');
 
 -- ------------------------------------------------------------------ promo codes

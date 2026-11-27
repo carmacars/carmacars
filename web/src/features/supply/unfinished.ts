@@ -1,9 +1,10 @@
 // Unfinished rentals (0148; r48 ops): where a draft opens, its words, and how many show before "Show older". Pure.
-export interface Draft { id: string; kind: 'rental' | 'offer'; title: string | null; quick: boolean; updated_at: string; by: string | null; mine: boolean; vehicle: string | null; held_until: string | null; missing: string[] }
+export interface Draft { id: string; kind: 'rental' | 'offer'; /** 5120: 'insurer' for an insurance replacement's short form */ form?: string | null; title: string | null; quick: boolean; updated_at: string; by: string | null; mine: boolean; vehicle: string | null; held_until: string | null; missing: string[] }
 export type DraftBase = '/admin' | '/staff' | '/staff/field';
 
-export const draftHref = (r: Pick<Draft, 'id' | 'kind'>, base: DraftBase) =>
-  r.kind === 'offer' ? `${base === '/staff/field' ? '/staff' : base}/offers/new?draft=${r.id}` : `${base === '/staff/field' ? '/staff/field/rentals' : `${base}/bookings`}/new?draft=${r.id}`;
+export const draftHref = (r: Pick<Draft, 'id' | 'kind'> & { form?: string | null }, base: DraftBase) =>
+  r.form === 'insurer' ? `${base === '/staff/field' ? '/staff' : base}/insurance-replacements/new?draft=${r.id}`
+  : r.kind === 'offer' ? `${base === '/staff/field' ? '/staff' : base}/offers/new?draft=${r.id}` : `${base === '/staff/field' ? '/staff/field/rentals' : `${base}/bookings`}/new?draft=${r.id}`;
 
 const when = (iso: string) => new Date(iso).toLocaleString('en-CA', { timeZone: 'America/Toronto', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 /** "You · Nov 20, 3:40 p.m. · 2024 Kia Forte": who saved it last, when, and the car when the title is the renter. */

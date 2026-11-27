@@ -21,8 +21,8 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 .tags .m{background:#D0111B;border-color:#D0111B;color:#fff}.tags .d{background:#000;color:#fff}
 .ln a{font-size:13px;font-weight:700;color:#111;margin-right:12px}
 </style></head><body>
-<header><div class="wm">Carma<b>Cars</b></div><p>296 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
-<nav><a href="#renter">Renter <span>113</span></a><a href="#owner">Owner <span>65</span></a><a href="#investor">Investor <span>4</span></a><a href="#staff_admin">Staff: admin <span>27</span></a><a href="#staff_va_finance">Staff: finance <span>16</span></a><a href="#staff_va_fleet">Staff: fleet <span>16</span></a><a href="#staff_va_cs">Staff: customer service <span>13</span></a><a href="#staff_va_sales">Staff: sales <span>8</span></a><a href="#staff_field">Staff: field <span>18</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a><a href="#applicant">Job applicant <span>14</span></a><a href="#partner">Partner (body shop, tow truck, storage) <span>1</span></a></nav>
+<header><div class="wm">Carma<b>Cars</b></div><p>298 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
+<nav><a href="#renter">Renter <span>113</span></a><a href="#owner">Owner <span>65</span></a><a href="#investor">Investor <span>4</span></a><a href="#staff_admin">Staff: admin <span>27</span></a><a href="#staff_va_finance">Staff: finance <span>17</span></a><a href="#staff_va_fleet">Staff: fleet <span>16</span></a><a href="#staff_va_cs">Staff: customer service <span>13</span></a><a href="#staff_va_sales">Staff: sales <span>8</span></a><a href="#staff_field">Staff: field <span>18</span></a><a href="#insurer">Insurer (billing contact) <span>2</span></a><a href="#applicant">Job applicant <span>14</span></a><a href="#partner">Partner (body shop, tow truck, storage) <span>1</span></a></nav>
 <main>
 <h2 id="renter">Renter (113)</h2>
 <div class="grid">
@@ -1290,7 +1290,7 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="ln"><a href="../dist/staff_weekly_summary.html">HTML</a><a href="../dist/staff_weekly_summary.txt">Text</a><a href="../shots/staff_weekly_summary.desktop.png">Desktop</a><a href="../shots/staff_weekly_summary.phone.png">Phone</a></div>
 </div></div>
 </div>
-<h2 id="staff_va_finance">Staff: finance (16)</h2>
+<h2 id="staff_va_finance">Staff: finance (17)</h2>
 <div class="grid">
 <div class="c"><a class="th" href="../dist/staff_balance_overdue_digest.html"><img loading="lazy" src="../shots/staff_balance_overdue_digest.desktop.png" alt="Screenshot of staff_balance_overdue_digest"></a><div class="b">
 <div class="code">staff_balance_overdue_digest</div><div class="sub">2 renter balances overdue, $680.40</div>
@@ -1345,6 +1345,12 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tags"><span>Transactional</span><span class="d">Digest</span></div>
 <div class="tr">Daily check at 06:00: an insurer_invoices row with status sent or part_paid has a balance and sent_at is 30 days ago. Queued once for the finance morning digest, then listed again every 7 days while the balance remains. At 60 days it is also queued for the admin digest.</div>
 <div class="ln"><a href="../dist/staff_insurer_invoice_due.html">HTML</a><a href="../dist/staff_insurer_invoice_due.txt">Text</a><a href="../shots/staff_insurer_invoice_due.desktop.png">Desktop</a><a href="../shots/staff_insurer_invoice_due.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/staff_insurer_rental_added.html"><img loading="lazy" src="../shots/staff_insurer_rental_added.desktop.png" alt="Screenshot of staff_insurer_rental_added"></a><div class="b">
+<div class="code">staff_insurer_rental_added</div><div class="sub">Insurance replacement CC-10482: Northern Mutual Insurance (sample), claim CL-88213-A</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Release 50 (5120): an insurance replacement is added from Insurance replacements (the page or the CarmaCars_Admin connector). To Finance and the Admins, once per rental, so the claim is invoiced and chased.</div>
+<div class="ln"><a href="../dist/staff_insurer_rental_added.html">HTML</a><a href="../dist/staff_insurer_rental_added.txt">Text</a><a href="../shots/staff_insurer_rental_added.desktop.png">Desktop</a><a href="../shots/staff_insurer_rental_added.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/staff_owner_invoice_failed.html"><img loading="lazy" src="../shots/staff_owner_invoice_failed.desktop.png" alt="Screenshot of staff_owner_invoice_failed"></a><div class="b">
 <div class="code">staff_owner_invoice_failed</div><div class="sub">Owner payment bounced: $536.75 from Daniel Rossi, 2022 Hyundai Elantra Preferred</div>
@@ -1731,8 +1737,14 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="ln"><a href="../dist/staff_townhall_invite.html">HTML</a><a href="../dist/staff_townhall_invite.txt">Text</a><a href="../shots/staff_townhall_invite.desktop.png">Desktop</a><a href="../shots/staff_townhall_invite.phone.png">Phone</a></div>
 </div></div>
 </div>
-<h2 id="insurer">Insurer (billing contact) (1)</h2>
+<h2 id="insurer">Insurer (billing contact) (2)</h2>
 <div class="grid">
+<div class="c"><a class="th" href="../dist/insurer_estimate.html"><img loading="lazy" src="../shots/insurer_estimate.desktop.png" alt="Screenshot of insurer_estimate"></a><div class="b">
+<div class="code">insurer_estimate</div><div class="sub">Estimate INS-1004 for Maya Chen: $339.00</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">An estimate for an insurance replacement is sent from Insurance replacements (Send as estimate, by email): what the rental will cost the insurer, with a 7-day link to the PDF of that version. It bills nothing. Sending again sends a new version.</div>
+<div class="ln"><a href="../dist/insurer_estimate.html">HTML</a><a href="../dist/insurer_estimate.txt">Text</a><a href="../shots/insurer_estimate.desktop.png">Desktop</a><a href="../shots/insurer_estimate.phone.png">Phone</a></div>
+</div></div>
 <div class="c"><a class="th" href="../dist/insurer_invoice.html"><img loading="lazy" src="../shots/insurer_invoice.desktop.png" alt="Screenshot of insurer_invoice"></a><div class="b">
 <div class="code">insurer_invoice</div><div class="sub">Invoice INS-1004 for Maya Chen: $339.00</div>
 <div class="tags"><span>Transactional</span></div>
