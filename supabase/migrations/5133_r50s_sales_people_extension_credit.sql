@@ -7,7 +7,8 @@
 --    'sales' (BookingPage's salespeople), so they never showed; the Reassign list called them Field. Jamal is such a person.
 --    Now the function word is 'sales' for everyone who holds the Sales function (app.user_va_has_sales: active, the va
 --    role, the function), whatever their staff type, onboarding step or inactivity warning; and each option carries
---    `functions` and `sales`. Nothing else about who is listed changes (every active staff member, test accounts left out).
+--    `functions` and `sales`. Nothing else about who is listed changes (every active staff member who may earn sales credit,
+--    2330's credit_blocked and test accounts left out).
 -- 2. Commission on an extension (the Tibirica case, CC-10131: Admin handled the extension and the weekly payments, and the
 --    booking's salesperson still earned on them). 3101 gave every new extension to the booking's salesperson by default.
 --    Now an extension goes to the person who started it: a salesperson who asked for it (requested_by, or the staff member
@@ -31,7 +32,7 @@ begin
                      'sales', app.user_va_has_sales(u.id), 'functions', to_jsonb(coalesce(sp.functions, '{}'::text[])))
                      order by coalesce(u.full_name, u.email))
                      from users u left join staff_profiles sp on sp.user_id = u.id
-                    where app.user_is_sales_staff(u.id) and not u.is_test), '[]'::jsonb);
+                    where app.user_is_sales_staff(u.id) and not app.credit_blocked(u.id) and not u.is_test), '[]'::jsonb);
 end $$;
 
 -- ================================================================ 2. who handles a new extension: who started it
