@@ -15,7 +15,7 @@ export function supabaseBackend(): Backend {
         const building = process.env.NEXT_PHASE === 'phase-production-build';
         // 0106: a visitor's anonymous read (the public pages) has one deadline for the call and its quick retries, so
         // a busy database fails the page within about 3 s (postgrest.ts ANON_DEADLINE_MS); never during the build
-        const signal = o.role === 'anon' && !o.accessToken && !building ? AbortSignal.timeout(ANON_DEADLINE_MS) : undefined;
+        const signal = o.role === 'anon' && !o.accessToken && !building ? AbortSignal.timeout(o.deadlineMs ?? ANON_DEADLINE_MS) : undefined;
         // pre-rendering during `next build` tries a slow database again (postgrest.ts, withBuildRetry)
         return await withBuildRetry(() => postgrestRpc(fetch, {
           url: required('NEXT_PUBLIC_SUPABASE_URL'), anonKey: required('NEXT_PUBLIC_SUPABASE_ANON_KEY'),

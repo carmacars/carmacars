@@ -38,7 +38,7 @@ import { refreshSession } from '../src/lib/auth/edge-refresh.ts';
 import { emailLinkCookie } from '../src/lib/track/shared.ts';
 import { SCHEMA_HEADER, SCHEMA_MARKER } from '../src/lib/schema-marker.ts';
 import { ORIGIN_WAIT_MS, STALE_HEADER, hasSession, isProbe, staleKey, staleWorthy } from '../src/lib/edge/page-cache.ts';
-import { checkPage, marketOf, marketStored, offMarketPlace, oldModelYear, oldYearGone, outOfMarket, placeRegionBit, scraperGuard, tooMany, vehiclePageYear } from '../src/lib/edge/scraper-guard.ts';
+import { checkPage, fromEngine, longTail, marketOf, marketStored, offMarketPlace, oldModelYear, oldYearGone, outOfMarket, placeRegionBit, scraperGuard, tooMany, vehiclePageYear } from '../src/lib/edge/scraper-guard.ts';
 import { RATE_LIMITED_BOT, keptToScope, shield, shieldResponse } from '../src/lib/edge/bot-shield.ts';
 import { hostAction } from '../src/lib/edge/canonical-host.ts';
 import { PATH_HEADER, portalPathHeader, portalSignIn } from '../src/lib/edge/portal-gate.ts';
@@ -47,7 +47,7 @@ import { kickNow, notifyKick, tickPlan } from '../src/lib/edge/notify-kick.ts';
 import { cronEnabled, jobsForTick } from '../src/lib/platform/cron-plan.ts';
 import { LISTEN_CHANNEL, createKicker, createListener, listenUrl } from '../src/lib/platform/db-listen.ts';
 import { INBOUND_PATH, MAX_INBOUND_BYTES, SIGNATURE_HEADER, inboundSecret, routeInbound, verifyInbound } from '../src/lib/platform/inbound-email.ts';
-import { WindowLimiter, geoCookie, geoFromHeaders, keptCopies } from '../src/lib/platform/node-edge.ts';
+import { RenderGate, WindowLimiter, geoCookie, geoFromHeaders, keptCopies } from '../src/lib/platform/node-edge.ts';
 import { replyMime } from '../src/features/auto-reply/faq.ts';
 
 if (process.env.ENV_FILE) {
@@ -68,12 +68,16 @@ const log = (m) => console.log(`[web] ${m}`);
 const app = spawn(process.execPath, [path.join(STANDALONE, 'server.js')], { cwd: STANDALONE, stdio: 'inherit', env: { ...env, PORT: String(INNER), HOSTNAME: '127.0.0.1' } });
 app.on('exit', (code) => { log(`the app stopped (${code}); stopping`); process.exit(code || 1); });
 let ready = false;
+// r50 hotfix 2 (Nov 25: the container "unhealthy" for over 40 minutes while it served pages, restarted 5 times by the heal
+// agent, each restart emptying the shared reads' memory): ready asked for /robots.txt, which reads the whole sitemap (4 to
+// 8 s, longer while crawlers keep the database busy) within 5 s, and gave up after 240 tries, after which /healthz said
+// 503 for good. Ready now means the app answers at all: a static file, no database; it is asked until it answers.
 async function waitReady() {
-  for (let i = 0; i < 240 && !ready; i++) {
-    try { const r = await fetch(`http://127.0.0.1:${INNER}/robots.txt`, { signal: AbortSignal.timeout(5000) }); await r.arrayBuffer(); ready = r.status < 500; } catch { /* starting */ }
-    if (!ready) await new Promise((r) => setTimeout(r, 500));
+  for (let i = 0; !ready; i++) {
+    try { const r = await fetch(`http://127.0.0.1:${INNER}/favicon.ico`, { signal: AbortSignal.timeout(5000) }); await r.arrayBuffer(); ready = r.status < 500; } catch { /* starting */ }
+    if (!ready) { if (i === 240) log('the app has not answered for 2 minutes'); await new Promise((r) => setTimeout(r, 500)); }
   }
-  log(ready ? `ready on :${PORT} (the app on 127.0.0.1:${INNER})` : 'the app did not answer in 2 minutes');
+  log(`ready on :${PORT} (the app on 127.0.0.1:${INNER})`);
 }
 
 // ------------------------------------------------------------------ what the tick learns (the Worker keeps these in KV or D1)
@@ -138,6 +142,10 @@ async function inbound(req, res, head) {
 
 // ------------------------------------------------------------------ crawl pacing, the scraper guard, last good copies
 const crawlLimiter = new WindowLimiter(60, 60_000);
+// r50 hotfix 2: renders of the long-tail pages for visitors without a session, at most LONGTAIL_RENDERS at once
+// (src/lib/platform/node-edge.ts RenderGate); a visitor from a search engine or an answer engine never waits here
+const tailGate = new RenderGate(Number(env.LONGTAIL_RENDERS) || 6, 60);
+const TAIL_WAIT_MS = 3_000;
 const guardOn = env.SCRAPER_GUARD !== '0';
 let copies = null;
 if (env.KEPT_COPIES !== '0') {
@@ -319,6 +327,17 @@ async function handle(req, res) {
     htmlOut(200, copyHeaders(why), c.body);
     return true;
   };
+  if ((method === 'GET' || method === 'HEAD') && head('rsc') !== '1' && !hasSession(head('cookie')) && !fromEngine(head('referer')) && longTail(pathname)) {
+    const leave = await tailGate.enter(TAIL_WAIT_MS);
+    if (!leave) {
+      req.resume();
+      if (await serveCopy('busy')) return;
+      res.writeHead(503, { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store', 'retry-after': '120', ...secHeaders() });
+      res.end('Busy: try again in a couple of minutes.');
+      return;
+    }
+    res.on('close', leave);
+  }
   const slow = sKey ? setTimeout(() => { serveCopy('slow').catch(() => undefined); }, ORIGIN_WAIT_MS) : null;
   const up = http.request({ host: '127.0.0.1', port: INNER, method, path: req.url, headers }, (r) => {
     if (slow) clearTimeout(slow);

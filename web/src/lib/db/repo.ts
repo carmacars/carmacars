@@ -24,6 +24,8 @@ export interface CallOptions {
   requestId?: string;
   /** The view-as check itself (src/server/view-as.ts) reads the Admin gate without being checked again. */
   skipViewAs?: boolean;
+  /** r50 hotfix 2: an anonymous read's own deadline (the shared reads: one call answers every visitor). */
+  deadlineMs?: number;
 }
 
 export class DbError extends Error {
@@ -87,7 +89,7 @@ export async function rpc<F extends FnName>(fn: F, args: ArgsOf<F>, opts: CallOp
   // good answer for up to a day when the database errors or is too busy. Before this, every page render read them
   // again (seo_links and site_facts were about 0.5 s each), and a crawl made the database fall over (2026-10-22).
   if (role === 'anon' && !accessToken && SHARED_READS.has(fn) && env().DATA_BACKEND !== 'local') {
-    return (await sharedRead(`${fn}:${JSON.stringify(a)}`, () => b.call(fn, a, { ...rest, role }))) as ReturnsOf<F>;
+    return (await sharedRead(`${fn}:${JSON.stringify(a)}`, () => b.call(fn, a, { ...rest, role, deadlineMs: SHARED_DEADLINE_MS }))) as ReturnsOf<F>;
   }
   return (await b.call(fn, a, { ...rest, role, accessToken })) as ReturnsOf<F>;
 }
@@ -102,11 +104,16 @@ async function buildRetry(load: () => Promise<unknown>): Promise<unknown> {
 }
 
 const SHARED_READS = new Set<string>([
-  'site_settings_public', 'site_facts', 'site_content', 'vehicle_classes', 'seo_links', 'seo_pages_public', 'articles_public',
+  'site_settings_public', 'site_facts', 'site_content', 'vehicle_classes', 'seo_links', 'seo_pages_public', 'seo_page', 'articles_public',
   'place_roots', 'place_terms_public', 'shop_services_public', 'hiring_roles_public',
   'sitemap_all', 'place_sitemap_files', 'vehicle_tiers', 'vehicle_tier_files_count', 'vehicle_sitemap_index'
 ]);
 const SHARED_TTL_MS = 5 * 60_000;
+/** r50 hotfix 2 (Nov 25: hundreds of "site_settings_public gave up" and "vehicle_tiers gave up" after each restart of the
+ *  website): a shared read is one call for every visitor, and with no copy yet in memory (a restart) every page waits on
+ *  it. It gets longer than a page's own read (ANON_DEADLINE_MS) to come back while the database is busy, so one slow
+ *  moment does not fail every page at once; the front serves kept copies to visitors meanwhile (ORIGIN_WAIT_MS). */
+const SHARED_DEADLINE_MS = 20_000;
 const SHARED_STALE_MS = 24 * 3600_000;
 const shared = new Map<string, { at: number; value?: unknown; pending?: Promise<unknown> }>();
 /** One shared read: fresh for SHARED_TTL_MS, refreshed by one caller at a time, the last good value on an error. */

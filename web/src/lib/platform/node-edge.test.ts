@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import os from 'node:os';
 import path from 'node:path';
 import fs from 'node:fs/promises';
-import { WindowLimiter, geoCode, geoCookie, geoFromHeaders, keptCopies } from './node-edge.ts';
+import { RenderGate, WindowLimiter, geoCode, geoCookie, geoFromHeaders, keptCopies } from './node-edge.ts';
 
 const from = (h: Record<string, string>) => (n: string) => h[n] ?? null;
 
@@ -69,4 +69,23 @@ test('last good copies: kept, read back, not rewritten while fresh, gone after a
     assert.equal((await c.get('https://edge.stale/c', t0 + 40 * 60_000))?.body.toString(), 'c');
     assert.equal(await c.prune(t0 + 9 * 86_400_000), 2);
   } finally { await fs.rm(dir, { recursive: true, force: true }); }
+});
+
+test('r50 hotfix 2: the render gate lets max renders through, queues the next and refuses past the queue or the wait', async () => {
+  const g = new RenderGate(2, 1);
+  const a = await g.enter(50), b = await g.enter(50);
+  assert.ok(a && b);
+  assert.equal(g.inUse, 2);
+  const queued = g.enter(1000);
+  assert.equal(await g.enter(50), null, 'the queue is full: no turn');
+  a!();
+  a!();
+  const c = await queued;
+  assert.ok(c, 'the queued request gets the turn given back');
+  assert.equal(g.inUse, 2, 'a turn given back twice counts once');
+  const g2 = new RenderGate(1, 5);
+  await g2.enter(10);
+  assert.equal(await g2.enter(20), null, 'no turn within the wait');
+  b!(); c!();
+  assert.equal(g.inUse, 0);
 });

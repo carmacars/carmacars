@@ -57,6 +57,33 @@ export class WindowLimiter {
   }
 }
 
+/** r50 hotfix 2 (Nov 25: hundreds of "the database is busy" on the long-tail pages, mostly crawlers): at most `max`
+ *  renders of the long-tail pages at once, so a crawl over millions of term, make, model, year, trim, place and colour
+ *  pages cannot take every one of the database API's connections (PGRST_DB_POOL, 20) from staff and renters. A request
+ *  waits up to `waitMs` for a turn behind at most `queue` others; with no turn the entry serves the page's kept copy or 503. */
+export class RenderGate {
+  private active = 0;
+  private readonly waiting: Array<() => void> = [];
+  private readonly max: number;
+  private readonly queue: number;
+  constructor(max: number, queue: number) { this.max = Math.max(1, max); this.queue = Math.max(0, queue); }
+  /** A function that gives the turn back (safe to call twice), or null when no turn came within waitMs. */
+  enter(waitMs: number): Promise<(() => void) | null> {
+    if (this.active < this.max) { this.active++; return Promise.resolve(this.release()); }
+    if (this.waiting.length >= this.queue) return Promise.resolve(null);
+    return new Promise((resolve) => {
+      const go = () => { clearTimeout(t); this.active++; resolve(this.release()); };
+      const t = setTimeout(() => { const i = this.waiting.indexOf(go); if (i >= 0) this.waiting.splice(i, 1); resolve(null); }, waitMs);
+      this.waiting.push(go);
+    });
+  }
+  get inUse(): number { return this.active; }
+  private release(): () => void {
+    let done = false;
+    return () => { if (done) return; done = true; this.active--; const next = this.waiting.shift(); if (next) next(); };
+  }
+}
+
 // ------------------------------------------------------------------ last good copies on disk
 export const COPY_MAX_AGE_MS = 7 * 86_400_000;
 /** A copy this fresh is not written again (a busy page is not rewritten on every request). */
