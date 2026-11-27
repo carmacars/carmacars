@@ -1,0 +1,14 @@
+/* r50 hotfix 2 (5150): the weekly Admin call deck (features/admin-call/AdminCall.tsx) */
+.ac-toc { display: flex; flex-wrap: wrap; gap: var(--s-1); }
+.ac-toc__a { display: inline-flex; align-items: center; gap: var(--s-1); min-height: 36px; padding: 0.25rem 0.75rem; border-radius: var(--ui-r-pill); border: 1px solid var(--ui-line); background: var(--white); color: inherit; font-size: var(--fs-xs); font-weight: 600; text-decoration: none; }
+@media (hover: hover) { .ac-toc__a:hover { border-color: var(--black); } }
+.ac-lines { margin: 0; padding-left: 1.1rem; display: grid; gap: 0.2rem; }
+.ac-items { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-2); }
+.ac-item { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s-2); padding: var(--s-2) var(--s-3); border-radius: var(--ui-r-tile); border: 1px solid var(--ui-line); }
+.ac-item[data-decision="approve"] { background: var(--grey-50); }
+.ac-item[data-decision="deny"] { background: var(--grey-50); }
+.ac-item__text { min-width: 0; flex: 1 1 16rem; overflow-wrap: anywhere; }
+.ac-acts { display: inline-flex; flex-wrap: wrap; gap: var(--s-1); }
+.ac-done { font-size: var(--fs-xs); font-weight: 700; }
+.ac-done--approve::before { content: "\2713  "; color: var(--ui-ok); }
+.ac-done--deny::before { content: "\2715  "; color: var(--red-600); }

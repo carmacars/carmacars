@@ -4,14 +4,13 @@ import { InsurerConfirm } from '@/features/admin/InsurerConfirm';
 import '@/features/onboarding/onboarding.css';
 import './owner-stages.css';
 import { AppointmentForm, VisitedForm } from './OwnerStageForms';
-import { actionFor, daysWords, fillScript, hrefFor, progressLine, STATE_WORDS, waitsOn, type Stage, type StageAction, type Stages, type Track, type Viewer } from './model';
+import { Milestones } from '@/components/portal-ui/Milestones';
+import { actionFor, daysWords, fillScript, hrefFor, progressLine, waitsOn, type Stage, type StageAction, type Stages, type Track, type Viewer } from './model';
 
 // The owner pipeline (r50, 4511): one stage tracker per owner and car, the same in the owner portal, Admin and the staff
 // portals (Sales, customer service, Fleet). Each car: its route, every stage done or not, and the current one with its one
 // next action for the right person, what to bring, where to go, the expected time and the blockers in plain words.
 // Staff nudge the owner and read the call script; an Admin overrides or advances a stage (kept in the audit log).
-
-const STEP_CLASS: Record<Stage['state'], string> = { done: 'done', current: 'waiting', todo: 'blocked', not_needed: 'not_needed' };
 
 function OwnerAction({ t, s, a, finder }: { t: Track; s: Stage; a: StageAction; finder: string }) {
   if (a.op === 'appointment') return <AppointmentForm vehicleId={t.vehicle_id} finderUrl={a.href ?? finder} />;
@@ -76,15 +75,13 @@ function Car({ t, d, base, refresh, agent }: { t: Track; d: Stages; base: '/admi
         {!owner && <details className="os-script" data-testid="os-script" data-guide="os-script"><summary className="small">Call script</summary>
           <p className="small">{fillScript(c.call_script, { first_name: t.owner_name.split(' ')[0] ?? '', car: t.name, agent, missing })}</p></details>}
       </section>}
-      <ol className="ob-steps os-steps" aria-label={`Onboarding steps of the ${t.name}`}>
-        {t.stages.map((s, i) => (
-          <li key={s.code} className={`ob-step ob-step--${STEP_CLASS[s.state]}`} data-testid="os-step" data-step={s.code} data-state={s.state} aria-current={s.state === 'current' ? 'step' : undefined}>
-            <span className="ob-step__mark" aria-hidden="true" />
-            <span className="ob-step__text"><b className="ob-step__label">{i + 1}. {s.label}<span className="vh">: {STATE_WORDS[s.state]}</span></b>
-              {s.override && <span className="ob-step__why">Set by an Admin: {s.override.note}</span>}</span>
-            <span className="ob-step__act"><span className={`badge ${s.state === 'current' ? '' : 'badge--outline'}`}>{STATE_WORDS[s.state]}</span></span>
-          </li>))}
-      </ol>
+      {/* r50 hotfix 2: the shared stepped tracker (each step opens what it needs and who does it) */}
+      <Milestones steps={t.stages.map((s) => ({ key: s.code, label: s.label, state: s.state === 'current' ? 'now' : s.state === 'todo' ? 'later' : 'done', skipped: s.state === 'not_needed',
+          yours: s.state === 'current' && ((d.viewer === 'owner' && s.actor === 'owner') || (d.viewer !== 'owner' && s.actor !== 'owner')),
+          hint: [s.state === 'current' ? (d.viewer === 'owner' ? s.owner_text : s.staff_text) : null, s.state === 'not_needed' ? 'Not needed for this car.' : null,
+            s.override ? `Set by an Admin: ${s.override.note}` : null, s.state !== 'done' ? `Expected: ${s.expected}` : null].filter(Boolean).join(' ') || null }))}
+        storageKey={`owner-${d.viewer}-${t.vehicle_id}`} stepTestId="os-step" testId={`os-ms-${t.vehicle_id}`} label={`Onboarding steps of the ${t.name}`}
+        finish="Listed and earning" finishNote="Your car is live on CarmaCars." celebrate={d.viewer === 'owner'} />
       {d.can_override && <Act action="owner_stage_do" payload={{ vehicle_id: t.vehicle_id, op: 'set' }} label="Override a step" variant="quiet" refresh={refresh} done="Saved. Kept in the audit log." testId="os-override"
         fields={[{ name: 'stage', label: 'Step', type: 'select', required: true, options: t.stages.map((s) => [s.code, s.label] as [string, string]) },
           { name: 'status', label: 'Set it to', type: 'select', options: [['done', 'Done'], ['not_needed', 'Not needed'], ['open', 'Open again'], ['', 'Follow the records again']] },

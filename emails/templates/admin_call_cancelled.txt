@@ -1,0 +1,23 @@
+CarmaCars  |  Admin call
+
+========================================
+
+[Weekly Admin call]
+The Admin call is off your calendar
+
+Hi {{first_name}}. You are no longer an Admin, so the weekly Admin call comes off your calendar.
+
+The attached cancellation takes it off your calendar when you open it.
+
+Open CarmaCars:
+{{call_url}}
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/

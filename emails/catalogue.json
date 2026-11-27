@@ -55,7 +55,7 @@
       "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
     }
   ],
-  "count": 302,
+  "count": 304,
   "emails": [
     {
       "code": "account_password_reset",
@@ -19566,6 +19566,104 @@
       ],
       "template_html": "templates/investor_statement_ready.html",
       "template_text": "templates/investor_statement_ready.txt"
+    },
+    {
+      "code": "admin_call_cancelled",
+      "audience": "staff_admin",
+      "category": "transactional",
+      "trigger": "R50 hotfix 2 (5150): a calendar cancellation of the weekly Admin call (an .ics file, METHOD:CANCEL) to a person who is no longer an Admin. Sent by the townhall job (app.admin_call_invites_sweep).",
+      "timing": "Immediate, when the person is no longer an Admin",
+      "digest": false,
+      "from": "CarmaCars <hello@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "{{invite_subject}}",
+      "preheader": "The weekly Admin call comes off your calendar.",
+      "sample_subject": "Weekly Admin call: removed from your calendar",
+      "variables": [
+        {
+          "name": "call_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/admin/admin-call/live"
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Abbas",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "invite_subject",
+          "type": "string",
+          "sample": "Weekly Admin call: removed from your calendar"
+        }
+      ],
+      "template_html": "templates/admin_call_cancelled.html",
+      "template_text": "templates/admin_call_cancelled.txt"
+    },
+    {
+      "code": "admin_call_invite",
+      "audience": "staff_admin",
+      "category": "transactional",
+      "trigger": "R50 hotfix 2 (5150): the weekly Admin call calendar invite (an .ics file, METHOD:REQUEST, repeating every week, Toronto time) to every active Admin: once when they become an Admin, and again as an update whenever the day, the time or the length changes (Admin call page or Program settings). Sent by the townhall job (app.admin_call_invites_sweep).",
+      "timing": "Immediate: on becoming an Admin, and on every change of the day, time or length",
+      "digest": false,
+      "from": "CarmaCars <hello@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "{{invite_subject}}",
+      "preheader": "{{call_when}}, {{call_minutes}} minutes. Open the invite to add it to your calendar.",
+      "sample_subject": "Weekly Admin call: your calendar invite",
+      "variables": [
+        {
+          "name": "call_minutes",
+          "type": "string",
+          "sample": "60"
+        },
+        {
+          "name": "call_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/admin/admin-call/live"
+        },
+        {
+          "name": "call_when",
+          "type": "string",
+          "sample": "Every Sunday at 7:00 pm Toronto time"
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Abbas",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "invite_subject",
+          "type": "string",
+          "sample": "Weekly Admin call: your calendar invite"
+        },
+        {
+          "name": "invite_title",
+          "type": "string",
+          "sample": "Your Admin call invite"
+        },
+        {
+          "name": "is_update",
+          "type": "boolean",
+          "sample": false
+        }
+      ],
+      "template_html": "templates/admin_call_invite.html",
+      "template_text": "templates/admin_call_invite.txt"
     },
     {
       "code": "admin_card_payments_paused",

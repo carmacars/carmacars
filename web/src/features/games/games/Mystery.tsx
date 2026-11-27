@@ -27,7 +27,7 @@ export default function Mystery({ prize, reduced, onReveal }: GameProps) {
           </button>
         ))}
       </div>
-      <p className="ccg-live" aria-live="polite">{open ? <>Box {picked! + 1} holds <b>{prize.label}</b></> : picked !== null ? 'Opening...' : 'Pick a box. Every box holds a discount.'}</p>
+      <p className="ccg-live" aria-live="polite">{open ? <>Box {picked! + 1} holds <b>{prize.label}</b></> : picked !== null ? 'Opening...' : 'Pick a box. Every box holds a prize.'}</p>
     </div>
   );
 }

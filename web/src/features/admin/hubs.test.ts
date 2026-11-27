@@ -36,7 +36,7 @@ test('every tab is in one group only, and every group has at least two tabs', ()
 
 test('a group\'s menu link goes to its first tab and is current on each of its addresses', () => {
   assert.deepEqual(hubLink(ADMIN_HUBS, 'owner-money'), { href: '/admin/owner-money?tab=invoices', label: 'Owner money', also: ['/admin/owner-money'] });
-  assert.deepEqual(hubLink(ADMIN_HUBS, 'team').also, ['/admin/settings/staff', '/admin/academy', '/admin/hiring', '/admin/portals', '/admin/timesheet', '/admin/townhall', '/admin/schedules', '/admin/kpis', '/admin/staff/rewards', '/admin/shift-claims']);
+  assert.deepEqual(hubLink(ADMIN_HUBS, 'team').also, ['/admin/settings/staff', '/admin/academy', '/admin/hiring', '/admin/portals', '/admin/timesheet', '/admin/townhall', '/admin/admin-call', '/admin/demo', '/admin/schedules', '/admin/kpis', '/admin/staff/rewards', '/admin/shift-claims']);
   assert.throws(() => hubLink(ADMIN_HUBS, 'nope'));
 });
 

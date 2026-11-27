@@ -264,7 +264,7 @@ export function addPage(v: Visit, path: string): Visit {
 }
 
 /** A prize's words; replay (0171): "another go", a second game. */
-export interface PrizeWord { key: string; short: string; label: string; replay?: boolean }
+export interface PrizeWord { key: string; short: string; label: string; replay?: boolean; /** r50 hotfix 2: the line under the prize (the game in Rewards: Rewards points) */ note?: string }
 
 /** The wheel's 12 slices: the most common prize on every other slice, the rest in turn between them (the rarest once
  *  or twice), so the wheel looks lively; the terms say the chances differ. Every prize is on the wheel: with more

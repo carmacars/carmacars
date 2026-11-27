@@ -21,8 +21,8 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 .tags .m{background:#D0111B;border-color:#D0111B;color:#fff}.tags .d{background:#000;color:#fff}
 .ln a{font-size:13px;font-weight:700;color:#111;margin-right:12px}
 </style></head><body>
-<header><div class="wm">Carma<b>Cars</b></div><p>302 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
-<nav><a href="#renter">Renter <span>114</span></a><a href="#owner">Owner <span>67</span></a><a href="#investor">Investor <span>4</span></a><a href="#staff_admin">Staff: admin <span>27</span></a><a href="#staff_va_finance">Staff: finance <span>17</span></a><a href="#staff_va_fleet">Staff: fleet <span>16</span></a><a href="#staff_va_cs">Staff: customer service <span>13</span></a><a href="#staff_va_sales">Staff: sales <span>8</span></a><a href="#staff_field">Staff: field <span>18</span></a><a href="#insurer">Insurer (billing contact) <span>3</span></a><a href="#applicant">Job applicant <span>14</span></a><a href="#partner">Partner (body shop, tow truck, storage) <span>1</span></a></nav>
+<header><div class="wm">Carma<b>Cars</b></div><p>304 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
+<nav><a href="#renter">Renter <span>114</span></a><a href="#owner">Owner <span>67</span></a><a href="#investor">Investor <span>4</span></a><a href="#staff_admin">Staff: admin <span>29</span></a><a href="#staff_va_finance">Staff: finance <span>17</span></a><a href="#staff_va_fleet">Staff: fleet <span>16</span></a><a href="#staff_va_cs">Staff: customer service <span>13</span></a><a href="#staff_va_sales">Staff: sales <span>8</span></a><a href="#staff_field">Staff: field <span>18</span></a><a href="#insurer">Insurer (billing contact) <span>3</span></a><a href="#applicant">Job applicant <span>14</span></a><a href="#partner">Partner (body shop, tow truck, storage) <span>1</span></a></nav>
 <main>
 <h2 id="renter">Renter (114)</h2>
 <div class="grid">
@@ -1143,8 +1143,20 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="ln"><a href="../dist/investor_statement_ready.html">HTML</a><a href="../dist/investor_statement_ready.txt">Text</a><a href="../shots/investor_statement_ready.desktop.png">Desktop</a><a href="../shots/investor_statement_ready.phone.png">Phone</a></div>
 </div></div>
 </div>
-<h2 id="staff_admin">Staff: admin (27)</h2>
+<h2 id="staff_admin">Staff: admin (29)</h2>
 <div class="grid">
+<div class="c"><a class="th" href="../dist/admin_call_cancelled.html"><img loading="lazy" src="../shots/admin_call_cancelled.desktop.png" alt="Screenshot of admin_call_cancelled"></a><div class="b">
+<div class="code">admin_call_cancelled</div><div class="sub">Weekly Admin call: removed from your calendar</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">R50 hotfix 2 (5150): a calendar cancellation of the weekly Admin call (an .ics file, METHOD:CANCEL) to a person who is no longer an Admin. Sent by the townhall job (app.admin_call_invites_sweep).</div>
+<div class="ln"><a href="../dist/admin_call_cancelled.html">HTML</a><a href="../dist/admin_call_cancelled.txt">Text</a><a href="../shots/admin_call_cancelled.desktop.png">Desktop</a><a href="../shots/admin_call_cancelled.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/admin_call_invite.html"><img loading="lazy" src="../shots/admin_call_invite.desktop.png" alt="Screenshot of admin_call_invite"></a><div class="b">
+<div class="code">admin_call_invite</div><div class="sub">Weekly Admin call: your calendar invite</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">R50 hotfix 2 (5150): the weekly Admin call calendar invite (an .ics file, METHOD:REQUEST, repeating every week, Toronto time) to every active Admin: once when they become an Admin, and again as an update whenever the day, the time or the length changes (Admin call page or Program settings). Sent by the townhall job (app.admin_call_invites_sweep).</div>
+<div class="ln"><a href="../dist/admin_call_invite.html">HTML</a><a href="../dist/admin_call_invite.txt">Text</a><a href="../shots/admin_call_invite.desktop.png">Desktop</a><a href="../shots/admin_call_invite.phone.png">Phone</a></div>
+</div></div>
 <div class="c"><a class="th" href="../dist/admin_card_payments_paused.html"><img loading="lazy" src="../shots/admin_card_payments_paused.desktop.png" alt="Screenshot of admin_card_payments_paused"></a><div class="b">
 <div class="code">admin_card_payments_paused</div><div class="sub">Card payments are paused: renters pay by e-Transfer</div>
 <div class="tags"><span>Transactional</span></div>

@@ -71,7 +71,8 @@ import type { AccidentCardData } from '@/features/accident-card/model';
 import { CountdownTable } from '@/features/deposit-review/Countdowns';
 import { stageWords, type Countdowns, type ReviewView } from '@/features/deposit-review/model';
 import { activityQuery, readParams, type ActivityPage } from '@/features/activity/model';
-import { readyNext, readinessHref, readinessLines, readinessSummary, showReadiness } from './readiness';
+import { SALE_STATUSES, readyNext, readinessHref, readinessLines, readinessSummary, saleSteps, showReadiness } from './readiness';
+import { Milestones } from '@/components/portal-ui/Milestones';
 import { JumpLink } from './JumpLink';
 import { PrepareProgress } from '@/features/field-portal/PrepareProgress';
 import type { PrepareProgressData } from '@/features/field-portal/prepare';
@@ -354,6 +355,14 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
       {depLine && <p className={`small ${depPending?.overdue ? 'ad-late' : 'muted'}`} data-testid="deposit-pending-line">{depLine}{can.money && <> <Link prefetch={false} className="link" href={`${base}?tab=money`}>Money tab</Link></>}</p>}
       {can.admin && b.placeholder?.on ? <PlaceholderBanner p={b.placeholder} items={b.competing} /> : <NextStepPanel s={step} />}
       {/* r35 UX (1106): is the renter good to go? one line per thing the pickup needs (Admin, customer service, Sales) */}
+      {/* r50 hotfix 2: the staff steps from the sale to the pickup (the stepped tracker), on the overview */}
+      {can.readiness && notOwner && section === 'overview' && SALE_STATUSES.includes(String(b.status)) && (
+        <Card title="From sale to pickup" testId="sale-steps">
+          <Milestones steps={saleSteps({ status: String(b.status), dueCents: Number(b.renter_due_at_booking_cents ?? b.total_due_at_booking_cents ?? 0),
+            paidCents: (payments ?? []).filter((r) => r.kind === 'charge' && r.status === 'succeeded').reduce((a, r) => a + Number(r.amount_cents ?? 0), 0),
+            readiness: b.readiness, insurerBilled: b.bill_to !== 'renter', addons: prepare ? { total: prepare.total, ticked: prepare.ticked } : null }, base)}
+            storageKey={`sale-${b.booking_number}`} testId="sale-steps-ms" label={`Steps from the sale to the pickup of ${b.booking_number}`} finish="Customer on the road" />
+        </Card>)}
       {can.readiness && notOwner && showReadiness(b.status) && (section === 'overview' || section === 'money' || section === 'documents') && (() => {
         const lines = readinessLines({ status: b.status, dueCents: Number(b.renter_due_at_booking_cents ?? b.total_due_at_booking_cents ?? 0),
           paidCents: (payments ?? []).filter((r) => r.kind === 'charge' && r.status === 'succeeded').reduce((a, r) => a + Number(r.amount_cents ?? 0), 0),

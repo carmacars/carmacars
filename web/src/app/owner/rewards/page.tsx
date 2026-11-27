@@ -6,6 +6,7 @@ import { rpc } from '@/lib/db/repo';
 import { CopyLink } from '@/features/portal/CopyLink';
 import { QrSvg } from '@/features/referral/QrSvg';
 import { RedeemKit, UpgradeAsk, UpgradeCancel } from '@/features/owner-rewards/RewardActions';
+import { RewardsGame } from '@/features/rewards/RewardsGame';
 import { dollars, fmtDay, headline, milestoneFill, milestoneState, pct, type OwnerRewards } from '@/features/owner-rewards/model';
 
 export const dynamic = 'force-dynamic';
@@ -30,6 +31,8 @@ export default async function OwnerRewardsPage() {
   return (
     <>
       <PageHeader title="Rewards" purpose={headline(r)} testId="or-head" />
+      {/* r50 hotfix 2 (5151): the games inside Rewards, for CarmaCars Rewards points */}
+      <RewardsGame userId={user.id} portal="owner" />
       <div className="rw-grid" data-testid="owner-rewards">
         <section className="pt-card stack rw-card" aria-labelledby="or-fleet" data-testid="or-fleet">
           <p className="pu-eyebrow">While your car is out</p>

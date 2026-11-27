@@ -1,63 +1,33 @@
 'use client';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import Link from '@/components/Link';
-import { motionOK } from '@/lib/motion';
-import { ChecklistProgress } from '@/features/motion/Progress';
-import { newlyDone, stageSummary, type Stage, type Todo } from './next-action';
+import { Milestones, type Milestone } from '@/components/portal-ui/Milestones';
+import type { Stage, Todo } from './next-action';
 
 // r40: the booking's steps, done, now and later, in plain words (the owner: "make things that need to be done very
-// obvious"). On the shared pieces: the checklist bar (ChecklistProgress) and the step list of the owner's onboarding and
-// the licence page (.pt-steps). The server renders the final state, so nothing moves the layout; what the renter has not
-// seen yet (a step done since the last visit on this device) ticks in and the bar advances from where it was, and the
-// screen reader hears the change (aria-live).
-const WORD: Record<Stage['state'], string> = { done: 'done', now: 'now', later: 'later' };
+// obvious"). r50 hotfix 2: drawn by the shared stepped tracker (Milestones: a node per step on a line, a check that pops
+// for a step done since the last visit, the finish flag and its confetti when the car is back and the statement out),
+// each step opening what it means and where to do it. The to-do list stays under it.
+const HINT: Record<string, string> = {
+  offer: 'We check the car and the dates and send you an offer with the price. You approve it in one tap.',
+  'sign-pay': 'Sign the rental agreement and pay: the car is then reserved for you.',
+  verify: 'Your licence photos and selfie, and your proof of insurance (or our protection plan).',
+  pickup: 'Bring your original licence and the card you paid with. The walk-around of the car takes about 10 minutes.',
+  return: 'Bring it back on time with the same fuel or charge. The return photos take a minute.',
+  statement: 'Your final statement: the deposit released and every charge explained.'
+};
+
+/** The booking's stages as tracker steps (pure). */
+export function stageMilestones(stages: Stage[]): Milestone[] {
+  return stages.map((s) => ({ key: s.key, label: s.label, state: s.state, hint: HINT[s.key] ?? null, href: s.href ?? null, cta: s.href ? 'Do it now' : null, yours: s.yours }));
+}
 
 /** todos: the booking's one to-do list (still needed, the quick links), each with its small button, under the stages;
  *  children: a to-do done in place (the agreement's details form on the booking page). */
 export function StepTracker({ number, stages, todos = [], testId = 'step-tracker', children }: { number: string; stages: Stage[]; todos?: Todo[]; testId?: string; children?: ReactNode }) {
-  const sum = stageSummary(stages);
-  const root = useRef<HTMLDivElement>(null);
-  const [fresh, setFresh] = useState<string[]>([]);
-  const [said, setSaid] = useState('');
-  const doneKeys = stages.filter((s) => s.state === 'done').map((s) => s.key).join(',');
-  useEffect(() => {
-    const key = `cc-steps-${number}`;
-    let seen: string[] | null = null;
-    try { const v = localStorage.getItem(key); seen = v === null ? null : v.split(',').filter(Boolean); localStorage.setItem(key, doneKeys); } catch { return; }
-    const list = newlyDone(stages, seen);
-    if (!list.length) return;
-    const t = setTimeout(() => {
-      setFresh(list);
-      const names = stages.filter((s) => list.includes(s.key)).map((s) => s.label).join(', ');
-      setSaid(`Done: ${names}. ${sum.text}.`);
-    }, 0);
-    // the bar advances from where it was at the last visit, not from empty
-    const fill = root.current?.querySelector<HTMLElement>('.ck-progress__fill');
-    if (fill && motionOK() && typeof fill.animate === 'function') {
-      const from = Math.max(0, sum.done - list.length) / sum.total;
-      fill.getAnimations().forEach((a) => a.cancel());
-      fill.animate([{ transform: `scaleX(${from})` }, { transform: `scaleX(${sum.done / sum.total})` }], { duration: 300, delay: 120, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'backwards' });
-    }
-    return () => clearTimeout(t);
-    // once per page view: the stages come from the server
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [number, doneKeys]);
-
   return (
-    <div ref={root} className="stack" data-testid={testId} data-step={sum.done}>
-      <ChecklistProgress done={sum.done} total={sum.total} label={`Steps for booking ${number}`} testId={`${testId}-bar`} />
-      <ol className="pt-steps" aria-label={`Steps for booking ${number}`}>
-        {stages.map((s) => (
-          <li key={s.key} className={s.state === 'done' ? `is-done${fresh.includes(s.key) ? ' is-new' : ''}` : s.state === 'now' ? 'is-now' : ''}
-            aria-current={s.state === 'now' ? 'step' : undefined} data-state={s.state} data-testid={`${testId}-${s.key}`}>
-            <span>
-              {s.state !== 'done' && s.href ? <Link prefetch={false} className="link" href={s.href}>{s.label}</Link> : s.label}
-              <span className="vh">, {WORD[s.state]}</span>
-              {s.state === 'now' && <small>{s.yours ? 'Your turn: do this now.' : 'Our turn: nothing to do for now.'}</small>}
-            </span>
-          </li>
-        ))}
-      </ol>
+    <Milestones steps={stageMilestones(stages)} storageKey={`booking-${number}`} testId={testId} label={`Steps for booking ${number}`} finish="Trip complete"
+      finishNote="Thanks for driving with CarmaCars.">
       {(todos.length > 0 || children) && <>
         <p className="pu-eyebrow" id={`${testId}-todo-h`}>To do</p>
         {todos.length > 0 && <ul className="pt-steps" aria-labelledby={`${testId}-todo-h`} data-testid={`${testId}-todo`}>
@@ -73,7 +43,6 @@ export function StepTracker({ number, stages, todos = [], testId = 'step-tracker
         </ul>}
         {children}
       </>}
-      <p className="vh" aria-live="polite" data-testid={`${testId}-live`}>{said}</p>
-    </div>
+    </Milestones>
   );
 }

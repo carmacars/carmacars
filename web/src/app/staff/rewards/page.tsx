@@ -5,6 +5,7 @@ import { rolesOf, sessionAal } from '@/server/door';
 import { vaPage } from '@/server/va';
 import { PageHead } from '@/features/admin/ui';
 import { loadMyRewards, MyRewards } from '@/features/staff-rewards/MyRewards';
+import { RewardsGame } from '@/features/rewards/RewardsGame';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'My rewards', path: '/staff/rewards', noindex: true, description: 'Your staff discount, your tier and your free rental days.' });
@@ -19,6 +20,8 @@ export default async function StaffRewardsPage() {
   return (
     <>
       <PageHead title="My rewards" purpose="A discount on your own rentals from day one, and free rental days you earn as you work." />
+      {/* r50 hotfix 2 (5151): the games inside Rewards, for CarmaCars Rewards points */}
+      <RewardsGame userId={user.id} portal="staff" />
       {r ? <MyRewards r={r} refresh={['/staff/rewards', '/staff']} />
         : <div className="pt-empty" data-testid="my-rewards-error"><p className="d4">My rewards did not load.</p><p className="muted">Reload the page. Nothing was changed.</p></div>}
     </>
