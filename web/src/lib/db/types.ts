@@ -696,6 +696,69 @@ export type Database = {
         };
         Relationships: [];
       };
+      admin_call_decisions: {
+        Row: {
+          id: string;
+          deck_id: string;
+          item_key: string;
+          decision: string;
+          note: string | null;
+          decided_by: string;
+          decided_at: string;
+        };
+        Insert: {
+          id?: string;
+          deck_id: string;
+          item_key: string;
+          decision: string;
+          note?: string | null;
+          decided_by: string;
+          decided_at?: string;
+        };
+        Update: {
+          id?: string;
+          deck_id?: string;
+          item_key?: string;
+          decision?: string;
+          note?: string | null;
+          decided_by?: string;
+          decided_at?: string;
+        };
+        Relationships: [];
+      };
+      admin_call_decks: {
+        Row: {
+          id: string;
+          week_of: string;
+          call_at: string;
+          built_at: string;
+          built_by: string | null;
+          slides: Json;
+          notes: Json;
+          reminded_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          week_of: string;
+          call_at: string;
+          built_at?: string;
+          built_by?: string | null;
+          slides?: Json;
+          notes?: Json;
+          reminded_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          week_of?: string;
+          call_at?: string;
+          built_at?: string;
+          built_by?: string | null;
+          slides?: Json;
+          notes?: Json;
+          reminded_at?: string | null;
+        };
+        Relationships: [];
+      };
       ads_job_state: {
         Row: {
           singleton: boolean;
@@ -1119,6 +1182,9 @@ export type Database = {
           live_call_at: string | null;
           purged_at: string | null;
           updated_at: string;
+          reminders_sent: number;
+          reminders_link: number | null;
+          reminded_at: string | null;
         };
         Insert: {
           id?: string;
@@ -1146,6 +1212,9 @@ export type Database = {
           live_call_at?: string | null;
           purged_at?: string | null;
           updated_at?: string;
+          reminders_sent?: number;
+          reminders_link?: number | null;
+          reminded_at?: string | null;
         };
         Update: {
           id?: string;
@@ -1173,6 +1242,9 @@ export type Database = {
           live_call_at?: string | null;
           purged_at?: string | null;
           updated_at?: string;
+          reminders_sent?: number;
+          reminders_link?: number | null;
+          reminded_at?: string | null;
         };
         Relationships: [];
       };
@@ -3351,6 +3423,30 @@ export type Database = {
         };
         Relationships: [];
       };
+      booking_request_notes: {
+        Row: {
+          id: string;
+          booking_id: string;
+          author_id: string | null;
+          body: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          booking_id: string;
+          author_id?: string | null;
+          body: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          booking_id?: string;
+          author_id?: string | null;
+          body?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       booking_request_snapshots: {
         Row: {
           booking_id: string;
@@ -3943,6 +4039,9 @@ export type Database = {
           owner_use_ack_at: string | null;
           book_choice: string | null;
           book_choice_note: string | null;
+          pay_later_at: string | null;
+          pay_later_by: string | null;
+          pay_later_reason: string | null;
         };
         Insert: {
           id?: string;
@@ -4166,6 +4265,9 @@ export type Database = {
           owner_use_ack_at?: string | null;
           book_choice?: string | null;
           book_choice_note?: string | null;
+          pay_later_at?: string | null;
+          pay_later_by?: string | null;
+          pay_later_reason?: string | null;
         };
         Update: {
           id?: string;
@@ -4389,6 +4491,9 @@ export type Database = {
           owner_use_ack_at?: string | null;
           book_choice?: string | null;
           book_choice_note?: string | null;
+          pay_later_at?: string | null;
+          pay_later_by?: string | null;
+          pay_later_reason?: string | null;
         };
         Relationships: [];
       };
@@ -4739,6 +4844,84 @@ export type Database = {
           attendee_email?: string;
           attendee_name?: string | null;
           sig?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      call_flag_words: {
+        Row: {
+          id: string;
+          phrase: string;
+          category: string;
+          active: boolean;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          phrase: string;
+          category: string;
+          active?: boolean;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          phrase?: string;
+          category?: string;
+          active?: boolean;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      call_flags: {
+        Row: {
+          id: string;
+          activity_id: string | null;
+          staff_id: string | null;
+          source: string;
+          category: string;
+          phrase: string | null;
+          line: string;
+          speaker: string;
+          blocked: boolean;
+          reviewed_at: string | null;
+          reviewed_by: string | null;
+          review_note: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          activity_id?: string | null;
+          staff_id?: string | null;
+          source: string;
+          category: string;
+          phrase?: string | null;
+          line: string;
+          speaker?: string;
+          blocked?: boolean;
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
+          review_note?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          activity_id?: string | null;
+          staff_id?: string | null;
+          source?: string;
+          category?: string;
+          phrase?: string | null;
+          line?: string;
+          speaker?: string;
+          blocked?: boolean;
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
+          review_note?: string | null;
           created_at?: string;
         };
         Relationships: [];
@@ -8977,7 +9160,8 @@ export type Database = {
           company_expense_id: string | null;
           owner_deduction_id: string | null;
           read: Json;
-          created_by: string | null;
+          client_entry_id: string;
+          created_by: string;
           created_at: string;
         };
         Insert: {
@@ -8995,7 +9179,8 @@ export type Database = {
           company_expense_id?: string | null;
           owner_deduction_id?: string | null;
           read?: Json;
-          created_by?: string | null;
+          client_entry_id: string;
+          created_by: string;
           created_at?: string;
         };
         Update: {
@@ -9013,7 +9198,8 @@ export type Database = {
           company_expense_id?: string | null;
           owner_deduction_id?: string | null;
           read?: Json;
-          created_by?: string | null;
+          client_entry_id?: string;
+          created_by?: string;
           created_at?: string;
         };
         Relationships: [];
@@ -12999,6 +13185,33 @@ export type Database = {
         };
         Relationships: [];
       };
+      insurer_money_requests: {
+        Row: {
+          client_id: string;
+          invoice_id: string;
+          action: string;
+          result: Json | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          client_id: string;
+          invoice_id: string;
+          action: string;
+          result?: Json | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          client_id?: string;
+          invoice_id?: string;
+          action?: string;
+          result?: Json | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       insurer_rates: {
         Row: {
           id: string;
@@ -13819,6 +14032,7 @@ export type Database = {
           meet_sync: string | null;
           meet_sync_since: string | null;
           meet_error: string | null;
+          recruited_by: string | null;
         };
         Insert: {
           id?: string;
@@ -13874,6 +14088,7 @@ export type Database = {
           meet_sync?: string | null;
           meet_sync_since?: string | null;
           meet_error?: string | null;
+          recruited_by?: string | null;
         };
         Update: {
           id?: string;
@@ -13929,6 +14144,7 @@ export type Database = {
           meet_sync?: string | null;
           meet_sync_since?: string | null;
           meet_error?: string | null;
+          recruited_by?: string | null;
         };
         Relationships: [];
       };
@@ -14124,6 +14340,57 @@ export type Database = {
         };
         Relationships: [];
       };
+      lead_gen_credits: {
+        Row: {
+          id: string;
+          lead_id: string;
+          staff_id: string;
+          owner_id: string | null;
+          amount_cents: number;
+          status: string;
+          earned_at: string;
+          decided_by: string | null;
+          decided_at: string | null;
+          paid_at: string | null;
+          paid_reference: string | null;
+          note: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          lead_id: string;
+          staff_id: string;
+          owner_id?: string | null;
+          amount_cents: number;
+          status?: string;
+          earned_at?: string;
+          decided_by?: string | null;
+          decided_at?: string | null;
+          paid_at?: string | null;
+          paid_reference?: string | null;
+          note?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          lead_id?: string;
+          staff_id?: string;
+          owner_id?: string | null;
+          amount_cents?: number;
+          status?: string;
+          earned_at?: string;
+          decided_by?: string | null;
+          decided_at?: string | null;
+          paid_at?: string | null;
+          paid_reference?: string | null;
+          note?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       lead_holds: {
         Row: {
           lead_id: string;
@@ -14250,6 +14517,7 @@ export type Database = {
           merged_at: string | null;
           merged_by: string | null;
           not_duplicate_of: string[];
+          generated_by: string | null;
         };
         Insert: {
           id?: string;
@@ -14307,6 +14575,7 @@ export type Database = {
           merged_at?: string | null;
           merged_by?: string | null;
           not_duplicate_of?: string[];
+          generated_by?: string | null;
         };
         Update: {
           id?: string;
@@ -14364,6 +14633,7 @@ export type Database = {
           merged_at?: string | null;
           merged_by?: string | null;
           not_duplicate_of?: string[];
+          generated_by?: string | null;
         };
         Relationships: [];
       };
@@ -18589,6 +18859,7 @@ export type Database = {
           onboarding_route: string | null;
           price_min_daily_cents: number | null;
           price_max_daily_cents: number | null;
+          instant_book_off: boolean;
         };
         Insert: {
           id?: string;
@@ -18644,6 +18915,7 @@ export type Database = {
           onboarding_route?: string | null;
           price_min_daily_cents?: number | null;
           price_max_daily_cents?: number | null;
+          instant_book_off?: boolean;
         };
         Update: {
           id?: string;
@@ -18699,6 +18971,7 @@ export type Database = {
           onboarding_route?: string | null;
           price_min_daily_cents?: number | null;
           price_max_daily_cents?: number | null;
+          instant_book_off?: boolean;
         };
         Relationships: [];
       };
@@ -20412,6 +20685,7 @@ export type Database = {
           read: Json;
           status: string;
           vehicle_id: string | null;
+          suggested_vehicle_id: string | null;
           document_id: string | null;
           matched_by: string | null;
           note: string | null;
@@ -20431,6 +20705,7 @@ export type Database = {
           read?: Json;
           status?: string;
           vehicle_id?: string | null;
+          suggested_vehicle_id?: string | null;
           document_id?: string | null;
           matched_by?: string | null;
           note?: string | null;
@@ -20450,6 +20725,7 @@ export type Database = {
           read?: Json;
           status?: string;
           vehicle_id?: string | null;
+          suggested_vehicle_id?: string | null;
           document_id?: string | null;
           matched_by?: string | null;
           note?: string | null;
@@ -22538,6 +22814,7 @@ export type Database = {
           owner_stage_uvip_url: string;
           calls_mode: string;
           staff_notice_days: number;
+          lead_gen_flat_cents: number;
           owner_calc_typical_cents: number;
           owner_calc_floor_cents: number;
           owner_calc_occupancy_pct: number;
@@ -22545,6 +22822,14 @@ export type Database = {
           owner_calc_age_step_pct: number;
           owner_calc_premium_max_age: number;
           owner_calc_class_factor: Json;
+          admin_call_weekday: number;
+          admin_call_time: string;
+          admin_call_minutes: number;
+          rewards_game_on: boolean;
+          rewards_game_prizes: Json;
+          hiring_ai_reminder_hours: number[];
+          hiring_ai_reminder_last_hours: number;
+          hiring_ai_self_renewals: number;
         };
         Insert: {
           id?: string;
@@ -23537,6 +23822,7 @@ export type Database = {
           owner_stage_uvip_url?: string;
           calls_mode?: string;
           staff_notice_days?: number;
+          lead_gen_flat_cents?: number;
           owner_calc_typical_cents?: number;
           owner_calc_floor_cents?: number;
           owner_calc_occupancy_pct?: number;
@@ -23544,6 +23830,14 @@ export type Database = {
           owner_calc_age_step_pct?: number;
           owner_calc_premium_max_age?: number;
           owner_calc_class_factor?: Json;
+          admin_call_weekday?: number;
+          admin_call_time?: string;
+          admin_call_minutes?: number;
+          rewards_game_on?: boolean;
+          rewards_game_prizes?: Json;
+          hiring_ai_reminder_hours?: number[];
+          hiring_ai_reminder_last_hours?: number;
+          hiring_ai_self_renewals?: number;
         };
         Update: {
           id?: string;
@@ -24536,6 +24830,7 @@ export type Database = {
           owner_stage_uvip_url?: string;
           calls_mode?: string;
           staff_notice_days?: number;
+          lead_gen_flat_cents?: number;
           owner_calc_typical_cents?: number;
           owner_calc_floor_cents?: number;
           owner_calc_occupancy_pct?: number;
@@ -24543,6 +24838,14 @@ export type Database = {
           owner_calc_age_step_pct?: number;
           owner_calc_premium_max_age?: number;
           owner_calc_class_factor?: Json;
+          admin_call_weekday?: number;
+          admin_call_time?: string;
+          admin_call_minutes?: number;
+          rewards_game_on?: boolean;
+          rewards_game_prizes?: Json;
+          hiring_ai_reminder_hours?: number[];
+          hiring_ai_reminder_last_hours?: number;
+          hiring_ai_self_renewals?: number;
         };
         Relationships: [];
       };
@@ -26808,6 +27111,48 @@ export type Database = {
         };
         Relationships: [];
       };
+      reward_game_plays: {
+        Row: {
+          id: string;
+          user_id: string;
+          portal: string;
+          day: string;
+          game: string;
+          prize_key: string;
+          points: number;
+          test: boolean;
+          renter_id: string | null;
+          ledger_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          portal: string;
+          day: string;
+          game: string;
+          prize_key: string;
+          points: number;
+          test?: boolean;
+          renter_id?: string | null;
+          ledger_id?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          portal?: string;
+          day?: string;
+          game?: string;
+          prize_key?: string;
+          points?: number;
+          test?: boolean;
+          renter_id?: string | null;
+          ledger_id?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       reward_holidays: {
         Row: {
           code: string;
@@ -27801,6 +28146,45 @@ export type Database = {
           help?: string | null;
           updated_at?: string;
           updated_by?: string | null;
+        };
+        Relationships: [];
+      };
+      shift_claims: {
+        Row: {
+          id: string;
+          slot_id: string;
+          offer_id: string | null;
+          staff_id: string;
+          status: string;
+          decided_by: string | null;
+          decided_at: string | null;
+          decided_note: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          slot_id: string;
+          offer_id?: string | null;
+          staff_id: string;
+          status?: string;
+          decided_by?: string | null;
+          decided_at?: string | null;
+          decided_note?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          slot_id?: string;
+          offer_id?: string | null;
+          staff_id?: string;
+          status?: string;
+          decided_by?: string | null;
+          decided_at?: string | null;
+          decided_note?: string | null;
+          created_at?: string;
+          updated_at?: string;
         };
         Relationships: [];
       };
@@ -29837,6 +30221,9 @@ export type Database = {
           perks_tier_month: string | null;
           birthday_month: number | null;
           birthday_day: number | null;
+          lead_generator: boolean;
+          lead_generator_at: string | null;
+          recruit_code: string | null;
         };
         Insert: {
           user_id: string;
@@ -29905,6 +30292,9 @@ export type Database = {
           perks_tier_month?: string | null;
           birthday_month?: number | null;
           birthday_day?: number | null;
+          lead_generator?: boolean;
+          lead_generator_at?: string | null;
+          recruit_code?: string | null;
         };
         Update: {
           user_id?: string;
@@ -29973,6 +30363,9 @@ export type Database = {
           perks_tier_month?: string | null;
           birthday_month?: number | null;
           birthday_day?: number | null;
+          lead_generator?: boolean;
+          lead_generator_at?: string | null;
+          recruit_code?: string | null;
         };
         Relationships: [];
       };
@@ -31004,6 +31397,7 @@ export type Database = {
           discarded_by: string | null;
           discarded_at: string | null;
           discard_reason: string | null;
+          charge_hold: string[];
         };
         Insert: {
           id?: string;
@@ -31036,6 +31430,7 @@ export type Database = {
           discarded_by?: string | null;
           discarded_at?: string | null;
           discard_reason?: string | null;
+          charge_hold?: string[];
         };
         Update: {
           id?: string;
@@ -31068,6 +31463,7 @@ export type Database = {
           discarded_by?: string | null;
           discarded_at?: string | null;
           discard_reason?: string | null;
+          charge_hold?: string[];
         };
         Relationships: [];
       };
@@ -32130,6 +32526,60 @@ export type Database = {
           km?: number;
           max_speed_kmh?: number | null;
           closed_by?: string;
+        };
+        Relationships: [];
+      };
+      traction_metrics: {
+        Row: {
+          business: string;
+          code: string;
+          label: string;
+          unit: string;
+          note: string | null;
+          sort_order: number;
+          active: boolean;
+        };
+        Insert: {
+          business?: string;
+          code: string;
+          label: string;
+          unit: string;
+          note?: string | null;
+          sort_order?: number;
+          active?: boolean;
+        };
+        Update: {
+          business?: string;
+          code?: string;
+          label?: string;
+          unit?: string;
+          note?: string | null;
+          sort_order?: number;
+          active?: boolean;
+        };
+        Relationships: [];
+      };
+      traction_monthly: {
+        Row: {
+          business: string;
+          code: string;
+          month: string;
+          value: number;
+          updated_at: string;
+        };
+        Insert: {
+          business: string;
+          code: string;
+          month: string;
+          value: number;
+          updated_at?: string;
+        };
+        Update: {
+          business?: string;
+          code?: string;
+          month?: string;
+          value?: number;
+          updated_at?: string;
         };
         Relationships: [];
       };
@@ -36369,6 +36819,7 @@ export type Database = {
           exclude_reason: string | null;
           geo_lat: number | null;
           geo_lng: number | null;
+          via: string;
         };
         Insert: {
           id: string;
@@ -36411,6 +36862,7 @@ export type Database = {
           exclude_reason?: string | null;
           geo_lat?: number | null;
           geo_lng?: number | null;
+          via?: string;
         };
         Update: {
           id?: string;
@@ -36453,6 +36905,7 @@ export type Database = {
           exclude_reason?: string | null;
           geo_lat?: number | null;
           geo_lng?: number | null;
+          via?: string;
         };
         Relationships: [];
       };
@@ -37782,6 +38235,8 @@ export type Database = {
       renter_reply_booking_info: { Args: { p_request: string; p_by: string; p_reply: string }; Returns: undefined };
       renter_request_booking_change: { Args: { p_booking: string; p_by: string; p_changes: Json; p_note?: string }; Returns: string };
       renter_request_extension: { Args: { p_booking: string; p_by: string; p_new_return: string; p_note?: string }; Returns: string };
+      renter_request_note: { Args: { p_booking: string; p_by: string; p_body: string }; Returns: Json };
+      renter_request_notes: { Args: { p_booking: string; p_by: string }; Returns: Json };
       renter_request_offer_change: { Args: { p_booking: string; p_by: string; p_note: string }; Returns: undefined };
       renter_request_protection_plan: { Args: { p_booking: string; p_by: string; p_note?: string }; Returns: Json };
       renter_review_state: { Args: { p_booking: string; p_by: string }; Returns: Json };
@@ -37864,6 +38319,8 @@ export type Database = {
       server_ai_interview_answer: { Args: { p_token: string; p: Json }; Returns: Json };
       server_ai_interview_answer_pre0585: { Args: { p_token: string; p: Json }; Returns: Json };
       server_ai_interview_followup: { Args: { p_token: string; p: Json }; Returns: Json };
+      server_ai_interview_pre5161: { Args: { p_token: string }; Returns: Json };
+      server_ai_interview_renew: { Args: { p_token: string }; Returns: Json };
       server_ai_interview_scored: { Args: { p: Json }; Returns: Json };
       server_ai_interview_scored_pre2590: { Args: { p: Json }; Returns: Json };
       server_ai_interview_scored_pre2680: { Args: { p: Json }; Returns: Json };
@@ -38104,6 +38561,7 @@ export type Database = {
       server_hiring_apply_pre0380: { Args: { p: Json; p_ip?: string }; Returns: Json };
       server_hiring_apply_pre1063: { Args: { p: Json; p_ip?: string }; Returns: Json };
       server_hiring_apply_pre1067: { Args: { p: Json; p_ip?: string }; Returns: Json };
+      server_hiring_apply_pre5135: { Args: { p: Json; p_ip?: string }; Returns: Json };
       server_hiring_book: { Args: { p_token: string; p_slot: string }; Returns: Json };
       server_hiring_booking: { Args: { p_token: string }; Returns: Json };
       server_hiring_booking_pre0211: { Args: { p_token: string }; Returns: Json };
@@ -38124,6 +38582,7 @@ export type Database = {
       server_indexnow_sent: { Args: { p: Json }; Returns: number };
       server_instant_book: { Args: { p_number: string; p_user: string }; Returns: Json };
       server_instant_book_available: { Args: { p_user: string }; Returns: boolean };
+      server_instant_book_pre5113: { Args: { p_number: string; p_user: string }; Returns: Json };
       server_intent_ai_due: { Args: { p_limit?: number }; Returns: Json };
       server_intent_ai_result: { Args: { p: Json }; Returns: Json };
       server_jobs_due: { Args: never; Returns: Json };
@@ -38296,6 +38755,7 @@ export type Database = {
       server_referral_agreements: { Args: { p_by: string }; Returns: Json };
       server_referral_partner_portal: { Args: { p_partner: string }; Returns: Json };
       server_referral_partner_signup: { Args: { p: Json; p_ip?: string }; Returns: Json };
+      server_referrer_search: { Args: { p_q: string }; Returns: Json };
       server_rentalcover_apply: { Args: { p_booking: string; p_quote: string }; Returns: Json };
       server_rentalcover_facts: { Args: { p: Json }; Returns: Json };
       server_rentalcover_record: { Args: { p: Json }; Returns: Json };
@@ -38324,6 +38784,7 @@ export type Database = {
       server_review_helper: { Args: { p_token: string }; Returns: Json };
       server_review_helper_act: { Args: { p_token: string; p_act: string }; Returns: Json };
       server_review_photos_set: { Args: { p_booking: string; p_by: string; p_photos: Json }; Returns: Json };
+      server_rewards_game: { Args: { p_by: string; p_action: string; p?: Json }; Returns: Json };
       server_rideshare_docs: { Args: { p_by: string; p_booking: string }; Returns: Json };
       server_rideshare_docs_request: { Args: { p_by: string; p: Json }; Returns: Json };
       server_rolling_link_send: { Args: { p_id: string; p_link: string }; Returns: Json };
