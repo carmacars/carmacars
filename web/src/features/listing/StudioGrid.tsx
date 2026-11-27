@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { staffRead } from '@/server/actions/staff-tools';
 import { photoUrl } from '@/lib/photo';
 
-// Release 50 (3701): the studio grid. Every published car's nine studio views side by side, in the site's order, each with
+// Release 50 (3701): the studio grid. Every published car's studio views (5080: the eight sample angles) side by side, in the site's order, each with
 // the gate's verdict, so a background, a floor, a car size or an angle that drifts from the others shows at a glance.
 // Admin and Fleet (Photo standard on the Listings pages). Only a view marked "Live" is ever on the public site.
 export type GridView = { shot: string; path: string | null; live: boolean; state: string | null; tries: number | null;
@@ -12,7 +12,7 @@ export type GridCar = { vehicle: string; name: string; fleet_number: string | nu
 export type GridData = { spec: string; order: string[]; total: number; cars: GridCar[] };
 
 const LABEL: Record<string, string> = { left: 'Side', front_left: 'Front 3/4', front: 'Front', rear_left: 'Rear 3/4', rear: 'Rear', dashboard: 'Dashboard',
-  front_seats: 'Front seats', rear_seats: 'Rear seats', trunk: 'Trunk' };
+  front_seats: 'Front seats', rear_seats: 'Rear seats', trunk: 'Trunk', wheel: 'Wheel' };
 
 /** One view's state in a few words. */
 export function viewWords(v: GridView): string {

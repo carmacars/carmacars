@@ -63,9 +63,12 @@ export async function geminiEditImage(o: GeminiOptions, img: { bytes: Uint8Array
 /** r45 (2840): the second pass on a made listing photo: several images in (the made photo first, then the originals), JSON
  *  out (features/listing/r45.ts checkPrompt). null on any refusal, quota or error: the photo is then not published. */
 export const GEMINI_CHECK_MODEL = 'gemini-3.8-flash';
-export async function geminiCheckImages(o: GeminiOptions, images: Array<{ bytes: Uint8Array; contentType: string }>, system: string, prompt: string): Promise<{ data: unknown; model: string } | null> {
+/** `fail` (REQ-005): told why no verdict came back (the HTTP status and Google's message, the finish reason of an answer
+ *  without JSON, a timeout), so the call record carries the cause instead of a bare failure. */
+export async function geminiCheckImages(o: GeminiOptions, images: Array<{ bytes: Uint8Array; contentType: string }>, system: string, prompt: string,
+  fail: (why: string) => void = () => undefined): Promise<{ data: unknown; model: string } | null> {
   const model = (o.model ?? '').trim() || GEMINI_CHECK_MODEL;
-  if (!/^[a-z0-9][a-z0-9.-]{2,80}$/.test(model) || !images.length) return null;
+  if (!/^[a-z0-9][a-z0-9.-]{2,80}$/.test(model) || !images.length) { fail(images.length ? 'model: the model name is not valid' : 'error: no image to check'); return null; }
   const f = o.fetch ?? fetch;
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), o.timeoutMs ?? 45_000);
@@ -73,14 +76,21 @@ export async function geminiCheckImages(o: GeminiOptions, images: Array<{ bytes:
     const { res, json } = await geminiPost({ apiKey: o.apiKey, relay: o.relay, fetch: f, signal: ctl.signal }, `/v1beta/models/${model}:generateContent`, {
       systemInstruction: { parts: [{ text: system }] },
       contents: [{ role: 'user', parts: [{ text: prompt }, ...images.map((x) => ({ inline_data: { mime_type: x.contentType, data: b64(x.bytes) } }))] }],
-      generationConfig: { temperature: 0, maxOutputTokens: 1200, responseMimeType: 'application/json' }
+      // 5080: room for a thinking model's own tokens (they count toward the limit; at 1200 an answer could be cut off and read as none)
+      generationConfig: { temperature: 0, maxOutputTokens: 4096, responseMimeType: 'application/json' }
     });
-    if (!res.ok) return null;
-    const j = json as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> } | null;
+    const j = json as { error?: { message?: string; status?: string }; promptFeedback?: { blockReason?: string };
+      candidates?: Array<{ finishReason?: string; content?: { parts?: Array<{ text?: string }> } }> } | null;
+    if (!res.ok) { fail(`http ${res.status}${j?.error?.status ? ` ${j.error.status}` : ''}: ${(j?.error?.message ?? '').slice(0, 200)}`); return null; }
     const text = j?.candidates?.[0]?.content?.parts?.map((p) => p.text ?? '').join('') ?? '';
+    const why = `no verdict: finish ${j?.candidates?.[0]?.finishReason ?? 'none'}${j?.promptFeedback?.blockReason ? `, blocked ${j.promptFeedback.blockReason}` : ''}, ${text.length} characters`;
     try {
       const data: unknown = JSON.parse(text.trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, ''));
-      return data && typeof data === 'object' ? { data, model: `gemini:${model}` } : null;
-    } catch { return null; }
-  } catch { return null; } finally { clearTimeout(timer); }
+      if (data && typeof data === 'object') return { data, model: `gemini:${model}` };
+      fail(why); return null;
+    } catch { fail(why); return null; }
+  } catch (e) {
+    fail(e instanceof Error && (e.name === 'AbortError' || /abort/i.test(e.message)) ? 'timeout: no answer in time' : 'error: the model could not be reached');
+    return null;
+  } finally { clearTimeout(timer); }
 }

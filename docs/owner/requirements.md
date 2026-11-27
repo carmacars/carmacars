@@ -19,8 +19,8 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 
 ### REQ-001 Full angle set, identical backgrounds, real photos after
 - Status: in progress
-- Proof: branch r50-hotfix2-photos (not on main)
-- Test: to be added with the work
+- Proof: branch r50-hotfix2-photos (not on main, not live): docs/changes/2026-11-25-r50-hotfix2-photos.md; migration 5080 (app.photo_render_order = the 8 sample angles; app.public_listing_photos: the views in that order, then the real photos cut out); web r48.ts R48_ANGLES and R48_ROOM_PATH, studio-composite.ts (one room for every view of every car). Live check after deploy: a real car page shows the set first, the same room, real photos after; fresh-eyes fixes: an older render that was live stays on the site until its view is made again (prev_live), only exterior check-in and check-out angles go to the image model (app.photo_r48_handover_shot) with a line on the privacy page, the real-photo extras wait while any standard view is waiting (app.photo_r48_views_waiting)
+- Test: supabase/tests/99_r50h2_studio_composite.sql (sections 1, 6, 9); web/src/features/listing/r48.test.ts; web/src/features/listing/studio-gate.test.ts
 - Asked: Nov 25 (repeated Nov 25 20:13, Nov 27)
 - Owner: "generate each vehicle in every single angle ... same angles as the sample photos, same order ... real photos after, still cut out on the same background"
 - Rule: every car gets all the sample photos' angles, in exactly the same angles and order as the samples. When a car has no photo for an angle, AI generates that exact car (same rims, same paint, same everything) in that angle. After the AI angles come the real photos, cut out onto the same AI background. Every background looks exactly the same.
@@ -28,8 +28,8 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 
 ### REQ-002 Cutout only on heroes, home and cards
 - Status: in progress
-- Proof: branch r50-hotfix2-photos (not on main)
-- Test: to be added with the work
+- Proof: branch r50-hotfix2-photos (not on main, not live): migration 5080 (worker_listing_result keeps the cover matte and the side cutout in site_cutouts; app.site_studio_covers gives only the cutout with the room); web components/SlotCars.tsx (home, heroes, fleet, delivery and owner pages: cutouts where the sample car stood), components/Picture.tsx StudioTurn (cards: the room once, the cutouts over it). Live check after deploy: heroes, home and sample cards on every page
+- Test: supabase/tests/99_r50h2_studio_composite.sql (section 9); web/src/features/listing/r48.test.ts (the cover matte and the side cutout); e2e not run here: GAP for the rendered pages
 - Asked: Nov 27
 - Owner: "only the cutout is shown, never the full photo with its background"
 - Rule: on home pages, heroes and anywhere sample cars are replaced by real cars, show only the cutout, never the full photo with its background.
@@ -54,8 +54,8 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 
 ### REQ-005 Find why Gemini fails
 - Status: in progress
-- Proof: branch r50-hotfix2-photos (not on main)
-- Test: to be added with the work
+- Proof: branch r50-hotfix2-photos (not on main, not live): docs/changes/2026-11-25-r50-hotfix2-photos.md ("The cause of a failed check was never stored"); web integrations/photos/gemini.ts geminiCheckImages reports the cause, server/listing-worker.ts records it; migration 5080 app.photo_mark_record keeps it with the photo; the cost guard (app.photo_r48_cost_guard, 3 calls a photo a day, pause and alert). Production cause still unknown: photo_standard fails in production (site_errors Nov 27: POST /api/mcp syntax error at or near ")", fixed in 5080) and no Gemini key here for a real call
+- Test: supabase/tests/99_r50h2_studio_composite.sql (sections 3, 4, 7, 10); web/src/integrations/photos/gemini-route.test.ts
 - Asked: Nov 25 17:17
 - Owner: "Find that actual problem"
 - Rule: find and fix the cause of failing image generation that burns usage and money; add a pass-rate guard so failures stop early.
