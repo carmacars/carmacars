@@ -89,7 +89,8 @@ test('Finance adds an insurance replacement from a pasted email, edits and resen
     await expect(page.getByTestId('ins-version-diff').first()).toContainText('12 x $65.00');
     const [v] = await sql`select ii.version, ii.total_cents, (select count(*)::int from insurer_invoice_versions x where x.invoice_id = ii.id) n
       from insurer_invoices ii join bookings b on b.id = ii.booking_id where b.booking_number = ${number}`;
-    expect(v).toMatchObject({ version: 2, total_cents: (12 * 6500 + 5000) * 113 / 100, n: 2 });
+    // total_cents is a bigint: the driver returns it as a string
+    expect({ ...v!, total_cents: Number(v!.total_cents) }).toMatchObject({ version: 2, total_cents: (12 * 6500 + 5000) * 113 / 100, n: 2 });
 
     // a part payment by cheque
     await page.getByTestId('ins-pay').click();
