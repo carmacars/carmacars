@@ -1,4 +1,4 @@
--- 99: R50 hotfix 2 (migrations 5070 and 5071). The academy waits 2 minutes after a failed try and allows 10 tries a day; a
+-- 99: R50 hotfix 2 (migrations 5070, 5071 and 5074). The academy waits 2 minutes after a failed try and allows 10 tries a day; a
 -- first check below the pass mark is held for one fix of the questions marked wrong (kept in the database, never replayed);
 -- a salesperson who has not passed the academy gets no lead alert, cannot claim, cannot be given a lead and sees no lead
 -- list, even with the onboarding gate switched off; an Admin's waiver counts as passed. Fixtures start with "lac".
@@ -103,5 +103,14 @@ select test.ok('waiver taken away: the held lead goes back at once',
 select test.eq('waiver taken away: the note says the academy',
   (select note from lead_claim_log where lead_id = test.id('lead:lac1') and user_id = test.id('lac_mid') and action = 'release' order by id desc limit 1),
   'Academy not passed: the lead went back');
+
+-- ================================================================ 4. the townhall KPI slide: real staff only (5074)
+select test.ok('KPI slide: no test or Verify account and nobody with no KPI',
+  not exists (select 1 from jsonb_array_elements(app.townhall_staff_kpis(app.today() - 7)) x
+               where app.staff_is_test((x ->> 'user_id')::uuid) or (x ->> 'tracked')::int = 0));
+select test.ok('KPI slide: a real salesperson is listed', exists (select 1 from jsonb_array_elements(app.townhall_staff_kpis(app.today() - 7)) x where x ->> 'user_id' = test.id('lac_rep')::text));
+update users set email = 'verify-lacrep@carmacars.ca' where id = test.id('lac_rep');   -- a Verify account
+select test.ok('KPI slide: the test salesperson is left out', app.staff_is_test(test.id('lac_rep'))
+  and not exists (select 1 from jsonb_array_elements(app.townhall_staff_kpis(app.today() - 7)) x where x ->> 'user_id' = test.id('lac_rep')::text));
 
 update program_settings set staff_onboarding_gate = true, academy_read_wpm = 200 where id = (app.settings()).id;
