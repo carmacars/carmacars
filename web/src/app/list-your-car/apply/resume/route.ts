@@ -1,5 +1,4 @@
 import { localRedirect } from '@/lib/http/local-redirect';
-import { NextResponse } from 'next/server';
 import { env } from '@/lib/env';
 import { rpc } from '@/lib/db/repo';
 import { DRAFT_COOKIE } from '@/features/owner/apply-schema';

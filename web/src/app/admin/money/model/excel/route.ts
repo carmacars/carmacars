@@ -9,7 +9,7 @@ import { XLSX_TYPE } from '@/lib/xlsx';
 // live formulas over them. Admins only, here and in the database (admin_read finance_model).
 export const dynamic = 'force-dynamic';
 
-export async function GET(req: Request) {
+export async function GET() {
   let admin;
   try { admin = await assertAdmin(); } catch { return localRedirect('/admin/no-access', 302); }
   const { read, inputs, model } = await loadFinanceModel(admin.id);
