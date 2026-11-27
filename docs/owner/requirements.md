@@ -859,6 +859,15 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 - Rule: the site on the company's server never floods the Admins with "the database is busy" errors; the long-tail pages crawlers read are not rendered again while a good copy is fresh.
 - Done when: site_errors shows no "gave up: the database is busy" spike for 24 hours after the deploy, and the 15-minute error spike incident does not reopen.
 
+### REQ-124 Email first, texts only where speed matters
+- Status: not started
+- Proof: none yet (follow-up release; not built in hotfix 2)
+- Test: GAP
+- Asked: Nov 27 13:24
+- Owner: "Go by email and in general try to move people to the emails because it's cheaper than text"
+- Rule: when Quo credits run out, held texts go by email (keep 5090's email fallback; this answers the REQ-045 question). Everywhere a message can go by email or text, email is the default; texts only where speed matters (codes, same-day pickup and return).
+- Done when: the notification map defaults every event with both channels to email, with a short list of text-only events.
+
 ## 16. Earlier decisions (Oct to Nov 12, from the chat extraction)
 
 ### REQ-092 Corporation, shares and shareholder money
