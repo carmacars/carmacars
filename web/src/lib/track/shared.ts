@@ -2,7 +2,7 @@
 // with a beacon before the one database call. No imports: it runs in the Worker entry and in Node.
 
 /** Crawlers, link previews, monitors and scripts. Headless browsers too, unless allowed (the local end-to-end tests). */
-const BOT = /bot\b|bot\/|crawl|spider|slurp|mediapartners|facebookexternalhit|embedly|quora link|outbrain|pinterest\/|preview|vkshare|w3c_validator|whatsapp|telegram|discord|skype|lighthouse|pagespeed|gtmetrix|pingdom|uptime|monitor|curl\/|wget\/|python-|python\/|axios\/|node-fetch|go-http-client|java\/|okhttp|libwww|httpclient|scrapy|phantomjs/i;
+const BOT = /bot\b|bot\/|crawl|spider|slurp|mediapartners|facebookexternalhit|embedly|quora link|outbrain|pinterest\/|preview|vkshare|w3c_validator|whatsapp|telegram|discord|skype|lighthouse|pagespeed|gtmetrix|pingdom|uptime|monitor|curl\/|wget\/|python-|python\/|axios\/|node-fetch|go-http-client|java\/|okhttp|libwww|httpclient|scrapy|phantomjs|google-inspectiontool|googleother|google-extended|applebot|bytespider|ahrefs|semrush|dataforseo|petalbot|amazonbot|gptbot|claudebot|perplexity|headless/i;
 export function isBot(ua: string | null | undefined, allowHeadless = false): boolean {
   if (!ua || ua.length < 20) return true;
   if (BOT.test(ua)) return true;

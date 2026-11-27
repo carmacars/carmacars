@@ -31,7 +31,7 @@ export function SocialQueue({ admin = false }: { admin?: boolean }) {
   const [pending, start] = useTransition();
   const [form, setForm] = useState({ channel: 'instagram' as Channel, at: localNow(), draft: '', caption: '', video: '', usePhoto: true });
   const load = useCallback(() => setTick((n) => n + 1), []);
-  useEffect(() => { let on = true; void staffRead<Data>('social_queue').then((r) => { if (on && r.ok) setD(r.data); }); return () => { on = false; }; }, [tick]);
+  useEffect(() => { let on = true; void staffRead<Data>('social_queue').then((r) => { if (on && r.ok) setD(r.data); }, () => { /* r50 hotfix 2: a failed call (a deploy, the network) keeps the list as it was, never an uncaught error (#441) */ }); return () => { on = false; }; }, [tick]);
   if (!d) return null;
   const draft = d.drafts.find((x) => x.id === form.draft) ?? null;
   const add = () => start(async () => {
