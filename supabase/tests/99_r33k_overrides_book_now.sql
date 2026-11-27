@@ -95,14 +95,15 @@ select test.lives('past trip: an Admin declines', format($$select test.rk_do('rk
 select test.eq('past trip: declined, nothing moved, the To do closed',
   (select status from booking_overrides where id = (select (r ->> 'id')::uuid from rk_q2)) || '/' || test.st('rkB')
   || '/' || (select status from tasks where task_type = 'override_approve' and related_id = (select (r ->> 'id')::uuid from rk_q2)), 'declined/confirmed/done');
-update vehicles set status = 'cleaning' where id = test.id('vehicle:RKW');
+-- 5195: a car in cleaning is no longer stopped from a handover, so the car that needs the override is out of service
+update vehicles set status = 'out_of_service' where id = test.id('vehicle:RKW');
 create temp table rk_p1 as select test.rk_do('rk_admin', 'handover_override', jsonb_build_object('booking', test.b('rkB'), 'kind', 'past_trip', 'reason', 'Trip Oct 31 to Nov 3 never recorded',
   'pickup_at', now() - interval '7 days', 'return_at', now() - interval '4 days 1 hour', 'odometer_out_km', 30000, 'odometer_in_km', 30600)) r;
-select test.eq('past trip: one step: returned with both times and the km; the car''s status now is left alone (cleaning, so not available, was overridden)',
+select test.eq('past trip: one step: returned with both times and the km; the car''s status now is left alone (out of service, so not available, was overridden)',
   (select r ->> 'booking_status' from rk_p1) || '/' || (select (abs(extract(epoch from handed_over_at - (now() - interval '7 days'))) < 5)::text || ':' || (abs(extract(epoch from checked_in_at - (now() - interval '4 days 1 hour'))) < 5) || ':' || odometer_out_km || ':' || odometer_in_km from bookings where id = test.b('rkB'))
   || '/' || (select status::text from vehicles where id = test.id('vehicle:RKW'))
   || '/' || (select checks @> array['vehicle_status', 'deposit'] from booking_overrides where booking_id = test.b('rkB') and status = 'used'),
-  'returned/true:true:30000:30600/cleaning/true');
+  'returned/true:true:30000:30600/out_of_service/true');
 select test.eq('past trip: the "rental started" email of a trip long over is not sent',
   (select count(*) from notification_outbox where booking_id = test.b('rkB') and code = 'renter_rental_started' and status in ('queued', 'delayed')), 0::bigint);
 

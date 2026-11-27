@@ -48,6 +48,8 @@ insert into user_roles (user_id, role) values (test.id('r5ac_boss'), 'admin');
 create temp table r5ac_at as select app.admin_call_next(now()) at;
 insert into field_shift_slots (id, starts_at, ends_at, capacity) select test.id('r5ac_slot'), at + interval '2 days', at + interval '2 days 8 hours', 2 from r5ac_at;
 insert into field_shift_plans (id, slot_id, staff_id, starts_at, ends_at) select test.id('r5ac_plan'), test.id('r5ac_slot'), test.id('r5ac_field'), at + interval '2 days', at + interval '2 days 8 hours' from r5ac_at;
+-- the deck lists the 20 most urgent Admin To dos: those another file left open must not crowd out this file's (REQ-117)
+update tasks set status = 'done', completed_at = now(), completion_note = 'closed by a test file' where queue = 'admin' and status in ('open', 'in_progress', 'waiting');
 select app.raise_task(p_type => 'r5ac_decision', p_title => 'R5ac: choose the new insurer', p_dedupe => 'r5ac:todo', p_queue => 'admin', p_priority => 'high');
 select app.raise_task(p_type => 'api_prepared_money', p_title => 'R5ac: refund of $40.00', p_dedupe => 'r5ac:money', p_queue => 'admin', p_priority => 'high');
 select app.raise_task(p_type => 'r5ac_other', p_title => 'R5ac: second decision', p_dedupe => 'r5ac:todo2', p_queue => 'admin');

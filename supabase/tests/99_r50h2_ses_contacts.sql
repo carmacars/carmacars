@@ -30,7 +30,9 @@ insert into leads (id, kind, name, phone, source, assigned_to) values
   (test.id('zrc5_lead_mine'), 'contact', 'Zrcfive Mine', '(416) 555-0281', 'web', test.id('zrc5_sales')),
   (test.id('zrc5_lead_other'), 'contact', 'Zrcfive Other', '(416) 555-0282', 'web', test.id('zrc5_sales2'));
 -- test staff are not onboarded, so the assignee is cleared: Sales's own lead here is the one they claimed
+select set_config('app.lead_admin_move', 'on', false);   -- the fixture holds more claims than a new salesperson's cap (the cap depends on settings other files change)
 insert into lead_claims (lead_id, claimed_by, expires_at, cap_at) values (test.id('zrc5_lead_mine'), test.id('zrc5_sales'), now() + interval '10 minutes', now() + interval '1 hour');
+select set_config('app.lead_admin_move', '', false);
 
 select test.eq('Sales find only their own lead, by name',
   (select string_agg(c ->> 'name', ',') from jsonb_array_elements(public.server_voice_contacts(test.id('zrc5_sales'), '{"q": "zrcfive"}')) c), 'Zrcfive Mine');
@@ -64,7 +66,9 @@ select test.eq('a search of __ finds nobody', public.server_voice_contacts(test.
 select test.eq('a search of \\ finds nobody', public.server_voice_contacts(test.id('zrc5_cs'), jsonb_build_object('q', 'Zrcfive' || chr(92))), '[]'::jsonb);
 -- review fix: a name that holds a number is masked for Sales too
 insert into leads (id, kind, name, phone, source) values (test.id('zrc5_lead_digits'), 'contact', 'Zrcdigits 416-555-0291', '(416) 555-0283', 'web');
+select set_config('app.lead_admin_move', 'on', false);   -- the fixture holds more claims than a new salesperson's cap (the cap depends on settings other files change)
 insert into lead_claims (lead_id, claimed_by, expires_at, cap_at) values (test.id('zrc5_lead_digits'), test.id('zrc5_sales'), now() + interval '10 minutes', now() + interval '1 hour');
+select set_config('app.lead_admin_move', '', false);
 select test.eq('Sales see a number inside a name masked',
   (select (position('0291' in (c ->> 'name')) = 0 and (c ->> 'name') like 'Zrcdigits %' and (c ->> 'number') not like '%0283')::text
      from jsonb_array_elements(public.server_voice_contacts(test.id('zrc5_sales'), '{"q": "zrcdigits"}')) c), 'true');
