@@ -300,6 +300,16 @@ unswitch() {
   report
 }
 
+# records: read only (deploy-vps action=test): each A record of the site's hostnames with its proxy state, and the SSL mode
+records() {
+  local z h; z=$(zone_id)
+  for h in "api.$DOMAIN" "meet.$DOMAIN" "new.$DOMAIN" "$DOMAIN" "www.$DOMAIN"; do
+    cf GET "/zones/$z/dns_records?name=$h&per_page=20" | jq -r '.result[]? | "[cf-site] \(.name) \(.type) \(.content) proxied=\(.proxied)"' || say "$h: the records cannot be read"
+  done
+  cf GET "/zones/$z/settings/ssl" | jq -r '"[cf-site] SSL mode: \(.result.value)"' || say "the SSL mode cannot be read"
+  cf GET "/zones/$z/settings/always_use_https" | jq -r '"[cf-site] Always Use HTTPS: \(.result.value)"' || true
+}
+
 # ------------------------------------------------------------------ where the site is live (ci.yml)
 live_on() {
   case "${WEB_LIVE_ON_INPUT:-auto}" in worker|vps) echo "$WEB_LIVE_ON_INPUT"; return 0 ;; auto|'') ;; *) die "web_live_on must be auto, worker or vps" ;; esac
@@ -316,7 +326,7 @@ live_on() {
 
 cmd="${1:-}"; shift || true
 # the zone once, in this shell (a function run under `|| true` would not stop on a failure)
-case "$cmd" in prepare|https-off|switch|unswitch|live-on|proxy|media) ZONE=$(zone_id) ;; esac
+case "$cmd" in prepare|https-off|switch|unswitch|live-on|proxy|media|records) ZONE=$(zone_id) ;; esac
 case "$cmd" in
   prepare) prepare ;;
   origin-cert) origin_cert "$@" ;;
@@ -327,5 +337,6 @@ case "$cmd" in
   server-ip) server_ip ;;
   proxy) proxy_a "$@" ;;
   media) media_a "$@"; report ;;
+  records) records ;;
   *) die "usage: cf-site.sh prepare | origin-cert <dir> [current.pem] | https-off | switch | unswitch | live-on | server-ip | proxy NAME on|off | media NAME" ;;
 esac

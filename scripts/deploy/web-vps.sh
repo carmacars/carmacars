@@ -190,6 +190,17 @@ tls_diag() { # hostname: what Caddy loaded and logged about its certificate (no 
     echo | timeout 10 openssl s_client -connect 127.0.0.1:443 -servername '$h' 2>&1 | grep -E '^(subject|issuer)=|Verify return code|alert' | sed 's/^/[tls] /'
     sudo docker logs supabase-caddy --since 40m 2>&1 | grep -vF 'http.log.access' | grep -iE 'tls|acme|certificate|$h' | tail -30 | cut -c1-600" || true
 }
+# tls_report: read only (deploy-vps action=test): for the API, media and web hostnames, the certificate Caddy hands out on
+# the server and from the runner, Caddy's version, the Origin CA certificate's names and Caddy's certificate log lines
+tls_report() {
+  local dom="${DOMAIN:-carmacars.ca}" h
+  load_vps
+  vps_ssh "sudo bash -s $dom" < "$HERE/tls-report-remote.sh" || true
+  for h in "api.$dom" "meet.$dom" "new.$dom"; do
+    echo "[tls] runner $h: $(curl -sS -o /dev/null -w '%{http_code} %{remote_ip}' --max-time 15 "https://$h/" 2>&1 | head -1)"
+    echo | timeout 10 openssl s_client -connect "$h:443" -servername "$h" 2>&1 | grep -E '^(subject|issuer)=|Verify return code' | sed "s/^/[tls] runner $h: /" || true
+  done
+}
 acme_window() {
   local hosts="$1" h n i left
   [ "${WEB_PROXY:-cloudflare}" = cloudflare ] || return 0
@@ -298,6 +309,7 @@ case "$cmd" in
   rollback) rollback ;;
   forwarder) forwarder ;;
   switch) switch ;;
+  tls-report) tls_report ;;
   email) email "$@" ;;
   *) die "usage: web-vps.sh envfile <out> | ship <image.tgz> <web.env> | rollback | forwarder | email forwarder|worker" ;;
 esac

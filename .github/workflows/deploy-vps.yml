@@ -112,6 +112,25 @@ jobs:
         if: failure()
         run: tail -n 80 /tmp/serve.log || true
 
+  # r50 hotfix2: read only. What the server's Caddy hands out for api., meet. and the web hostnames, Caddy's certificate log
+  # lines and the zone's A records with their proxy state. Fixed commands only (scripts/deploy/tls-report-remote.sh).
+  tls-report:
+    if: inputs.action == 'test'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      DOMAIN: carmacars.ca
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cloudflare records (read)
+        run: scripts/deploy/cf-site.sh records || true
+      - name: Certificates on the server (read)
+        run: scripts/deploy/web-vps.sh tls-report
+
   deploy-vps:
     needs: node-smoke
     if: ${{ !cancelled() && (inputs.web_on_vps || vars.WEB_ON_VPS == '1') && inputs.action != 'test' && (inputs.action != 'deploy' || needs.node-smoke.result == 'success') }}
