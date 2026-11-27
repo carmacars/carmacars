@@ -1,5 +1,6 @@
 -- 99: no paper signatures, Form D on screen (the fleet supplier's included) and updated terms to accept (migrations 0720,
 -- 0721; docs/changes/2026-11-07-r33-signatures-terms.md). Fixtures "q3f"; the supplier of 99_r33_fleet_supplier.sql.
+-- slice-with: 99_r33_fleet_supplier.sql (it reads that file's supplier: scripts/test-slices.mjs keeps the two in one slice)
 select test.suite('99 r33f no paper signatures, Form D on screen, updated terms');
 select set_config('app.paper_fixture', '', false);
 select test.mk_user('q3f_admin', 'admin');

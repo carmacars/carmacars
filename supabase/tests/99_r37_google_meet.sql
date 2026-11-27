@@ -55,8 +55,9 @@ create temp table r37mc as select app.interview_invite('applicant_cancelled', (s
 select test.ok('a cancelled call sends the CANCEL for the same event', (select method = 'CANCEL' and seq = 2 and uid = (select uid from calendar_invites where id = (select id from r37mi)) from calendar_invites where id = (select id from r37mc)));
 update job_applications set status = 'new' where id = test.id('app:r37m2');
 
--- the link mode (calls_mode link, the fallback): the Jitsi link stays and Google Meet takes over when connected (2303)
-update program_settings set calls_mode = 'link';
+-- the link mode (calls_mode link, the fallback): the Jitsi link stays and Google Meet takes over when connected (2303).
+-- 5072: link mode needs an outside call link set; with none, app.calls_in_site() is true and the call is in the site.
+update program_settings set calls_mode = 'link', townhall_call_url = 'https://meet.google.com/r37-link-mode';
 update calendar_google_link set status = 'not_connected', account_email = null;
 select pg_temp.book('r37m1', 'slot:r37m1');
 select test.eq('link mode, not connected: the call keeps its Jitsi link and nothing waits', (select format('%s %s', meet_url like 'https://meet.jit.si/%', meet_sync is null) from job_applications where id = test.id('app:r37m1')), 't t');
@@ -83,7 +84,7 @@ update job_applications set slot_id = null, meet_url = null where id = test.id('
 select test.eq('a cancelled call deletes its event', (select meet_sync from job_applications where id = test.id('app:r37m2')), 'delete');
 select public.server_hiring_meet_done(jsonb_build_object('id', test.id('app:r37m2'), 'ok', true));
 select test.ok('deleted', (select meet_event_id is null and meet_sync is null from job_applications where id = test.id('app:r37m2')));
-update program_settings set calls_mode = 'in_site';
+update program_settings set calls_mode = 'in_site', townhall_call_url = '';
 
 -- who
 select test.ok('an Admin reads the connection: Google is the provider', (select public.door(test.id('r37m_admin'), 'aal2', 'admin_read', 'calendar_google_state', '{}'::jsonb) ->> 'provider' = 'google'));

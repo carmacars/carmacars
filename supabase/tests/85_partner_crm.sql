@@ -30,6 +30,7 @@ on conflict (vehicle_id) do update set status = excluded.status, published_at = 
 create function test.pc_link() returns uuid language sql stable as $$
   select c.id from partner_crm_connections c join partners p on p.id = c.partner_id where p.business_name = '01 Motors' $$;
 create function test.pc_partner() returns uuid language sql stable as $$ select id from partners where business_name = '01 Motors' $$;
+-- "v.id in (select unnest(test.pc_ids()))" in a WHERE over vehicles: one feed build for the statement, not one per vehicle row (Nov 27: 160 s of CI)
 create function test.pc_out() returns jsonb language sql stable as $$ select app.partner_crm_outbound_cars(test.pc_link()) $$;
 create function test.pc_ids() returns uuid[] language sql stable as $$ select coalesce(array_agg((x ->> 'vehicle_id')::uuid), '{}') from jsonb_array_elements(test.pc_out()) x $$;
 
@@ -46,9 +47,9 @@ select test.ok('the second partner''s car is on the site too', app.public_listin
 select test.eq('outbound: no partner car at all, by supply type',
   (select count(*) from jsonb_array_elements(test.pc_out()) x where x ->> 'supply_type' not in ('company', 'program_owner')), 0::bigint);
 select test.eq('outbound: no car that has a partner',
-  (select count(*) from vehicles v where v.id = any (test.pc_ids()) and (v.partner_id is not null or v.supply_type = 'partner')), 0::bigint);
+  (select count(*) from vehicles v where v.id in (select unnest(test.pc_ids())) and (v.partner_id is not null or v.supply_type = 'partner')), 0::bigint);
 select test.ok('outbound: 01 Motors'' own cars are not in it, nor the other partner''s Ferrari',
-  not exists (select 1 from vehicles v where v.id = any (test.pc_ids()) and v.partner_id = test.pc_partner()) and not (test.id('vehicle:PC5') = any (test.pc_ids())));
+  not exists (select 1 from vehicles v where v.id in (select unnest(test.pc_ids())) and v.partner_id = test.pc_partner()) and not (test.id('vehicle:PC5') = any (test.pc_ids())));
 select test.ok('outbound: the company car and the program owner''s car are in it', test.id('vehicle:PC1') = any (test.pc_ids()) and test.id('vehicle:PC2') = any (test.pc_ids()));
 select test.ok('outbound: never a car off the site, never a sample car', not (test.id('vehicle:PC3') = any (test.pc_ids())) and not (test.id('vehicle:PC4') = any (test.pc_ids())));
 -- every setting turned on still never lets a partner car through

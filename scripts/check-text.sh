@@ -35,4 +35,6 @@ node scripts/check-release-notes.mjs
 node scripts/check-test-fixtures.mjs
 # the SEO templates say what we do, never what we lack (release 36; web/src/features/seo/copy-lint.ts)
 node --experimental-strip-types --no-warnings scripts/check-seo-copy.mjs
+# the owner's standing requirements: ids, status, Done when, proof and test for done items
+node scripts/check-requirements.mjs
 echo "TEXT CHECK PASSED"

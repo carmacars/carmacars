@@ -2,6 +2,9 @@
 -- the weekly email and one email per new car, queued at the marketing priority within the day's allowance.
 -- Fixtures: "zm". Test data only (example.test addresses, 555 numbers).
 select test.suite('99 r41 marketing emails to everyone, weekly and new car campaigns (2520)');
+-- the events earlier suites left unprocessed are not this suite's: process_events takes the oldest first, a batch at a
+-- time (notify_event_batch), so this suite's events must not wait behind them (REQ-117: a 99_ file never depends on another's data)
+update app_events set processed_at = now() where processed_at is null;
 
 select test.mk_user('zm_admin', 'admin');
 select test.mk_user('zm_sales', 'va', 'sales');

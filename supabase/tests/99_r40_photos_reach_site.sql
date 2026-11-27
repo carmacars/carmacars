@@ -84,8 +84,8 @@ update vehicle_photos set quality_flags = '[]'::jsonb, is_public = true where id
 select test.ok('the front-left photo is not approved yet: the detail photo is never the cover (2841)',
   (select (r #>> '{cover,path}') is distinct from 'vehicles/rph/detail.jpg' from (select app.public_listing_row(test.id('vehicle:rph_car')) r) x));
 update vehicle_photos set status = 'approved', processed_path = 'vehicles/rph/fl.jpg', plate_status = 'covered', is_public = true where id = (select fl from rphp);
-select test.eq('the front-left photo approved and its plate covered: still not public (3701), the cover is the Photos coming soon photo',
-  (select r #>> '{cover,path}' from (select app.public_listing_row(test.id('vehicle:rph_car')) r) x), '/studio/coming-soon.jpg');
+select test.eq('the front-left photo approved and its plate covered: it is the cover (5064 / REQ-004: no live render, the car shows its own photos or the sample set as before release 50)',
+  (select r #>> '{cover,path}' from (select app.public_listing_row(test.id('vehicle:rph_car')) r) x), 'vehicles/rph/fl.jpg');
 select test.ok('the review no longer names each of the 14 shots, and has a cover',
   not exists (select 1 from unnest(app.listing_photo_problems(test.id('vehicle:rph_car'))) x where x like '% photo is not processed and approved' or x = 'No cover photo'));
 
