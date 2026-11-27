@@ -160,6 +160,7 @@ begin
   return new;
 end $$;
 revoke all on function app.academy_pay_guard() from public, anon, authenticated;
+grant execute on function app.academy_pay_guard() to service_role;
 
 create trigger a_academy_pay_guard before insert on staff_commission_payouts for each row execute function app.academy_pay_guard();
 create trigger a_academy_pay_guard before update of status on field_pay_lines for each row execute function app.academy_pay_guard();

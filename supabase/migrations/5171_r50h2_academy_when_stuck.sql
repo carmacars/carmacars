@@ -118,6 +118,7 @@ begin
   return new;
 end $$;
 revoke all on function app.academy_assignment_pass() from public, anon, authenticated;
+grant execute on function app.academy_assignment_pass() to service_role;
 create trigger academy_assignment_pass after insert on academy_attempts for each row execute function app.academy_assignment_pass();
 
 select pg_temp.patch_fn('app.academy_section_pre1154(uuid,jsonb)'::regprocedure,
