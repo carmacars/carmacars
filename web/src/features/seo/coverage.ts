@@ -50,3 +50,19 @@ export function pickSample(priority: string[], tail: string[], n: number, seed: 
   const rest = t.length < n - p.length ? take(priority.filter((u) => !p.includes(u)), n - p.length - t.length) : [];
   return [...p, ...t, ...rest].slice(0, n);
 }
+
+// r50 hotfix 2: the pages Google already shows in search (Search Analytics, the gsc workflow's pages file) checked on
+// the live site. The sample above inspects sitemap addresses, which the site itself lists, so it never met a page that
+// had gone; Search Console's own error report has no API. A known page that answers 404 or 410 (or 5xx twice) is stored
+// as an error (app.gsc_url_inspection), where the self-healing checks find it (4800: a car page gets its redirect).
+/** The most shown pages of the pages file, as paths, at most n. */
+export function knownPages(rows: Array<{ kind: string; key: string; impressions?: number }>, n: number): string[] {
+  return rows.filter((r) => r.kind === 'page' && /^\/[a-z0-9/._-]*$/.test(r.key) && !r.key.startsWith('/api/'))
+    .sort((a, b) => (b.impressions ?? 0) - (a.impressions ?? 0)).slice(0, Math.max(0, n)).map((r) => r.key);
+}
+/** The stored state of a known page from its answer (null: fine, a redirect included). */
+export function knownPageState(status: number): { state: string; bucket: 'other' } | null {
+  if (status === 404 || status === 410) return { state: `Not found (${status}), seen by the site check`, bucket: 'other' };
+  if (status >= 500) return { state: `Server error (5xx), seen by the site check`, bucket: 'other' };
+  return null;
+}

@@ -220,6 +220,10 @@ test('every figure: a row only when a source has it, conversions labelled, bodie
   assert.ok(!labels.includes('Battery') && !labels.includes('Charge at 240 V') && !labels.includes('Luggage volume'), 'no source, no row');
   assert.equal(rows.find((r) => r.label === 'MPG combined (Imperial)')?.note, 'converted from the US figure');
   assert.equal(mpgImperial(34), 41);
+  // r50 hotfix 2: an EV's full charge at the site's kWh price, from EPA's battery only
+  assert.ok(!labels.includes('A full charge'), 'no battery, no row');
+  const ev = statRows(specs([v({ id: 2, fuel: 'electric', displ: null, cyl: null, l100_city: null, l100_hwy: null, l100_comb: null, kwh100: 16, battery_kwh: 75 } as Partial<Variant> & { id: number })], S), S);
+  assert.equal(ev.find((r) => r.label === 'A full charge')?.values[0], `$${((75 * S.elec_cents) / 100).toFixed(2)}`);
   const dims = [{ body: 'JETTA 4DR SEDAN', length_cm: 470, width_cm: 180, height_cm: 146, wheelbase_cm: 269, curb_kg: 1350 }, { body: 'JETTA GLI 4DR SEDAN', length_cm: 471, width_cm: 180, height_cm: 145, wheelbase_cm: 269, curb_kg: 1450 }];
   assert.deepEqual(dimsFor(dims, 'Jetta', 'GLI').map((d) => d.body), ['JETTA GLI 4DR SEDAN']);
   assert.deepEqual(dimsFor(dims, 'Jetta', 'Highline').map((d) => d.body), ['JETTA 4DR SEDAN']);

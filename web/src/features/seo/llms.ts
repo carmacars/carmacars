@@ -3,6 +3,7 @@
 // facts come from the database (facts.ts, site settings, program settings, the real cars, the content blocks), never
 // from copy typed here, so the answers change when the settings do. Sample cars never set a price.
 import { money } from '../../lib/format.ts';
+import { llmsLines as softwareLines } from '../software/content.ts';
 import { availability, installSentence, monthlySentence, priceRows, PriceSentence, productAnswer, productFaq, type TrackerFacts } from '../trackers/pages.ts';
 
 export interface FactLink { name: string; path: string; note?: string }
@@ -89,6 +90,8 @@ export function llmsTxt(f: EntityFacts): string {
   out.push(...fitsFor(f));
   out.push('## Services', '', ...f.services.map((l) => link(f, l)), '');
   out.push(...trackerLines(f));
+  // r50 hotfix 2: the white-label software page, for people who ask an assistant for rental company software
+  out.push(...softwareLines(f.url));
   if (f.locations.length) out.push('## Locations served', '', ...f.locations.map((l) => link(f, l)), '');
   if (f.uses.length) out.push('## Ways to rent', '', ...f.uses.map((l) => link(f, l)), '');
   out.push('## Policies and help', '', ...f.pages.map((l) => link(f, l)), '');
@@ -129,6 +132,8 @@ export function llmsFullTxt(f: EntityFacts): string {
   out.push(...fitsFor(f));
   out.push('## Services', '', ...f.services.map((l) => link(f, l)), '');
   out.push(...trackerLines(f));
+  // r50 hotfix 2: the white-label software page, for people who ask an assistant for rental company software
+  out.push(...softwareLines(f.url));
   if (f.tracker) out.push('### Questions about the tracker', '', ...productFaq(f.tracker).flatMap((q) => [`#### ${md(q.question)}`, '', md(q.answer), '']));
   if (f.locations.length) out.push('## Locations served', '', ...f.locations.map((l) => link(f, l)), '');
   if (f.uses.length) out.push('## Ways to rent', '', ...f.uses.map((l) => link(f, l)), '');

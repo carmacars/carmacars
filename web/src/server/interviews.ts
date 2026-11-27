@@ -22,6 +22,13 @@ export async function interviewView(token: string): Promise<InterviewView | Fail
   return (await rpc('server_ai_interview', { p_token: token }, SR).catch(() => null)) as unknown as InterviewView | Fail | null;
 }
 
+/** r50 hotfix 2 (5161): an expired link opened again by the applicant, at once (no email needed). */
+export async function renewInterview(token: string): Promise<boolean> {
+  if (!TOKEN.test(token)) return false;
+  const r = (await rpc('server_ai_interview_renew', { p_token: token }, SR).catch(() => null)) as unknown as { ok?: boolean } | null;
+  return r?.ok === true;
+}
+
 export async function startInterview(token: string): Promise<InterviewView | Fail> {
   return (await rpc('server_ai_interview_start', { p_token: token, p: { consent: true } }, SR)) as unknown as InterviewView | Fail;
 }

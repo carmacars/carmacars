@@ -7,6 +7,9 @@ import { door, rolesOf } from '@/server/door';
 import { PitchDeck } from '@/features/deck/PitchDeck';
 import { PER_CAR } from '@/features/deck/pitch';
 import { SearchTraction } from '@/features/deck/SearchTraction';
+import { Traction } from '@/features/deck/Traction';
+import type { DeckTraction } from '@/features/deck/traction';
+import { torontoToday } from '@/lib/dates';
 import type { DeckSearch } from '@/features/deck/search';
 
 export const dynamic = 'force-dynamic';
@@ -28,6 +31,8 @@ export default async function InvestorDeck() {
   const mult = await door<{ settings: { deck_multiplier: number | string } }>(user.id, roles.investor ? 'investor_read' : 'admin_read', roles.investor ? 'deck' : 'investor_deck')
     .then((f) => Number(f.settings.deck_multiplier)).catch(() => PER_CAR.multiplier);
   // r35 part C (1507): the site's Search Console traction (clicks, impressions, indexed pages, the trend)
-  const search = await door<DeckSearch>(user.id, roles.investor ? 'investor_read' : 'admin_read', 'deck_search').catch(() => null);
-  return <div className="dk-bleed"><h1 className="vh">CarmaCars investor deck</h1><PitchDeck multiplier={mult > 0 ? mult : PER_CAR.multiplier} /><SearchTraction s={search} /></div>;
+  // r50 hotfix 2 (5162): monthly active users (website, app) and days rented
+  const [search, traction] = await Promise.all([door<DeckSearch>(user.id, roles.investor ? 'investor_read' : 'admin_read', 'deck_search').catch(() => null),
+    door<DeckTraction>(user.id, roles.investor ? 'investor_read' : 'admin_read', 'deck_traction').catch(() => null)]);
+  return <div className="dk-bleed"><h1 className="vh">CarmaCars investor deck</h1><PitchDeck multiplier={mult > 0 ? mult : PER_CAR.multiplier} /><Traction t={traction} today={torontoToday()} /><SearchTraction s={search} /></div>;
 }

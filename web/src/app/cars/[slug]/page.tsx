@@ -366,7 +366,7 @@ export default async function CarPage({ params }: Params) {
         </div>
       </section>
       {/* r48: the other services on the car page too */}
-      {!c.is_sample && <ServicePromo pageKey={c.canonical_path} n={4} title="More from CarmaCars" />}
+      {!c.is_sample && <ServicePromo exclude="rental" pageKey={c.canonical_path} title="More from CarmaCars" />}
       {c.taking_requests && <BookBar name={name(c)} daily={c.daily_rate_cents} slug={c.slug} />}
     </div>
   );

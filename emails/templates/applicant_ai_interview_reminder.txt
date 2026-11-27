@@ -1,0 +1,29 @@
+CarmaCars  |  Careers
+
+========================================
+
+[Careers]
+Your interview is waiting, {{first_name}}
+
+You applied for {{role_title}} and your interview is still open. It takes about {{minutes}} minutes, from your phone or computer.
+
+Start my interview now:
+{{interview_url}}
+
+{{answered_line}} The link works until {{expires_on}}. You need a camera and a microphone, a quiet place and a good connection.
+
+If the link has expired when you open it, the page lets you open a new one and start straight away. The link is personal: please do not share it.
+
+----------------------------------------
+
+Questions about your application? Reply to this email.
+
+You are receiving this because you applied for a job at CarmaCars. We keep the application of a candidate we do not hire for 12 months, then delete it.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

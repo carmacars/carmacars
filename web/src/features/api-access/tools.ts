@@ -446,6 +446,14 @@ export const HEAL_TOOLS: Tool[] = [
 ];
 TOOLS.push(...HEAL_TOOLS);
 
+// r50 hotfix 2 (5160): the searches Google showed the site for, read only, for keyword research through the connector
+// (the gsc workflow stores the top 5,000 searches and pages of the last 28 settled days). The database decides and logs.
+export const GSC_TOOLS: Tool[] = [
+  read('search_console_queries', 'Search Console searches', 'The searches Google showed carmacars.ca for over the last 28 settled days, with clicks, impressions, click rate and average position, and the pages with the most impressions; optionally only those containing a word (contains). Searches only, no person. Read only.',
+    { limit: { type: 'integer', minimum: 1, maximum: 1000, description: 'At most this many searches and pages each (200 by default)' }, contains: str('Only searches and pages containing this text, for example "tracker"') })
+];
+TOOLS.push(...GSC_TOOLS);
+
 // Release 50 (5060): Admin > Company documents, Admins only. list_company_documents reads every kind with each document's
 // versions, its state and its signers (never a body or a storage path). company_document_upload adds a document or its next
 // version: a PDF (pdf_base64, under 15 MB; the web layer checks and stores the bytes) or a text to sign (body_md with

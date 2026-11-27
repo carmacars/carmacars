@@ -8,7 +8,7 @@
 // files, so every run looks at a different slice. The API allows 2,000 inspections a day per property; the workflow's
 // eight runs a day at 150 stay under it. Never prints the token.
 import fs from 'node:fs';
-import { coverageBucket, coverageShares, emptyBuckets, pageKind, pickSample } from '../src/features/seo/coverage.ts';
+import { coverageBucket, coverageShares, emptyBuckets, knownPages, knownPageState, pageKind, pickSample } from '../src/features/seo/coverage.ts';
 
 const AT = process.env.AT ?? '';
 const SITE = process.env.SITE ?? '';
@@ -66,7 +66,26 @@ for (const url of sample) {
     done++;
   } catch { errors++; }
 }
-const out = { inspected: done, by_state: byState, by_kind: byKind, by_bucket: byBucket, by_part: byPart, errors, urls };
+// r50 hotfix 2: the pages Google shows in search (PAGES: the gsc-pages.mjs file of this run), checked on the live site
+// (no inspection quota). A 404 or 410, or a 5xx twice, is stored as an error: the self-healing finds it (4800).
+let known = 0, gone = 0;
+if (process.env.PAGES && fs.existsSync(process.env.PAGES)) {
+  const paths = knownPages(JSON.parse(fs.readFileSync(process.env.PAGES, 'utf8')).rows ?? [], Number(process.env.KNOWN ?? 400));
+  const status = async (p) => { try { return (await fetch(BASE + p, { headers: { 'user-agent': UA }, redirect: 'manual', signal: AbortSignal.timeout(30_000) })).status; } catch { return 0; } };
+  let i = 0;
+  await Promise.all(Array.from({ length: 6 }, async () => {
+    while (i < paths.length) {
+      const p = paths[i++];
+      let s = await status(p);
+      if (s >= 500 || s === 0) s = await status(p);
+      known++;
+      const k = knownPageState(s);
+      if (k) { gone++; urls.push({ path: p, state: k.state, bucket: k.bucket, sitemap: null, last_crawl: null }); }
+    }
+  }));
+  console.log(`::notice title=coverage::${known} pages Google shows checked on the site: ${gone} answered 404, 410 or 5xx (stored as errors for the self-healing)`);
+}
+const out = { inspected: done, by_state: byState, by_kind: byKind, by_bucket: byBucket, by_part: byPart, errors, urls, known_checked: known, known_gone: gone };
 if (process.env.OUT) fs.writeFileSync(process.env.OUT, JSON.stringify(out));
 const sh = coverageShares(byBucket);
 const share = (x) => (x === null ? 'n/a' : `${Math.round(x * 100)}%`);

@@ -239,6 +239,8 @@ export function statRows(sp: Spec[], s: Pick<Settings, 'gas_cents' | 'premium_ex
   add('MPG combined (Imperial)', (x) => (x.mpg_comb && !ev(x) ? `${mpgImperial(x.mpg_comb)}` : ''), 'converted from the US figure');
   add('Battery', (x) => (x.battery_kwh ? `${x.battery_kwh} kWh` : ''));
   add('Charge at 240 V', (x) => (x.charge240_h ? `${x.charge240_h} hours` : ''));
+  // r50 hotfix 2: a full charge at the site's kWh price (the battery is EPA's)
+  add('A full charge', (x) => (x.battery_kwh && s.elec_cents > 0 ? `$${((x.battery_kwh * s.elec_cents) / 100).toFixed(2)}` : ''), `the battery at ${(s.elec_cents / 100).toFixed(2)} dollars a kWh`);
   add('Luggage volume', (x) => (x.luggage_cuft ? `${cuftToL(x.luggage_cuft)} L (${x.luggage_cuft} cu ft)` : ''), 'litres converted from EPA\'s cubic feet');
   add('Fuel cost a year (EPA)', (x) => (x.fuel_cost_usd ? `US$${x.fuel_cost_usd.toLocaleString('en-US')}` : ''), 'EPA: 15,000 miles at its fuel prices');
   add('Fuel cost for 20,000 km', (x) => (x.cost100 !== null ? `$${Math.round((x.cost100 * 200) / 100).toLocaleString('en-CA')}` : ''), `at ${priceBasis(sp[0] ?? { fuel: 'gasoline' }, s)}`);

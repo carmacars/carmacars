@@ -186,7 +186,7 @@ export default async function LandingPage({ params }: Params) {
           </section>
         )}
       </div>
-      <ServicePromo exclude={SERVICE_OF[p.slug] ?? null} pageKey={p.path} />
+      <ServicePromo exclude={SERVICE_OF[p.slug] ? [SERVICE_OF[p.slug]!, 'rental'] : 'rental'} pageKey={p.path} />
       <CtaBand h="Pick a car, send a request." p="No payment until we confirm the car and the price." />
       <KitSticky title={p.min_daily_cents !== null ? `From ${money(p.min_daily_cents)} a day` : 'Pick a car, send a request'} sub="No payment until we confirm" cta="See the cars" href="#cars" />
     </div>

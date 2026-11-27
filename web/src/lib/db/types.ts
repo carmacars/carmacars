@@ -1110,6 +1110,9 @@ export type Database = {
           live_call_at: string | null;
           purged_at: string | null;
           updated_at: string;
+          reminders_sent: number;
+          reminders_link: number | null;
+          reminded_at: string | null;
         };
         Insert: {
           id?: string;
@@ -1137,6 +1140,9 @@ export type Database = {
           live_call_at?: string | null;
           purged_at?: string | null;
           updated_at?: string;
+          reminders_sent?: number;
+          reminders_link?: number | null;
+          reminded_at?: string | null;
         };
         Update: {
           id?: string;
@@ -1164,6 +1170,9 @@ export type Database = {
           live_call_at?: string | null;
           purged_at?: string | null;
           updated_at?: string;
+          reminders_sent?: number;
+          reminders_link?: number | null;
+          reminded_at?: string | null;
         };
         Relationships: [];
       };
@@ -22325,6 +22334,9 @@ export type Database = {
           owner_stage_uvip_url: string;
           calls_mode: string;
           staff_notice_days: number;
+          hiring_ai_reminder_hours: number[];
+          hiring_ai_reminder_last_hours: number;
+          hiring_ai_self_renewals: number;
         };
         Insert: {
           id?: string;
@@ -23317,6 +23329,9 @@ export type Database = {
           owner_stage_uvip_url?: string;
           calls_mode?: string;
           staff_notice_days?: number;
+          hiring_ai_reminder_hours?: number[];
+          hiring_ai_reminder_last_hours?: number;
+          hiring_ai_self_renewals?: number;
         };
         Update: {
           id?: string;
@@ -24309,6 +24324,9 @@ export type Database = {
           owner_stage_uvip_url?: string;
           calls_mode?: string;
           staff_notice_days?: number;
+          hiring_ai_reminder_hours?: number[];
+          hiring_ai_reminder_last_hours?: number;
+          hiring_ai_self_renewals?: number;
         };
         Relationships: [];
       };
@@ -31899,6 +31917,60 @@ export type Database = {
         };
         Relationships: [];
       };
+      traction_metrics: {
+        Row: {
+          business: string;
+          code: string;
+          label: string;
+          unit: string;
+          note: string | null;
+          sort_order: number;
+          active: boolean;
+        };
+        Insert: {
+          business?: string;
+          code: string;
+          label: string;
+          unit: string;
+          note?: string | null;
+          sort_order?: number;
+          active?: boolean;
+        };
+        Update: {
+          business?: string;
+          code?: string;
+          label?: string;
+          unit?: string;
+          note?: string | null;
+          sort_order?: number;
+          active?: boolean;
+        };
+        Relationships: [];
+      };
+      traction_monthly: {
+        Row: {
+          business: string;
+          code: string;
+          month: string;
+          value: number;
+          updated_at: string;
+        };
+        Insert: {
+          business: string;
+          code: string;
+          month: string;
+          value: number;
+          updated_at?: string;
+        };
+        Update: {
+          business?: string;
+          code?: string;
+          month?: string;
+          value?: number;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       trip_close_decisions: {
         Row: {
           booking_id: string;
@@ -36132,6 +36204,7 @@ export type Database = {
           exclude_reason: string | null;
           geo_lat: number | null;
           geo_lng: number | null;
+          via: string;
         };
         Insert: {
           id: string;
@@ -36174,6 +36247,7 @@ export type Database = {
           exclude_reason?: string | null;
           geo_lat?: number | null;
           geo_lng?: number | null;
+          via?: string;
         };
         Update: {
           id?: string;
@@ -36216,6 +36290,7 @@ export type Database = {
           exclude_reason?: string | null;
           geo_lat?: number | null;
           geo_lng?: number | null;
+          via?: string;
         };
         Relationships: [];
       };
@@ -37627,6 +37702,8 @@ export type Database = {
       server_ai_interview_answer: { Args: { p_token: string; p: Json }; Returns: Json };
       server_ai_interview_answer_pre0585: { Args: { p_token: string; p: Json }; Returns: Json };
       server_ai_interview_followup: { Args: { p_token: string; p: Json }; Returns: Json };
+      server_ai_interview_pre5161: { Args: { p_token: string }; Returns: Json };
+      server_ai_interview_renew: { Args: { p_token: string }; Returns: Json };
       server_ai_interview_scored: { Args: { p: Json }; Returns: Json };
       server_ai_interview_scored_pre2590: { Args: { p: Json }; Returns: Json };
       server_ai_interview_scored_pre2680: { Args: { p: Json }; Returns: Json };

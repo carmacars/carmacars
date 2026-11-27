@@ -101,6 +101,7 @@
   "hiring.interview_cancelled": {"applicant": "applicant_cancelled"},
   "hiring.no_show": {"applicant": "applicant_no_show"},
   "hiring.ai_interview": {"applicant": "applicant_ai_interview"},
+  "hiring.ai_interview_reminder": {"applicant": "applicant_ai_interview_reminder"},
   "hiring.invited": {"applicant": "applicant_invited"},
   "hiring.hired": {"applicant": "applicant_hired", "staff_field": "staff_agreement_reminder"},
   "hiring.declined": {"applicant": "applicant_declined"},

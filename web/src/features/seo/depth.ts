@@ -76,6 +76,25 @@ function specMap(specs: DepthSpec[]) {
 }
 
 /** The cost to drive 100 km: litres (or kWh) a 100 km times the price set in Program settings. */
+/** r50 hotfix 2: a full tank (tank litres x the litre price) or a full charge (battery kWh x the kWh price), and the
+ *  range: the published range when there is one, else the tank over the combined use. Null without real figures. */
+export function fullTank(v: { tankL?: number | null; batteryKwh?: number | null; l100?: number | null; kwh100?: number | null; rangeKm?: number | null; premium?: boolean }, fuel: DepthFacts['fuel']):
+  { what: string; cents: number; basis: string; rangeKm: number | null; rangeFrom: string; ev: boolean } | null {
+  if (!fuel) return null;
+  const ok = (n: number | null | undefined): n is number => typeof n === 'number' && Number.isFinite(n) && n > 0;
+  const published = ok(v.rangeKm) ? Math.round(v.rangeKm) : null;
+  if (ok(v.kwh100) && ok(v.batteryKwh) && fuel.kwhCents > 0) {
+    return { what: 'A full charge', cents: Math.round(v.batteryKwh * fuel.kwhCents), basis: `${v.batteryKwh} kWh at ${money(fuel.kwhCents, { cents: true })} a kWh`, ev: true,
+      rangeKm: published ?? Math.round((v.batteryKwh / v.kwh100) * 100), rangeFrom: published ? ' (the published range)' : ' (the battery over the rated use)' };
+  }
+  if (ok(v.tankL) && fuel.gasCents > 0) {
+    const c = fuel.gasCents + (v.premium ? fuel.premiumExtraCents : 0);
+    const est = ok(v.l100) ? Math.round((v.tankL / v.l100) * 100) : null;
+    return { what: 'A full tank', cents: Math.round(v.tankL * c), basis: `${v.tankL} L at ${money(c, { cents: true })} a litre of ${v.premium ? 'premium' : 'regular'}`, ev: false,
+      rangeKm: published ?? est, rangeFrom: published ? ' (the published range)' : ' (the tank over the combined rating)' };
+  }
+  return null;
+}
 export function costPer100(v: { l100?: number | null; kwh100?: number | null; premium?: boolean }, fuel: DepthFacts['fuel']): { cents: number; basis: string } | null {
   if (!fuel) return null;
   if (v.kwh100 && v.kwh100 > 0) return { cents: Math.round(v.kwh100 * fuel.kwhCents), basis: `${v.kwh100} kWh per 100 km at ${money(fuel.kwhCents, { cents: true })} a kWh` };
@@ -161,6 +180,12 @@ export function buildDepth(x: DepthInput): DepthText {
       attributions.push(`Highways: ${cf.source}`);
     }
     if (cf?.parking) { paras.push(T(`Parking in ${p.parentCity && p.kind === 'neighbourhood' ? p.parentCity : where}: ${cf.parking.text}`)); attributions.push(`Parking rule: ${cf.parking.source}`); }
+    // r50 hotfix 2 (the owner: local gas prices on every place page): the pump prices the site prices fuel with
+    // (Program settings, set weekly by staff), named as such; none when they are not set
+    if (p.region === 'CA-ON' && f.fuel?.gasCents) {
+      paras.push(T(`Fuel: we price gas at ${money(f.fuel.gasCents, { cents: true })} a litre of regular${f.fuel.premiumExtraCents ? ` and ${money(f.fuel.gasCents + f.fuel.premiumExtraCents, { cents: true })} of premium` : ''}${f.fuel.kwhCents ? `, and charging at ${money(f.fuel.kwhCents, { cents: true })} a kWh` : ''}, the Toronto area pump prices we use for fuel costs this week.`));
+      attributions.push('Fuel prices: the pump prices CarmaCars uses, updated by staff');
+    }
     let table: DepthTable | undefined;
     const lists = (x.pois ?? []).filter((q) => q.km <= 5 && q.kind !== 'parking_lot' && q.kind !== 'street_parking');
     if (lists.length) {
@@ -235,6 +260,13 @@ export function buildDepth(x: DepthInput): DepthText {
     if (cost) {
       paras.push(T(`Estimated cost to drive 100 km: ${money(cost.cents, { cents: true })} (${cost.basis}, the price set on this site).`));
       faq.push({ question: `How much does it cost to drive the ${v.name} 100 km?`, answer: T(`About ${money(cost.cents, { cents: true })}: ${cost.basis}.`) });
+    }
+    // r50 hotfix 2 (the owner): a full tank or a full charge at the site's fuel prices, and how far it goes, only from real figures
+    const tank = Number(s.one('tank_l')?.value ?? NaN), batt = Number(s.one('battery_kwh')?.value ?? NaN), range = Number(s.one('range_km')?.value ?? NaN);
+    const full = fullTank({ tankL: tank, batteryKwh: batt, l100, kwh100: kwh, rangeKm: range, premium: v.premium }, f.fuel);
+    if (full) {
+      paras.push(T(`${full.what} of the ${v.name}: about ${money(full.cents, { cents: true })} (${full.basis})${full.rangeKm ? `, for about ${full.rangeKm.toLocaleString('en-CA')} km${full.rangeFrom}` : ''}.`));
+      faq.push({ question: `How much does it cost to ${full.ev ? 'charge' : 'fill up'} the ${v.name}?`, answer: T(`About ${money(full.cents, { cents: true })} for ${full.what.toLowerCase()}: ${full.basis}.${full.rangeKm ? ` It goes about ${full.rangeKm.toLocaleString('en-CA')} km${full.rangeFrom}.` : ''}`) });
     }
     const colours = s.many('paint_colour');
     if (colours.length) paras.push(T(`Factory paint colours: ${list(colours.map((c) => (c.code ? `${c.value} (${c.code})` : c.value)))}.`));

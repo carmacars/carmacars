@@ -100,9 +100,18 @@ jobs:
             printf 'select app.gsc_search_store($%s$%s$%s$::jsonb) n' "$tag" "$(cat "$SRCH")" "$tag" > "$RUNNER_TEMP/srch.sql"
             "$sb" sql-file "$RUNNER_TEMP/srch.sql" >/dev/null && echo "::notice title=gsc search::stored (app.gsc_search_daily)" || echo "::warning title=gsc search::not stored (migration 1507 not applied yet?)"
           fi
+          # release 35 gaps (1860): Search Analytics by query and by page (the SEO page); r50 hotfix 2: read before the coverage
+          # sample, which checks the pages Google shows on the live site (PAGES)
+          PGS="$RUNNER_TEMP/gsc-pages.json"
+          AT="$AT" SITE="$SITE" OUT="$PGS" node web/scripts/gsc-pages.mjs || echo "::warning title=gsc pages::the query and page figures were not read"
+          if [ -s "$PGS" ]; then
+            tag="j$(openssl rand -hex 6)"
+            printf 'select app.gsc_pages_store($%s$%s$%s$::jsonb) n' "$tag" "$(cat "$PGS")" "$tag" > "$RUNNER_TEMP/pgs.sql"
+            "$sb" sql-file "$RUNNER_TEMP/pgs.sql" >/dev/null && echo "::notice title=gsc pages::stored (app.gsc_page_query)" || echo "::warning title=gsc pages::not stored (migration 1860 not applied yet?)"
+          fi
           # release 28 (0564): the index coverage report, a sample inspected with the URL Inspection API (2,000 a day; 150 a run)
           COV="$RUNNER_TEMP/coverage.json"
-          AT="$AT" SITE="$SITE" OUT="$COV" INSPECT="${INSPECT:-150}" node --experimental-strip-types --no-warnings web/scripts/gsc-coverage.mjs || echo "::warning title=coverage::the coverage sample did not finish"
+          AT="$AT" SITE="$SITE" OUT="$COV" PAGES="$PGS" INSPECT="${INSPECT:-150}" node --experimental-strip-types --no-warnings web/scripts/gsc-coverage.mjs || echo "::warning title=coverage::the coverage sample did not finish"
           if [ -s "$COV" ]; then
             tag="j$(openssl rand -hex 6)"
             printf 'select app.gsc_coverage_store($%s$%s$%s$::jsonb) n' "$tag" "$(cat "$COV")" "$tag" > "$RUNNER_TEMP/cov.sql"
@@ -113,14 +122,6 @@ jobs:
             tag="j$(openssl rand -hex 6)"
             printf 'select app.gsc_urls_store($%s$%s$%s$::jsonb) n' "$tag" "$(jq -c '{urls: .urls}' "$COV")" "$tag" > "$RUNNER_TEMP/urls.sql"
             "$sb" sql-file "$RUNNER_TEMP/urls.sql" >/dev/null && echo "::notice title=coverage::inspected pages stored (app.gsc_url_inspection)" || echo "::warning title=coverage::inspected pages not stored (migration 1860 not applied yet?)"
-          fi
-          # release 35 gaps (1860): Search Analytics by query and by page (the SEO page)
-          PGS="$RUNNER_TEMP/gsc-pages.json"
-          AT="$AT" SITE="$SITE" OUT="$PGS" node web/scripts/gsc-pages.mjs || echo "::warning title=gsc pages::the query and page figures were not read"
-          if [ -s "$PGS" ]; then
-            tag="j$(openssl rand -hex 6)"
-            printf 'select app.gsc_pages_store($%s$%s$%s$::jsonb) n' "$tag" "$(cat "$PGS")" "$tag" > "$RUNNER_TEMP/pgs.sql"
-            "$sb" sql-file "$RUNNER_TEMP/pgs.sql" >/dev/null && echo "::notice title=gsc pages::stored (app.gsc_page_query)" || echo "::warning title=gsc pages::not stored (migration 1860 not applied yet?)"
           fi
 
       - name: IndexNow (on, key file, sweep; then batches from here)
@@ -147,6 +148,23 @@ jobs:
             # the claim holds up to 10,000 paths: keep it in a file (as an argument it passes the kernel's limit, exit 126)
             "$sb" sql "select app.server_indexnow_claim(1000) c" | jq '.[0].c' > "$RUNNER_TEMP/claim.json"
             n=$(jq '.paths | length' "$RUNNER_TEMP/claim.json")
+            if [ "$n" = 0 ] && [ "$(jq -r '.why // ""' "$RUNNER_TEMP/claim.json")" = "changed pages first" ]; then
+              # r50 hotfix 2 (5165): the changed pages from here too (the site's search job had stopped sending them), answered
+              # as the job answers them (app.server_indexnow_sent)
+              "$sb" sql "select app.server_indexnow_changed_claim(1000) c" | jq '.[0].c' > "$RUNNER_TEMP/changed.json"
+              m=$(jq '.paths | length' "$RUNNER_TEMP/changed.json")
+              if [ "$m" = 0 ]; then echo "::notice title=indexnow::no changed page may go now ($(jq -r '.why // ""' "$RUNNER_TEMP/changed.json"))"; break; fi
+              jq --arg h "$host" --arg k "$KEY" --arg b "$BASE" '{host: $h, key: $k, keyLocation: ($b + "/" + $k + ".txt"), urlList: [.paths[] | $b + .]}' "$RUNNER_TEMP/changed.json" > "$RUNNER_TEMP/in.json"
+              code=$(curl -sS -o "$RUNNER_TEMP/in.out" -D "$RUNNER_TEMP/in.h" -w '%{http_code}' -m 60 -X POST https://www.bing.com/indexnow -H 'content-type: application/json; charset=utf-8' --data-binary @"$RUNNER_TEMP/in.json" || echo 0)
+              ra=$(grep -i '^retry-after:' "$RUNNER_TEMP/in.h" 2>/dev/null | tr -dc '0-9' || true)
+              err=$(head -c 200 "$RUNNER_TEMP/in.out" 2>/dev/null | tr -d '\r' || true)
+              jq -n --slurpfile cs "$RUNNER_TEMP/changed.json" --argjson s "$code" --arg e "$err" --arg ra "$ra" '{paths: $cs[0].paths, status: $s, error: (if $s >= 200 and $s < 300 then null else $e end), retry_after: (if $ra == "" then null else ($ra | tonumber) end)}' > "$RUNNER_TEMP/sent.json"
+              tag="j$(openssl rand -hex 6)"
+              printf 'select app.server_indexnow_sent($%s$%s$%s$::jsonb) r' "$tag" "$(cat "$RUNNER_TEMP/sent.json")" "$tag" > "$RUNNER_TEMP/sent.sql"
+              "$sb" sql-file "$RUNNER_TEMP/sent.sql" >/dev/null
+              if [ "$code" -lt 200 ] || [ "$code" -ge 300 ]; then echo "::warning title=indexnow::Bing answered $code to the changed pages ($err)"; break; fi
+              sent=$((sent + m)); continue
+            fi
             if [ "$n" = 0 ]; then echo "::notice title=indexnow::nothing to send now ($(jq -r '.why // ""' "$RUNNER_TEMP/claim.json"))"; break; fi
             jq --arg h "$host" --arg k "$KEY" --arg b "$BASE" '{host: $h, key: $k, keyLocation: ($b + "/" + $k + ".txt"), urlList: [.paths[] | $b + .]}' "$RUNNER_TEMP/claim.json" > "$RUNNER_TEMP/in.json"
             code=$(curl -sS -o "$RUNNER_TEMP/in.out" -D "$RUNNER_TEMP/in.h" -w '%{http_code}' -m 60 -X POST https://www.bing.com/indexnow -H 'content-type: application/json; charset=utf-8' --data-binary @"$RUNNER_TEMP/in.json" || echo 0)

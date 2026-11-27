@@ -16,6 +16,7 @@
 // A batch the network lost is sent again once; a heartbeat that finds no session sends the page view again.
 import { beatMs, createHeartbeat } from './heartbeat';
 import { takeWaitingTracks } from '@/lib/track/emit';
+import { inApp } from '@/lib/native/bridge';
 
 type Ev = { k: string; path?: string; slug?: string; bn?: string; m?: string; ms?: number; d?: Record<string, string> };
 export interface BeaconReply { ok?: boolean; invite?: { token: string; number: string; message: string; from?: string } | null; cfg?: { chat: boolean; greet_after: number; greet_text: string; beat?: number };
@@ -78,7 +79,9 @@ function batch(events: Ev[]) {
   for (const k of ['source', 'medium', 'campaign', 'term', 'content']) { const v = q.get('utm_' + k); if (v) utm[k] = v; }
   let ad: '1' | undefined;
   try { ad = sessionStorage.getItem(AD) === '1' ? '1' : undefined; } catch { /* none */ }
-  return { sid: sessionId(), vid: visitorId(), consent: analyticsOn() ? 'analytics' : 'essential', ref, landing: location.pathname, utm, ad, events };
+  // r50 hotfix 2 (5162): the iPhone and Android app's shell marks its visits, for the monthly active users of the app
+  const app: '1' | undefined = inApp() ? '1' : undefined;
+  return { sid: sessionId(), vid: visitorId(), consent: analyticsOn() ? 'analytics' : 'essential', ref, landing: location.pathname, utm, ad, app, events };
 }
 
 /** Without analytics consent, only what the privacy policy allows leaves the browser. */

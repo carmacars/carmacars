@@ -350,3 +350,17 @@ test('r50: list_company_documents reads (admin:read); company_document_upload an
   assert.match(SQL5060, /app\.api_key_check\(p_hash, 'admin:write', p_tool, a - 'pdf_base64' - 'body_md' - 'fields', p_client\)/);
   assert.ok(!/search_path = public, app\s*as/.test(SQL5060), 'search_path ends with pg_temp');
 });
+
+// r50 hotfix 2 (5160): the searches, read only
+const SQL5160 = readFileSync(new URL('../../../../supabase/migrations/5160_r50h2_search_console.sql', import.meta.url), 'utf8');
+test('r50 hotfix 2: search_console_queries is read only (admin:read) and runs in the database', async () => {
+  const { GSC_TOOLS } = await import('./tools.ts');
+  assert.deepEqual(GSC_TOOLS.map((t) => t.name), ['search_console_queries']);
+  const t = GSC_TOOLS[0]!;
+  assert.ok(t.readOnly && t.scope === 'admin:read' && !t.destructive && TOOLS.includes(t) && toolsFor(['admin:read']).includes(t));
+  assert.ok(!toolsFor(['bookings:read', 'owners:read']).includes(t));
+  assert.equal(TOOLS.filter((x) => x.name === 'search_console_queries').length, 1);
+  assert.match(SQL5160, /app\.api_call_pre5160\(p_hash, p_tool, p_args, p_client\); end if;/);
+  assert.match(SQL5160, /app\.api_key_check\(p_hash, 'admin:read', p_tool/);
+  assert.ok(!/search_path = public, app\s*as/.test(SQL5160), 'search_path ends with pg_temp');
+});
