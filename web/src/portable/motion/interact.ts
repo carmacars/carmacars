@@ -79,7 +79,12 @@ function hold(b: HTMLElement) {
   watch.observe(b, { subtree: true, childList: true, characterData: true });
   scope.addEventListener('input', edit, true); scope.addEventListener('change', edit, true);
   holds.set(b, () => { watch.disconnect(); scope.removeEventListener('input', edit, true); scope.removeEventListener('change', edit, true); });
-  if (!b.hasAttribute('aria-disabled')) { b.setAttribute('aria-disabled', 'true'); b.dataset.moHeld = '1'; }
+  // the word stays, but the button takes presses again after a moment (a held, disabled button blocked the next real action:
+  // a second rental, Restore after Retire; CI run 46089920559): only an instant double press is swallowed
+  if (!b.hasAttribute('aria-disabled')) {
+    b.setAttribute('aria-disabled', 'true'); b.dataset.moHeld = '1';
+    window.setTimeout(() => { if (b.dataset.moHeld) { b.removeAttribute('aria-disabled'); delete b.dataset.moHeld; } }, 1200);
+  }
 }
 /** A button's answer: ok shows the word ("Saved") and a tick, and keeps it (see above); not ok nudges it and rings it
  *  in the error colour. A button that is gone (its dialog closed) hands the morph to the button that opened the dialog. */
