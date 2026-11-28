@@ -36,7 +36,8 @@ delete from app.gsc_page_query where key like '%zr5h%';
 
 -- ================================================================ 5161: interview reminders
 update program_settings set hiring_ai_interviews = true, hiring_ai_interview_days = 7, hiring_ai_reminder_hours = '{24,72}', hiring_ai_reminder_last_hours = 24,
-       hiring_ai_self_renewals = 3, hiring_sms_reminders = true, phone_enabled = true;
+       hiring_ai_self_renewals = 3, hiring_sms_reminders = true, phone_enabled = true,
+       hiring_refer_va_to_sales = false;  -- on (left by another file), the hiring job at the end refers these invited VA applicants to Sales (REQ-117)
 create or replace function test.zr5h_app(p_k text, p_phone text) returns job_applications language sql as $$
   insert into job_applications (role_id, status, full_name, email, phone, score, work_mode, invited_at)
   select r.id, 'invited', initcap(p_k) || ' Tester', p_k || '@zr5h.example.test', p_phone, 90, r.work_mode, now()

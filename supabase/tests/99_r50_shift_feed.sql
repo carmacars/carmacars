@@ -78,7 +78,9 @@ select app.shift_feed_set(test.id('sfd_field'), '{"scope":"mine","action":"creat
 create temp table sfd_mine as select public.server_shift_feed(app.shift_feed_state(test.id('sfd_field')) #>> '{feeds,0,token}') as t;
 select test.ok('their claimed shift is in it', (select t from sfd_mine) like '%UID:shift-' || test.id('sfd_plan1') || '@carmacars.ca%');
 select test.ok('the open shift is not', (select t from sfd_mine) not like '%Field shift: Open%' and (select count(*) from regexp_matches((select t from sfd_mine), 'UID:shift-', 'g')) = 1); -- 5065: the townhalls are on it too
-select test.ok('the tasks given to them', (select t from sfd_mine) like '%Tasks given to you: 1%');
+-- a job another file left (unassigned, tomorrow 10:00 to 14:00 Toronto) joins this shift when it is made: count, do not assume 1 (REQ-117)
+select test.ok('the tasks given to them', (select t from sfd_mine) like '%Tasks given to you: ' || (select count(*) from field_jobs j where j.shift_slot_id = test.id('sfd_slot1') and j.assigned_to = test.id('sfd_field') and j.status <> 'cancelled') || '%'
+  and exists (select 1 from field_jobs j where j.shift_slot_id = test.id('sfd_slot1') and j.assigned_to = test.id('sfd_field') and j.status <> 'cancelled'));
 select test.ok('the link is My shifts', replace((select t from sfd_mine), E'\r\n ', '') like '%URL:https://carmacars.ca/staff/field/shifts%');
 select app.shift_feed_set(test.id('sfd_field2'), '{"scope":"mine","action":"create"}');
 select test.ok('someone else''s feed has no event', public.server_shift_feed(app.shift_feed_state(test.id('sfd_field2')) #>> '{feeds,0,token}') not like '%UID:shift-%'); -- 5065: only the townhalls
