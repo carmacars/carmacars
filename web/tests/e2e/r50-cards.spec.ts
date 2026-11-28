@@ -173,6 +173,9 @@ test.describe('a phone', () => {
     expect(page.url()).toMatch(/\/cars$/);
     // a vertical scroll on the photo scrolls the page, not the photos
     // (the card sits mid-screen after scrollIntoView: a short list leaves no room below it, so the finger goes the way the page can move)
+    // the scroll settles first (scrollIntoView and late images move it): a finger on a moving page is not a pan
+    let last = -1;
+    await expect.poll(async () => { const y = await page.evaluate(() => scrollY); const still = y === last; last = y; return still; }, { intervals: [150], timeout: 5000 }).toBe(true);
     const y0 = await page.evaluate(() => scrollY);
     const room = await page.evaluate(() => document.documentElement.scrollHeight - innerHeight - scrollY);
     const up = room < 120;

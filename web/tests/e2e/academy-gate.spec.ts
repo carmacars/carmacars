@@ -66,8 +66,9 @@ test('A new hire is held on Welcome until the academy is passed; an Admin waives
     for (const k of ['welcome', 'profile', 'academy', 'tasks']) await expect(w.getByTestId(`welcome-step-${k}`)).toBeVisible();
     await expect(w.getByTestId('welcome-step-academy')).toHaveAttribute('data-done', 'false');
     await check(page, 'staff welcome');
-    await w.getByTestId('welcome-step-academy').getByRole('link', { name: 'Open the academy' }).click();
-    await page.waitForURL(/\/staff\/academy$/);
+    // REQ-135 (5197): the agreement is not signed yet, so the academy step's one button signs it first
+    await expect(w.getByTestId('welcome-step-academy').getByRole('button', { name: 'Sign my agreement first' })).toBeVisible();
+    await page.goto('/staff/academy', { waitUntil: 'networkidle' });
     await expect(page.getByTestId('academy-locked')).toBeVisible();
     await page.goto('/staff/profile', { waitUntil: 'networkidle' });
     expect(new URL(page.url()).pathname).toBe('/staff/profile');

@@ -158,7 +158,7 @@ function Quiz({ s, base, wait, setWait, onPassed }: { s: SectionView; base: stri
           <span>{res.passed ? (s.next ? 'The next section is open.' : 'You finished this path.') : `You need ${pct(res.pass_bps)}. Go over the lessons again. ${res.quiz?.message ?? ''}`}</span>
           <span className="row" style={{ gap: 'var(--s-2)', flexWrap: 'wrap' }}>
             {/* 5203 (REQ-134): one press starts the next try once the wait is over (it was Try again later, then Start the quiz) */}
-            {!res.passed && <button type="button" className="btn btn--sm btn--primary" disabled={busy || !ready} aria-describedby="quiz-retry-hint" onClick={() => { setRes(null); setFix(null); setAnswers({}); void start(); }} data-testid="quiz-retry">{ready ? 'Try again' : `Try again in ${left}`}</button>}
+            {!res.passed && <button type="button" className="btn btn--sm btn--primary" disabled={busy || !ready} aria-describedby="quiz-retry-hint" onClick={() => { setRes(null); setFix(null); setQuiz(null); setAnswers({}); void start(); }} data-testid="quiz-retry">{ready ? 'Try again' : `Try again in ${left}`}</button>}
             {!res.passed && <span id="quiz-retry-hint" className="small muted">{ready ? 'Go over the lessons first.' : 'Wait for the minute to pass, then press Try again.'}</span>}
             {res.passed && s.next && <Link prefetch={false} className="btn btn--sm btn--primary" href={`${base}/${s.path}/${s.next}`} data-testid="quiz-next">Next section</Link>}
             <Link prefetch={false} className="btn btn--sm btn--quiet" href={base}>Back to my paths</Link>
