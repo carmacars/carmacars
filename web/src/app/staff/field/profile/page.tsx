@@ -1,3 +1,4 @@
+import { MyLine } from '@/features/phone/MyLine';
 import Link from '@/components/Link';
 import { pageMeta } from '@/features/seo/meta';
 import { door, requireStaff } from '@/server/door';
@@ -54,6 +55,7 @@ export default async function Profile() {
         <p className="small">Tick the times you can usually work. Fleet sees it when they publish shifts and asks the people who are free.</p>
         <AvailabilityGrid value={avail} testId="profile-availability" /></section>
       <ShiftFeedCard userId={user.id} call="field_read" className="fd-card stack" />
+      <MyLine userId={user.id} call="field_read" className="fd-card stack" />
       <section className="fd-card" aria-labelledby="pay-t"><h2 className="d4" id="pay-t">Pay details</h2>
         <p className="small">Your legal name, SIN, void cheque and how you are paid are on <Link prefetch={false} className="link" href="/staff/field/pay#pay-details">My pay</Link>.</p></section>
       <section className="fd-card stack" aria-labelledby="sales-t" data-testid="sales-optin"><h2 className="d4" id="sales-t">Sales</h2>

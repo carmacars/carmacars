@@ -20,6 +20,8 @@ function cfg() {
   return { accountSid: t(e.TWILIO_ACCOUNT_SID), apiKey: t(e.TWILIO_API_KEY), apiSecret: t(e.TWILIO_API_SECRET), callerId: callerRaw ? (toE164(callerRaw) ?? callerRaw) : undefined,
     authToken: t(e.TWILIO_AUTH_TOKEN), appSid: t(e.TWILIO_TWIML_APP_SID), base: e.NEXT_PUBLIC_APP_URL.replace(/\/$/, '') };
 }
+/** R51 (5301): the same values for the staff lines (web/src/server/staff-lines.ts). */
+export const twilioConfig = cfg;
 const ourCallerId = (c: ReturnType<typeof cfg>, fromDb: string | null | undefined) => c.callerId || toE164(fromDb) || null;
 
 export function twilioState(): { ready: true } | { ready: false; why: string } {
@@ -356,11 +358,13 @@ export async function incomingWebhook(req: Request): Promise<Response> {
   const params = await formOf(req);
   if (!params || !(await signed(req, params))) return xmlResponse(hangupTwiml(), 403);
   const c = cfg();
-  const ring = (await rpc('server_voice_ring', { p: { from: params.From ?? null } as unknown as Json }, SR).catch(() => null)) as unknown as
-    { enabled?: boolean; ring?: Array<{ identity: string; who: string }>; seconds?: number; forward_to?: string | null; message?: string | null; caller_id?: string | null; record?: boolean } | null;
+  const ring = (await rpc('server_voice_ring', { p: { from: params.From ?? null, to: params.To ?? params.Called ?? null } as unknown as Json }, SR).catch(() => null)) as unknown as
+    { enabled?: boolean; line?: boolean; ring?: Array<{ identity: string; who: string }>; seconds?: number; forward_to?: string | null; message?: string | null; caller_id?: string | null; record?: boolean } | null;
   await logIncoming(params, 'call.ringing');
   if (!ring?.enabled || !ring.ring?.length) {
     await logIncoming(params, 'call.missed', { completed_at: new Date().toISOString(), duration: 0 });
+    // R51 (5301): a staff member's own line: that person hears of the missed call; never forwarded to anyone else
+    if (ring?.line) { await lineMissed(params); return xmlResponse(hangupTwiml(ring.message ?? undefined)); }
     return xmlResponse(noAnswerTwiml({ forwardTo: toE164(ring?.forward_to), callerId: params.From ?? null, message: ring?.message, timeoutSeconds: ring?.seconds }));
   }
   // r48 (2995): recorded (Program setting phone_twilio_record) and the answered browser says who took it
@@ -378,8 +382,18 @@ export async function ringEndWebhook(req: Request): Promise<Response> {
     return xmlResponse(hangupTwiml());
   }
   await logIncoming(params, 'call.missed', { completed_at: new Date().toISOString(), duration: 0 });
+  // R51 (5301): a staff line nobody answered: its message, and that person hears of it
+  const line = await lineMissed(params);
+  if (line?.line) return xmlResponse(hangupTwiml(line.message ?? undefined));
   const v = await voiceSettings();
   return xmlResponse(noAnswerTwiml({ forwardTo: toE164(v.forward_to), callerId: params.From ?? null, message: v.message, timeoutSeconds: v.seconds }));
+}
+
+/** R51 (5301): a call to a staff line that nobody took: the alert to that person; { line: false } for the business number. */
+async function lineMissed(params: Record<string, string>): Promise<{ line?: boolean; message?: string | null } | null> {
+  const to = params.To ?? params.Called ?? null;
+  if (!to) return null;
+  return (await rpc('server_staff_line_missed', { p: { to, from: params.From ?? null, call_sid: params.CallSid ?? null } as unknown as Json }, SR).catch(() => null)) as unknown as { line?: boolean; message?: string | null } | null;
 }
 
 /** r48 (2995): a browser answered a call to the business number (the Client's answered callback): the call is answered

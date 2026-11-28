@@ -109,6 +109,15 @@ export async function POST(req: Request) {
   const w = await who();
   if (!w) return NextResponse.json({ error: 'Sign in first' }, { status: 401, headers: H });
   const b = (await req.json().catch(() => null)) as ({ action?: string } & Record<string, unknown>) | null;
+  // R51 (5301, REQ-132): a staff member's own line. An Admin only, as themself: the price first, then the purchase they confirmed
+  if (b?.action === 'line_quote' || b?.action === 'line_buy' || b?.action === 'line_release') {
+    if (!w.admin || (await viewAs())) return NextResponse.json({ error: 'Only an Admin, as themself, manages staff lines' }, { status: 403, headers: H });
+    const who = String(b.user_id ?? '');
+    if (!/^[0-9a-f-]{36}$/i.test(who)) return NextResponse.json({ error: 'Choose a staff member' }, { status: 400, headers: H });
+    const { lineBuy, lineQuote, lineRelease } = await import('@/server/staff-lines');
+    const r = b.action === 'line_quote' ? await lineQuote(w.user.id, who) : b.action === 'line_buy' ? await lineBuy(w.user.id, who, String(b.confirm ?? '')) : await lineRelease(w.user.id, who);
+    return NextResponse.json(r, { headers: H });
+  }
   if (!b?.action || !ACTS.has(b.action) || (!w.admin && !w.va && !BUTTONS.has(b.action))) return NextResponse.json({ error: 'Unknown action' }, { status: 400, headers: H });
   const { action, ...p } = b;
   const d = staffDoor(w.user.id, w.admin, w.aal);
