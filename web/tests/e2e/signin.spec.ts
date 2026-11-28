@@ -412,7 +412,7 @@ test('view as matches the person\'s own sign-in: a Sales assistant and a custome
       // r51 (3950): Guide me keeps the person's own progress, so it is not shown while viewing as them either
       for (const t of Array.from(document.querySelectorAll('[role="timer"], .pu-timer, .ad-wait, time, [data-testid^="guide-banner"], [data-testid="townhall-link"], [data-testid^="bug-report"], [data-testid="voice-launch"], .gm-anchor'))) t.remove();
       const kinds = new Set(Array.from(document.querySelectorAll('.ad__main [data-testid]')).map((e) => e.getAttribute('data-testid')!)
-        .filter((t) => !t.startsWith('guide-banner') && t !== 'sort-select').map((t) => t.replace(/^(va-reply|va-licence|task|booking|row|car)-.*$/, '$1-*')));
+        .filter((t) => !t.startsWith('guide-banner') && t !== 'sort-select' && t !== 'va-stat-overdue')   // the overdue count shows only while some task is overdue: other tests add and close tasks.map((t) => t.replace(/^(va-reply|va-licence|task|booking|row|car)-.*$/, '$1-*')));
       // the sort box of a list shows only once the list has two rows (r43), which other tests change while this one runs: left out
       // a count badge on the menu shows only while the count is above 0 (other tests add and close tasks): left out
       return { rail: text('.ad__rail').join(' | ').split(' ').filter((w) => w !== '#').join(' '), headings: text('.ad__main h1, .ad__main h2').map((h) => h.replace(/^Next up: .*$/, 'Next up')).join(' | '), tests: [...kinds].sort().join(',') };

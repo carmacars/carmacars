@@ -251,7 +251,9 @@ select test.eq('match: a name alone (no city, no car in common) stays a suggesti
 insert into leads (id, kind, name, email, source, created_at) values (test.id('lead:rss_w1'), 'contact', 'Rss Wade Kim', 'rss_wade@example.test', 'web', now() - interval '4 days');
 begin;
 insert into leads (id, kind, name, email, source) values (test.id('lead:rss_w2'), 'phone', 'Rss Wade Kim', 'rss_wade@example.test', 'missed_call');
+select set_config('app.lead_admin_move', 'on', false);   -- the cap on held leads depends on what other files left (REQ-117)
 insert into lead_claims (lead_id, claimed_by, expires_at, cap_at) values (test.id('lead:rss_w2'), test.id('rss_sam'), now() + interval '2 hours', now() + interval '1 day');
+select set_config('app.lead_admin_move', '', false);
 commit;
 select test.eq('work: the newer lead with a live claim is kept, the older one without work folds into it',
   (select merged_into from leads where id = test.id('lead:rss_w1')), test.id('lead:rss_w2'));
@@ -274,7 +276,9 @@ select test.ok('lead gen: no credit on the merged lead', not exists (select 1 fr
 -- a handled lead written to again: merged and reopened, same salesperson, told
 insert into leads (id, kind, name, email, source, created_at) values (test.id('lead:rss_r1'), 'contact', 'Rss Rae Holt', 'rss_rae@example.test', 'web', now() - interval '6 days');
 update leads set handled_at = now() - interval '5 days', handled_by = test.id('rss_sam') where id = test.id('lead:rss_r1');
+select set_config('app.lead_admin_move', 'on', false);   -- the cap on held leads depends on what other files left (REQ-117)
 insert into lead_claims (lead_id, claimed_by, expires_at, cap_at) values (test.id('lead:rss_r1'), test.id('rss_sam'), now() + interval '2 hours', now() + interval '1 day');
+select set_config('app.lead_admin_move', '', false);
 insert into leads (id, kind, name, email, message, source) values (test.id('lead:rss_r2'), 'contact', 'Rss Rae Holt', 'rss_rae@example.test', 'Back again for March', 'web');
 select test.eq('reopen: the new enquiry merges into the handled lead', (select merged_into from leads where id = test.id('lead:rss_r2')), test.id('lead:rss_r1'));
 select test.eq('reopen: the lead is New again with the same salesperson',
@@ -353,16 +357,20 @@ select test.eq('text filter: dotted, prefixed and dollar-signed 10-digit runs ar
 -- reopen keeps a Contacted or Qualified status
 insert into leads (id, kind, name, email, source, created_at) values (test.id('lead:rss_q1'), 'contact', 'Rss Quin Ash', 'rss_quin@example.test', 'web', now() - interval '6 days');
 update leads set status = 'qualified', handled_at = now() - interval '5 days', handled_by = test.id('rss_sam') where id = test.id('lead:rss_q1');
+select set_config('app.lead_admin_move', 'on', false);   -- the cap on held leads depends on what other files left (REQ-117)
 insert into lead_claims (lead_id, claimed_by, expires_at, cap_at) values (test.id('lead:rss_q1'), test.id('rss_sam'), now() + interval '2 hours', now() + interval '1 day');
+select set_config('app.lead_admin_move', '', false);
 insert into leads (id, kind, name, email, source) values (test.id('lead:rss_q2'), 'contact', 'Rss Quin Ash', 'rss_quin@example.test', 'web');
 select test.eq('reopen: a Qualified lead stays Qualified, handled no more',
   (select status || '/' || (handled_at is null) from leads where id = test.id('lead:rss_q1')), 'qualified/true');
 -- two live claims of different people: the manual merge waits, both claims kept
 insert into leads (id, kind, name, email, source, created_at) values (test.id('lead:rss_k1'), 'contact', 'Rss Kai Orr', 'rss_kai1@example.test', 'web', now() - interval '2 days');
 insert into leads (id, kind, name, email, source) values (test.id('lead:rss_k2'), 'contact', 'Rss Kai Orr', 'rss_kai2@example.test', 'web');
+select set_config('app.lead_admin_move', 'on', false);
 insert into lead_claims (lead_id, claimed_by, expires_at, cap_at) values
   (test.id('lead:rss_k1'), test.id('rss_sam'), now() + interval '2 hours', now() + interval '1 day'),
   (test.id('lead:rss_k2'), test.id('rss_eric'), now() + interval '2 hours', now() + interval '1 day');
+select set_config('app.lead_admin_move', '', false);
 select test.throws('merge: two live claims of different people are not merged',
   format($$select app.lead_merge(%L, %L, %L)$$, test.id('rss_admin'), test.id('lead:rss_k1'), test.id('lead:rss_k2')), '%different people%');
 select test.eq('merge: both claims are kept', (select count(*)::int from lead_claims where lead_id in (test.id('lead:rss_k1'), test.id('lead:rss_k2')) and expires_at > now()), 2);

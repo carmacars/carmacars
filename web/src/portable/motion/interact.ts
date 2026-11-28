@@ -67,22 +67,18 @@ function clearDone(b: HTMLElement) {
 function hold(b: HTMLElement) {
   holds.get(b)?.();
   const scope = scopeOf(b);
-  // a component answers while its button still reads "Saving" (aria-busy): the label to hold is the one it settles on
-  let label: string | null = b.hasAttribute('aria-busy') ? null : labelOf(b);
+  // the button may still wear its busy label ("Saving") when the answer arrives: its first idle label is the one to keep
+  const busy = () => b.getAttribute('aria-busy') === 'true' || (b as HTMLButtonElement).disabled;
+  let label: string | null = busy() ? null : labelOf(b);
   const edit = (e: Event) => { if (e.target instanceof Element && !b.contains(e.target)) clearDone(b); };
   const watch = new MutationObserver(() => {
     if (!b.isConnected) { clearDone(b); return; }
-    if (b.hasAttribute('aria-busy')) return;
-    const now = labelOf(b);
-    if (label === null) { label = now; return; }
-    if (now !== label) clearDone(b);
+    if (label === null) { if (!busy()) label = labelOf(b); return; }
+    if (labelOf(b) !== label) clearDone(b);
   });
   watch.observe(b, { subtree: true, childList: true, characterData: true });
   scope.addEventListener('input', edit, true); scope.addEventListener('change', edit, true);
-  // an error that shows in its scope after the "done" word was set takes the success back (a failure rings the button and leaves its label)
-  const errs = new MutationObserver(() => { if (b.isConnected && errorIn(b)) moResult(b, false); });
-  errs.observe(scope, { childList: true, subtree: true, attributes: true, attributeFilter: ['aria-invalid'] });
-  holds.set(b, () => { watch.disconnect(); errs.disconnect(); scope.removeEventListener('input', edit, true); scope.removeEventListener('change', edit, true); });
+  holds.set(b, () => { watch.disconnect(); scope.removeEventListener('input', edit, true); scope.removeEventListener('change', edit, true); });
   if (!b.hasAttribute('aria-disabled')) { b.setAttribute('aria-disabled', 'true'); b.dataset.moHeld = '1'; }
 }
 /** A button's answer: ok shows the word ("Saved") and a tick, and keeps it (see above); not ok nudges it and rings it
@@ -119,7 +115,9 @@ function errorsNow(): Set<string> {
   return out;
 }
 /** An error shown in the button's own form or section: the same refusal again counts as a failure, never a success. */
-const errorIn = (b: Element) => [...scopeOf(b).querySelectorAll(ERR)].some((e) => shown(e) && !e.matches('.alert--warn, .alert--info'));
+// A form that refuses on the page (a long form whose error box sits in another section than its Submit button) counts too:
+// an error box of the whole main area shows the press did not work (CI run 46080560444: Add the rental said Added, then locked).
+const errorIn = (b: Element) => [...scopeOf(b).querySelectorAll(ERR), ...(b.closest('main')?.querySelectorAll('.alert--error') ?? [])].some((e) => shown(e) && !e.matches('.alert--warn, .alert--info'));
 
 /** Starts the feedback listeners; returns the function that stops them. */
 export function startFeedback(hooks: FeedbackHooks = {}): () => void {
@@ -150,11 +148,7 @@ export function startFeedback(hooks: FeedbackHooks = {}): () => void {
 
   // ---------------------------------------------------------------- server requests: busy, then the answer
   let active = 0;
-  let run: { el: HTMLElement; before: Set<string>; busy: boolean; at: number } | null = null;
-  // a field changed after the press and before its answer: the answer is about the old form, so no "Done" is held on the button
-  let editedAt = 0;
-  const edited = (e: Event) => { const t = e.target; if (t instanceof Element && !t.closest(BTN)) editedAt = Date.now(); };
-  on(document, 'input', edited, true); on(document, 'change', edited, true);
+  let run: { el: HTMLElement; before: Set<string>; busy: boolean } | null = null;
   on(window, 'mo:action', (e) => {
     const phase = (e as CustomEvent<{ phase?: string }>).detail?.phase;
     if (phase === 'start') {
@@ -164,7 +158,7 @@ export function startFeedback(hooks: FeedbackHooks = {}): () => void {
       if (el.closest('[data-mo-explicit]')) return;
       const busy = !el.hasAttribute('aria-busy');
       if (busy) { el.setAttribute('aria-busy', 'true'); el.setAttribute('data-bl-busy', ''); el.setAttribute('data-mo-busy', ''); }
-      run = { el, before: errorsNow(), busy, at: Date.now() };
+      run = { el, before: errorsNow(), busy };
     } else if (phase === 'end') {
       active = Math.max(0, active - 1);
       if (active || !run) return;
@@ -176,7 +170,6 @@ export function startFeedback(hooks: FeedbackHooks = {}): () => void {
         const now = errorsNow();
         const failed = [...now].some((k) => !r.before.has(k)) || (r.el.isConnected && errorIn(r.el));
         if (failed) { moResult(r.el, false); const code = r.el.closest('form, [role="dialog"], dialog')?.querySelector('input[autocomplete="one-time-code"]'); if (code) nudge(code); return; }
-        if (editedAt > r.at) return;
         const w = doneWord(labelOf(r.el));
         if (!w) return;
         moResult(r.el, true, w);
