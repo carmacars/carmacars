@@ -1,4 +1,4 @@
--- 5307 (R51 staff, REQ-136; docs/changes/2026-11-27-r51-staff.md): emails to insurers that their mail server refuses.
+-- 5204 (R51 staff, REQ-136; docs/changes/2026-11-27-r51-staff.md): emails to insurers that their mail server refuses.
 -- The owner (Nov 27 18:22): "emails coming from blindspotcarrental @ carmacars are not getting passed insurance's firewall.
 -- can u fix that and make sure it doesnt happen again". Evidence (rent@'s Gmail, Nov 25): the insurer's Exchange answered
 -- 550 5.7.129 RestrictedToRecipientsPermission ("the sender isn't on the recipient's list of senders to accept mail from")
@@ -18,14 +18,14 @@
 --   5. REQ-137 (the owner, Nov 27 18:43: "DO NOT SEND IT FROM RENT@CARMACARS.CA"): no insurer email has rent@carmacars.ca as its
 --      From or reply-to, in the catalogue, the reply-to rules or a queued email; the database refuses it (and the build check
 --      web/src/features/insurance/insurer-sender.test.ts reads the catalogue and the templates).
--- No applied migration is edited: insurer_rental_json is wrapped (_pre5307); admin_save_pre0780 is patched in place.
+-- No applied migration is edited: insurer_rental_json is wrapped (_pre5204); admin_save_pre0780 is patched in place.
 set local check_function_bodies = off;
 
 create function pg_temp.patch_fn(p_sig regprocedure, p_old text, p_new text) returns void
 language plpgsql as $$
 declare d text := pg_get_functiondef(p_sig);
 begin
-  if position(p_old in d) = 0 then raise exception '5307: the text to change was not found in %: %', p_sig, left(p_old, 160); end if;
+  if position(p_old in d) = 0 then raise exception '5204: the text to change was not found in %: %', p_sig, left(p_old, 160); end if;
   execute replace(d, p_old, p_new);
 end $$;
 create function pg_temp.copy_grants(p_new regprocedure, p_old regprocedure) returns void
@@ -42,12 +42,12 @@ end $$;
 alter table insurers
   add column if not exists claims_email text check (claims_email is null or claims_email ~ '^[^@\s]+@[^@\s]+\.[^@\s]+$'),
   add column if not exists claims_phone text;
-comment on column insurers.claims_email is 'Insurer emails (5307): the general claims email. A bounced invoice or estimate goes again to it, once, when it is another address.';
+comment on column insurers.claims_email is 'Insurer emails (5204): the general claims email. A bounced invoice or estimate goes again to it, once, when it is another address.';
 -- Settings, Insurers saves them (the columns an Admin may write)
 select pg_temp.patch_fn('app.admin_save_pre0780(uuid,text,jsonb)'::regprocedure,
   $o$when 'insurers' then array['name', 'billing_contact_name', 'billing_email', 'billing_phone', 'billing_address', 'notes', 'is_active']$o$,
   $n$when 'insurers' then array['name', 'billing_contact_name', 'billing_email', 'billing_phone', 'claims_email', 'claims_phone', 'billing_address', 'notes', 'is_active']$n$);
-comment on column insurers.claims_phone is 'Insurer emails (5307): the general claims phone, shown on the To do of a bounced email.';
+comment on column insurers.claims_phone is 'Insurer emails (5204): the general claims phone, shown on the To do of a bounced email.';
 
 alter table insurer_invoice_versions
   add column if not exists bounced_at timestamptz,
@@ -60,8 +60,8 @@ begin
   if tg_op = 'UPDATE' and (to_jsonb(new) - array['bounced_at', 'bounce_reason', 'fallback_to']) = (to_jsonb(old) - array['bounced_at', 'bounce_reason', 'fallback_to']) then return new; end if;
   raise exception 'A version sent to an insurer is never changed' using errcode = '23514';
 end $$;
-comment on column insurer_invoice_versions.bounced_at is 'Insurer emails (5307): the email of this version bounced (an NDR or a delivery report), with bounce_reason.';
-comment on column insurer_invoice_versions.fallback_to is 'Insurer emails (5307): the claims email this version was sent to again after the bounce.';
+comment on column insurer_invoice_versions.bounced_at is 'Insurer emails (5204): the email of this version bounced (an NDR or a delivery report), with bounce_reason.';
+comment on column insurer_invoice_versions.fallback_to is 'Insurer emails (5204): the claims email this version was sent to again after the bounce.';
 
 create table email_bounces (
   id          uuid primary key default gen_random_uuid(),
@@ -75,7 +75,7 @@ create table email_bounces (
 );
 create unique index email_bounces_once on email_bounces (outbox_id, lower(to_address)) where outbox_id is not null;
 create index email_bounces_outbox_idx on email_bounces (outbox_id);
-comment on table email_bounces is 'Insurer emails (5307): bounces read from NDRs and delivery reports, matched to the email we sent. Never suppresses the address.';
+comment on table email_bounces is 'Insurer emails (5204): bounces read from NDRs and delivery reports, matched to the email we sent. Never suppresses the address.';
 alter table email_bounces enable row level security;
 create policy admin_all on email_bounces for select to authenticated using (app.is_admin());
 revoke all on email_bounces from anon, authenticated;
@@ -186,10 +186,10 @@ language sql stable security definer set search_path = public, app, pg_temp as $
    where e.entity_id = p_invoice and e.code in ('insurer_invoice', 'insurer_estimate') and (e.payload ->> 'version')::int = p_version
 $$;
 
-alter function app.insurer_rental_json(uuid, jsonb) rename to insurer_rental_json_pre5307;
+alter function app.insurer_rental_json(uuid, jsonb) rename to insurer_rental_json_pre5204;
 create function app.insurer_rental_json(p_user uuid, p jsonb) returns jsonb
 language plpgsql stable security definer set search_path = public, app, pg_temp as $$
-declare v jsonb := app.insurer_rental_json_pre5307(p_user, p);
+declare v jsonb := app.insurer_rental_json_pre5204(p_user, p);
 begin
   if jsonb_typeof(v -> 'versions') <> 'array' or v -> 'invoice' ->> 'id' is null then return v; end if;
   return v || jsonb_build_object('versions', (select coalesce(jsonb_agg(x || jsonb_build_object('delivery', app.insurer_delivery((v -> 'invoice' ->> 'id')::uuid, (x ->> 'version')::int),
@@ -198,7 +198,7 @@ begin
     || jsonb_build_object('claim', (v -> 'claim') || (select jsonb_build_object('insurer_claims_email', i.claims_email, 'insurer_claims_phone', i.claims_phone)
                                                        from insurers i where i.id = (v -> 'claim' ->> 'insurer_id')::uuid));
 end $$;
-select pg_temp.copy_grants('app.insurer_rental_json(uuid, jsonb)'::regprocedure, 'app.insurer_rental_json_pre5307(uuid, jsonb)'::regprocedure);
+select pg_temp.copy_grants('app.insurer_rental_json(uuid, jsonb)'::regprocedure, 'app.insurer_rental_json_pre5204(uuid, jsonb)'::regprocedure);
 
 -- ================================================================ 5. never from rent@ (REQ-137)
 create function app.insurer_not_from_rent() returns trigger
@@ -220,11 +220,11 @@ begin
   if exists (select 1 from notification_catalogue where (audience = 'insurer' or code in ('insurer_invoice', 'insurer_estimate', 'insurer_payment_received'))
               and concat_ws(' ', from_address, reply_to) ~* 'rent@carmacars\.ca')
      or exists (select 1 from email_reply_to where audience = 'insurer' and reply_to ~* 'rent@carmacars\.ca') then
-    raise exception '5307: an insurer email is set to go from rent@carmacars.ca';
+    raise exception '5204: an insurer email is set to go from rent@carmacars.ca';
   end if;
 end $$;
 
 revoke all on function app.insurer_sender(), app.insurer_allowlist_request(text, text, text, text), app.server_email_bounce(jsonb), public.server_email_bounce(jsonb),
-  app.insurer_delivery(uuid, integer), app.insurer_rental_json_pre5307(uuid, jsonb) from public, anon, authenticated;
+  app.insurer_delivery(uuid, integer), app.insurer_rental_json_pre5204(uuid, jsonb) from public, anon, authenticated;
 grant execute on function app.insurer_sender(), app.insurer_allowlist_request(text, text, text, text), app.server_email_bounce(jsonb), public.server_email_bounce(jsonb),
-  app.insurer_delivery(uuid, integer), app.insurer_rental_json_pre5307(uuid, jsonb) to service_role;
+  app.insurer_delivery(uuid, integer), app.insurer_rental_json_pre5204(uuid, jsonb) to service_role;

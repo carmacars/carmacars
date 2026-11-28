@@ -1,6 +1,6 @@
 import { door } from '@/server/door';
 
-// R51 (5301, REQ-132): the staff member's own extension on their profile. The number behind it is never shown to anyone.
+// R51 (5200, REQ-132): the staff member's own extension on their profile. The number behind it is never shown to anyone.
 export async function MyLine({ userId, call, className }: { userId: string; call: 'va_read' | 'field_read'; className: string }) {
   const l = await door<{ extension: string | null; active: boolean }>(userId, call, 'my_line').catch(() => null);
   if (!l?.extension) return null;

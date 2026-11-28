@@ -79,7 +79,7 @@ select test.throws('B no Check-in without the return Condition Report',
 insert into condition_reports (id, vehicle_id, booking_id, kind, odometer_km, fuel_pct)
 values (test.id('cr:L1:in'), test.id('vehicle:F1'), test.id('booking:L1'), 'return', 20500, 100);
 select test.lives('B Check-in: returned', format($$update bookings set status = 'returned', checked_in_at = return_at, odometer_out_km = 20000, odometer_in_km = 20500 where id = %L$$, test.id('booking:L1')));
--- R51 (5303, REQ-133): the return report says nothing about cleaning, so the car is available at once (no cleaning step)
+-- R51 (5202, REQ-133): the return report says nothing about cleaning, so the car is available at once (no cleaning step)
 select test.eq('B after Check-in the vehicle is available (no cleaning flagged) and the Owner''s controls are restored',
   (select status::text from vehicles where id = test.id('vehicle:F1')) || '/'
   || app.owner_controls_blocked(test.id('vehicle:F1'), timestamp '2027-02-04 12:00' at time zone 'America/Toronto'), 'available/false');
@@ -547,7 +547,7 @@ select test.eq('A every table that holds money, pricing or status is audited',
                             -- the client ids of insurer money calls (5120): an idempotency record; the payment, approval and write-off
                             -- rows it guards are audited
                             'insurer_money_requests',
-                            -- a staff line's Twilio number (5301): never copied into audit_log (nobody may read it); the purchase
+                            -- a staff line's Twilio number (5200): never copied into audit_log (nobody may read it); the purchase
                             -- and the release are logged by the functions, and staff_phone_lines is audited
                             'staff_phone_line_secrets')
       and not exists (select 1 from pg_trigger g where g.tgrelid = c.oid and g.tgname = 'audit_' || c.relname)), null::text);

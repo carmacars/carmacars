@@ -1,4 +1,4 @@
--- 99: R51 staff lines (migration 5301, REQ-132; docs/changes/2026-11-27-r51-staff.md). Each staff member's extension and own
+-- 99: R51 staff lines (migration 5200, REQ-132; docs/changes/2026-11-27-r51-staff.md). Each staff member's extension and own
 -- Twilio line: the number is kept where no browser role reads it, an Admin sees the last 4 digits, a call to it rings only
 -- that person, a missed call alerts them. No number is bought here: the purchase is recorded as the server would after an
 -- Admin confirmed the price (server_staff_line_bought with a made-up number). Fixtures "sl51".
@@ -43,7 +43,7 @@ select test.ok('the purchase is in the audit log, without the number',
   exists (select 1 from audit_log where action = 'staff_line_bought' and entity_id = test.id('sl51_fleet')::text and after::text not like '%6475550771%'));
 
 -- ================================================================ 3. ringing
--- fleet is not in phone_inbound_ring: before 5301 their phone did not take incoming calls; with a line it does
+-- fleet is not in phone_inbound_ring: before 5200 their phone did not take incoming calls; with a line it does
 select test.eq('a person with a line: their phone takes incoming calls', (public.server_voice_presence(test.id('sl51_fleet'), '{"online": true}') ->> 'ring')::boolean, true);
 select public.server_voice_presence(test.id('sl51_cs'), '{"online": true}');
 select test.eq('a call to the line rings only that person, named as their line',

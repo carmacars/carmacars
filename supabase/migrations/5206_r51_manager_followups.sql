@@ -1,4 +1,4 @@
--- 5310 (R51 staff, REQ-138; docs/changes/2026-11-27-r51-staff.md): managers follow up on their staff, and pass a Manager
+-- 5206 (R51 staff, REQ-138; docs/changes/2026-11-27-r51-staff.md): managers follow up on their staff, and pass a Manager
 -- section of the academy. The owner (Nov 27 19:45): "Managers should be following up on their assigned staff and what not
 -- and get academy shit for it".
 --   1. team_followups: a manager's To dos for their own team, made by the hourly job app.job_team_followups:
@@ -17,7 +17,7 @@
 --      escalate and approve hours). Every manager has it on their path (app.academy_paths_of), wired like the other role
 --      sections, with 7 days before it holds them (an enrollment with lock_from, as for new sections, 2990). Until it is
 --      passed, My team's follow-ups stay closed (the list waits; the job still makes them).
--- No applied migration is edited: academy_paths_of, my_team_read, staff_manager_set and the door are wrapped (_pre5310).
+-- No applied migration is edited: academy_paths_of, my_team_read, staff_manager_set and the door are wrapped (_pre5206).
 set local check_function_bodies = off;
 
 create function pg_temp.copy_grants(p_new regprocedure, p_old regprocedure) returns void
@@ -31,6 +31,9 @@ begin
 end $$;
 
 -- ================================================================ 4. the Manager path
+alter table academy_paths drop constraint academy_paths_code_check;
+alter table academy_paths add constraint academy_paths_code_check
+  check (code in ('cs', 'fleet', 'finance', 'sales_in_person', 'sales_remote', 'field', 'admin', 'renter_side', 'manager'));
 insert into academy_paths (code, title, blurb, sort, core_count) values
   ('manager', 'Managers', 'Following up on the staff assigned to you: what to look at, how to coach, when to escalate, and approving hours.', 9, 0)
 on conflict (code) do update set title = excluded.title, blurb = excluded.blurb;
@@ -59,13 +62,17 @@ insert into academy_questions (section_id, sort, prompt, options, answer, explai
   '["Change it yourself","Tell Finance or an Admin before the pay run","Pay it anyway","Delete it"]'::jsonb, 1, 'My team is read only: Finance or an Admin corrects hours before the pay run.')
 on conflict (section_id, sort) do update set prompt = excluded.prompt, options = excluded.options, answer = excluded.answer, explain = excluded.explain, updated_at = now();
 
-alter function app.academy_paths_of(uuid) rename to academy_paths_of_pre5310;
+-- the See it lesson (generated: node supabase/seed/4200_gen_academy.mjs --line manager-follow-up; the generator's --check finds it here)
+insert into academy_lessons (section_id, sort, title, scenes) select s.id, coalesce((select max(l.sort) from academy_lessons l where l.section_id = s.id), 0) + 1, 'See it', '[{"caption":"See it: a follow-up","say":"My team lists the follow-up. Call or text, agree one next step, then mark it followed up with a note.","visual":{"kind":"flow","heading":"A follow-up","alt":"A follow-up: A follow-up on My team, then Call or text them, then Mark followed up, with the note.","steps":[{"icon":"alert","label":"A follow-up on My team"},{"icon":"phone","label":"Call or text them"},{"icon":"check","label":"Mark followed up, with the note"}]}}]'::jsonb
+  from academy_sections s where s.slug = 'manager-follow-up' and not exists (select 1 from academy_lessons l where l.section_id = s.id and l.title = 'See it');
+
+alter function app.academy_paths_of(uuid) rename to academy_paths_of_pre5206;
 create function app.academy_paths_of(p_user uuid) returns text[]
 language sql stable security definer set search_path = public, app, pg_temp as $$
-  select case when app.staff_is_manager(p_user) then (select array_agg(distinct p order by p) from unnest(coalesce(app.academy_paths_of_pre5310(p_user), '{}') || array['manager']) p)
-              else app.academy_paths_of_pre5310(p_user) end
+  select case when app.staff_is_manager(p_user) then (select array_agg(distinct p order by p) from unnest(coalesce(app.academy_paths_of_pre5206(p_user), '{}') || array['manager']) p)
+              else app.academy_paths_of_pre5206(p_user) end
 $$;
-select pg_temp.copy_grants('app.academy_paths_of(uuid)', 'app.academy_paths_of_pre5310(uuid)');
+select pg_temp.copy_grants('app.academy_paths_of(uuid)', 'app.academy_paths_of_pre5206(uuid)');
 
 -- the Manager section passed (a real pass: never counted as passed for another reason)
 create function app.manager_section_passed(p_user uuid) returns boolean
@@ -75,10 +82,10 @@ language sql stable security definer set search_path = public, app, pg_temp as $
 $$;
 
 -- marked a manager: enrolled on the Manager path, 7 days before it holds them (as new sections for staff already working)
-alter function app.staff_manager_set(uuid, jsonb) rename to staff_manager_set_pre5310;
+alter function app.staff_manager_set(uuid, jsonb) rename to staff_manager_set_pre5206;
 create function app.staff_manager_set(p_by uuid, p jsonb) returns jsonb
 language plpgsql security definer set search_path = public, app, pg_temp as $$
-declare r jsonb := app.staff_manager_set_pre5310(p_by, p);
+declare r jsonb := app.staff_manager_set_pre5206(p_by, p);
 begin
   if coalesce((r ->> 'manager')::boolean, false) then
     insert into academy_enrollments (user_id, path_code, gate, lock_from, source, enrolled_by)
@@ -87,7 +94,7 @@ begin
   end if;
   return r;
 end $$;
-select pg_temp.copy_grants('app.staff_manager_set(uuid, jsonb)', 'app.staff_manager_set_pre5310(uuid, jsonb)');
+select pg_temp.copy_grants('app.staff_manager_set(uuid, jsonb)', 'app.staff_manager_set_pre5206(uuid, jsonb)');
 
 -- ================================================================ 1. the follow-ups
 create table team_followups (
@@ -109,7 +116,7 @@ create table team_followups (
 );
 create index team_followups_manager_idx on team_followups (manager_id, status);
 create index team_followups_member_idx on team_followups (member_id);
-comment on table team_followups is 'Managers (5310, REQ-138): a manager''s To dos for their own team (academy stalled, onboarding open, a missed shift or job, a KPI below target), closed with a note.';
+comment on table team_followups is 'Managers (5206, REQ-138): a manager''s To dos for their own team (academy stalled, onboarding open, a missed shift or job, a KPI below target), closed with a note.';
 alter table team_followups enable row level security;
 create policy admin_all on team_followups for select to authenticated using (app.is_admin());
 revoke all on team_followups from anon, authenticated;
@@ -117,12 +124,7 @@ grant select on team_followups to authenticated;
 grant select, insert, update, delete on team_followups to service_role;
 create trigger audit_team_followups after insert or update or delete on team_followups for each row execute function app.audit_row();
 
--- the last time a member did anything in the academy
-create function app.academy_last_activity(p_user uuid) returns timestamptz
-language sql stable security definer set search_path = public, app, pg_temp as $$
-  select greatest((select max(created_at) from academy_attempts where user_id = p_user), (select max(viewed_at) from academy_lesson_views where user_id = p_user),
-                  (select max(started_at) from academy_quiz_starts where user_id = p_user))
-$$;
+-- the last time a member did anything in the academy: app.academy_last_activity (3191: enrolled, a try, a lesson, a section opened)
 
 -- the follow-ups one member needs now: [{kind, detail, ref, key}]
 create function app.team_followups_due(p_member uuid, p_now timestamptz default now()) returns jsonb
@@ -241,16 +243,16 @@ end $$;
 
 insert into staff_alert_rules (rule, label, grp, who, tier, topic, enabled, wired, hint, sort) values
   ('team_followup', 'New follow-ups on your team', 'Staff', '{assigned}', 'normal', 'alerts', true, true, 'A manager''s team needs a follow-up: academy, onboarding, a missed shift or job, a KPI.', 131),
-  ('team_followup_overdue', 'A manager''s follow-up is overdue', 'Staff', '{admin}', 'normal', 'alerts', true, true, 'A follow-up still open after its due time (2 days).', 132),
+  ('team_followup_overdue', 'Manager follow-up overdue', 'Staff', '{admin}', 'normal', 'alerts', true, true, 'A follow-up still open after its due time (2 days).', 132),
   ('team_weekly', 'Your team this week (managers)', 'Staff', '{assigned}', 'digest', 'alerts', true, true, 'The weekly team summary for each manager.', 133)
 on conflict (rule) do nothing;
 
 -- ================================================================ 2. My team: the follow-ups and closing one
-alter function app.my_team_read(uuid) rename to my_team_read_pre5310;
+alter function app.my_team_read(uuid) rename to my_team_read_pre5206;
 create function app.my_team_read(p_user uuid) returns jsonb
 language plpgsql stable security definer set search_path = public, app, pg_temp as $$
 declare
-  v jsonb := app.my_team_read_pre5310(p_user);
+  v jsonb := app.my_team_read_pre5206(p_user);
   v_passed boolean := app.manager_section_passed(p_user);
 begin
   return v || jsonb_build_object('manager_passed', v_passed,
@@ -260,7 +262,7 @@ begin
                    from team_followups f join users u on u.id = f.member_id where f.manager_id = p_user and f.status = 'open'), '[]'::jsonb) end,
     'followups_waiting', (select count(*) from team_followups f where f.manager_id = p_user and f.status = 'open'));
 end $$;
-select pg_temp.copy_grants('app.my_team_read(uuid)', 'app.my_team_read_pre5310(uuid)');
+select pg_temp.copy_grants('app.my_team_read(uuid)', 'app.my_team_read_pre5206(uuid)');
 
 create function app.team_followup_done(p_user uuid, p jsonb) returns jsonb
 language plpgsql security definer set search_path = public, app, pg_temp as $$
@@ -277,7 +279,7 @@ begin
   return jsonb_build_object('ok', true);
 end $$;
 
-alter function app.door(uuid, text, text, text, jsonb) rename to door_pre5310;
+alter function app.door(uuid, text, text, text, jsonb) rename to door_pre5206;
 create function app.door(p_user uuid, p_aal text, p_call text, p_name text, p jsonb default '{}'::jsonb) returns jsonb
 language plpgsql security definer set search_path = public, app, pg_temp as $$
 begin
@@ -285,9 +287,9 @@ begin
     perform app.door_begin(p_user, p_aal);
     return app.team_followup_done(p_user, coalesce(p, '{}'::jsonb) - '_va');
   end if;
-  return app.door_pre5310(p_user, p_aal, p_call, p_name, p);
+  return app.door_pre5206(p_user, p_aal, p_call, p_name, p);
 end $$;
-select pg_temp.copy_grants('app.door(uuid, text, text, text, jsonb)'::regprocedure, 'app.door_pre5310(uuid, text, text, text, jsonb)'::regprocedure);
+select pg_temp.copy_grants('app.door(uuid, text, text, text, jsonb)'::regprocedure, 'app.door_pre5206(uuid, text, text, text, jsonb)'::regprocedure);
 
 -- ================================================================ the jobs (pg_cron where it exists)
 do $$
@@ -312,8 +314,8 @@ do $$
 declare f record;
 begin
   for f in select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-            where n.nspname = 'app' and p.proname = any (array['academy_paths_of_pre5310', 'manager_section_passed', 'staff_manager_set_pre5310', 'academy_last_activity',
-                    'team_followups_due', 'job_team_followups', 'job_team_weekly', 'my_team_read_pre5310', 'team_followup_done', 'door_pre5310']) loop
+            where n.nspname = 'app' and p.proname = any (array['academy_paths_of_pre5206', 'manager_section_passed', 'staff_manager_set_pre5206',
+                    'team_followups_due', 'job_team_followups', 'job_team_weekly', 'my_team_read_pre5206', 'team_followup_done', 'door_pre5206']) loop
     execute format('revoke all on function %s from public, anon, authenticated', f.sig);
     execute format('grant execute on function %s to service_role', f.sig);
   end loop;

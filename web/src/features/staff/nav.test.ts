@@ -124,7 +124,7 @@ test('the rows on a page: the section, then the group\'s tabs; Finance\'s money 
   assert.equal(at(['fleet'], '/staff/fleet/map').section?.current.label, 'Fleet map');
 });
 
-test('R51 (5302): a manager has My team before Me; nobody else has it', async () => {
+test('R51 (5201): a manager has My team before Me; nobody else has it', async () => {
   const { staffNav } = await import('./nav.ts');
   const m = staffNav(['sales'], { manager: true });
   const keys = m.map((g) => g.key);

@@ -1,4 +1,4 @@
--- 99: R51 academy integrity (migration 5300, REQ-130; docs/changes/2026-11-27-r51-staff.md). A submit whose page report
+-- 99: R51 academy integrity (migration 5199, REQ-130; docs/changes/2026-11-27-r51-staff.md). A submit whose page report
 -- shows automation, scripted clicks, a pointer that jumps, paste or copy, the page left too often or answers too fast is
 -- voided: no grade, an attempt kept with its reasons, the Admins alerted. A clean report is graded as before. Fixtures "ai51".
 select test.suite('99 r51 academy integrity: the page report, voided attempts, the alert, Admin''s read');

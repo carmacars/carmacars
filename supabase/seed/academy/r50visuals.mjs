@@ -511,6 +511,11 @@ function build() {
   add('r50-sign-first',
     S('See it: the order', 'The agreement comes first, then each car goes on Schedule A.',
       flow('Sign first, then cars', [['doc', 'The owner signs the agreement'], ['car', 'Each car goes on Schedule A'], ['check', 'Then it can be approved and rented']])));
+
+  // R51 (5206): the Managers section; its See it lesson is in 5206 (a section added after 4200 carries its own)
+  add('manager-follow-up',
+    S('See it: a follow-up', 'My team lists the follow-up. Call or text, agree one next step, then mark it followed up with a note.',
+      flow('A follow-up', [['alert', 'A follow-up on My team'], ['phone', 'Call or text them'], ['check', 'Mark followed up, with the note']])));
   return V;
 }
 

@@ -4,7 +4,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 // R51 (REQ-137, the owner Nov 27: "DO NOT SEND IT FROM RENT@CARMACARS.CA"): no insurer email names rent@carmacars.ca as its
-// sender, reply-to or anywhere in its template, and the sender is the Blind Spot address. The database refuses it too (5307).
+// sender, reply-to or anywhere in its template, and the sender is the Blind Spot address. The database refuses it too (5204).
 const ROOT = join(import.meta.dirname, '../../../..');
 const cat = JSON.parse(readFileSync(join(ROOT, 'emails', 'catalogue.json'), 'utf8')) as { emails: Array<{ code: string; audience: string; also_sent_to?: string[]; from?: string; reply_to?: string }> };
 const insurer = cat.emails.filter((e) => e.audience === 'insurer' || (e.also_sent_to ?? []).includes('insurer'));

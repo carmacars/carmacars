@@ -557,7 +557,7 @@ export default async function Section({ params, searchParams }: { params: Promis
     // r50 (5020): who resigned: Resigning (the last day, the reason, the To do) or Resigned, with the dates
     const resigned = await door<Record<string, StaffResignation>>(user.id, 'admin_read', 'staff_resignations', {}).catch(() => ({} as Record<string, StaffResignation>));
     const torontoToday = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
-    // R51 (5301, 5302): each person's own phone line (last 4 digits only) and their manager or team
+    // R51 (5200, 5201): each person's own phone line (last 4 digits only) and their manager or team
     const [lines, teams] = await Promise.all([
       door<Record<string, LineRow>>(user.id, 'admin_read', 'staff_lines', {}).catch(() => ({} as Record<string, LineRow>)),
       door<Teams>(user.id, 'admin_read', 'staff_teams', {}).catch((): Teams => ({ managers: [], people: {} }))]);

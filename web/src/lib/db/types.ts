@@ -31089,6 +31089,57 @@ export type Database = {
         };
         Relationships: [];
       };
+      team_followups: {
+        Row: {
+          id: string;
+          manager_id: string;
+          member_id: string;
+          kind: string;
+          detail: string;
+          ref_id: string | null;
+          dedupe_key: string;
+          due_at: string;
+          status: string;
+          note: string | null;
+          done_at: string | null;
+          done_by: string | null;
+          escalated_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          manager_id: string;
+          member_id: string;
+          kind: string;
+          detail: string;
+          ref_id?: string | null;
+          dedupe_key: string;
+          due_at?: string;
+          status?: string;
+          note?: string | null;
+          done_at?: string | null;
+          done_by?: string | null;
+          escalated_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          manager_id?: string;
+          member_id?: string;
+          kind?: string;
+          detail?: string;
+          ref_id?: string | null;
+          dedupe_key?: string;
+          due_at?: string;
+          status?: string;
+          note?: string | null;
+          done_at?: string | null;
+          done_by?: string | null;
+          escalated_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       terminal_locations: {
         Row: {
           id: string;

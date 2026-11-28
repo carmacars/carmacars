@@ -1,4 +1,4 @@
--- 5301 (R51 staff, REQ-132; docs/changes/2026-11-27-r51-staff.md): every staff member's own Twilio line behind a Quo
+-- 5200 (R51 staff, REQ-132; docs/changes/2026-11-27-r51-staff.md): every staff member's own Twilio line behind a Quo
 -- extension. The owner (Nov 27 17:29): "i need all staff to have a dedicated twilio line that corresponds with an extension
 -- number that is on quo, so that all staff can get incoming calls to their portals and their apps via their extension
 -- numbers that forward to their twilio phone numbers (nobody will ever know what those numbers are)".
@@ -22,7 +22,7 @@ create function pg_temp.patch_fn(p_sig regprocedure, p_old text, p_new text) ret
 language plpgsql as $$
 declare d text := pg_get_functiondef(p_sig);
 begin
-  if position(p_old in d) = 0 then raise exception '5301: the text to change was not found in %: %', p_sig, left(p_old, 160); end if;
+  if position(p_old in d) = 0 then raise exception '5200: the text to change was not found in %: %', p_sig, left(p_old, 160); end if;
   execute replace(d, p_old, p_new);
 end $$;
 create function pg_temp.copy_grants(p_new regprocedure, p_old regprocedure) returns void
@@ -40,8 +40,8 @@ alter table program_settings
   add column if not exists phone_line_area_code text not null default '647' check (phone_line_area_code ~ '^[2-9][0-9]{2}$'),
   add column if not exists phone_line_message text not null default 'Sorry, they cannot take your call right now. Please call the main CarmaCars number. CarmaCars.'
     check (length(phone_line_message) between 1 and 300);
-comment on column program_settings.phone_line_area_code is 'Staff lines (5301): the area code a new staff line is bought in (a Canadian local number at Twilio).';
-comment on column program_settings.phone_line_message is 'Staff lines (5301): what a caller hears when the staff member is not online or does not answer.';
+comment on column program_settings.phone_line_area_code is 'Staff lines (5200): the area code a new staff line is bought in (a Canadian local number at Twilio).';
+comment on column program_settings.phone_line_message is 'Staff lines (5200): what a caller hears when the staff member is not online or does not answer.';
 
 create table staff_phone_lines (
   user_id       uuid primary key references users (id) on delete cascade,
@@ -60,7 +60,7 @@ create table staff_phone_lines (
   updated_at    timestamptz not null default now(),
   check ((status = 'active') = (last4 is not null))
 );
-comment on table staff_phone_lines is 'Staff lines (5301, REQ-132): each staff member''s extension and own Twilio line. The number is in staff_phone_line_secrets (server only); this table holds its last 4 digits.';
+comment on table staff_phone_lines is 'Staff lines (5200, REQ-132): each staff member''s extension and own Twilio line. The number is in staff_phone_line_secrets (server only); this table holds its last 4 digits.';
 create trigger staff_phone_lines_updated before update on staff_phone_lines for each row execute function app.set_updated_at();
 create trigger audit_staff_phone_lines after insert or update or delete on staff_phone_lines for each row execute function app.audit_row();
 alter table staff_phone_lines enable row level security;
@@ -75,7 +75,7 @@ create table staff_phone_line_secrets (
   twilio_sid    text not null unique check (twilio_sid ~ '^PN[0-9a-fA-F]{32}$'),
   created_at    timestamptz not null default now()
 );
-comment on table staff_phone_line_secrets is 'Staff lines (5301): the Twilio number and its id. Never read by a browser role (no grant), never shown: the server rings and releases with it.';
+comment on table staff_phone_line_secrets is 'Staff lines (5200): the Twilio number and its id. Never read by a browser role (no grant), never shown: the server rings and releases with it.';
 alter table staff_phone_line_secrets enable row level security;
 create policy admin_all on staff_phone_line_secrets for select to authenticated using (false);
 revoke all on staff_phone_line_secrets from public, anon, authenticated;
@@ -229,7 +229,7 @@ select pg_temp.patch_fn('app.server_voice_ring(jsonb)'::regprocedure,
   v_ext text;
 begin
   if v_from is not null then select t.name into v_name from phone_threads t where t.number = v_from; end if;
-  -- 5301: a staff member's own line
+  -- 5200: a staff member's own line
   select ls.user_id, l.extension into v_line, v_ext from staff_phone_line_secrets ls join staff_phone_lines l on l.user_id = ls.user_id
    where ls.twilio_number = app.phone_e164(p ->> 'to') and l.status = 'active';
   if v_line is not null then
@@ -273,7 +273,7 @@ insert into staff_alert_rules (rule, label, grp, who, tier, topic, enabled, wire
 on conflict (rule) do nothing;
 
 -- ================================================================ 4. the door
-alter function app.door(uuid, text, text, text, jsonb) rename to door_pre5301;
+alter function app.door(uuid, text, text, text, jsonb) rename to door_pre5200;
 create function app.door(p_user uuid, p_aal text, p_call text, p_name text, p jsonb default '{}'::jsonb) returns jsonb
 language plpgsql security definer set search_path = public, app, pg_temp as $$
 declare p_ jsonb := coalesce(p, '{}'::jsonb) - '_va';
@@ -286,9 +286,9 @@ begin
                        when 'staff_line_quo_done' then app.staff_line_quo_done(p_user, p_)
                        else app.my_line_read(p_user) end;
   end if;
-  return app.door_pre5301(p_user, p_aal, p_call, p_name, p);
+  return app.door_pre5200(p_user, p_aal, p_call, p_name, p);
 end $$;
-select pg_temp.copy_grants('app.door(uuid, text, text, text, jsonb)'::regprocedure, 'app.door_pre5301(uuid, text, text, text, jsonb)'::regprocedure);
+select pg_temp.copy_grants('app.door(uuid, text, text, text, jsonb)'::regprocedure, 'app.door_pre5200(uuid, text, text, text, jsonb)'::regprocedure);
 
 -- the server's calls (the service role through the API)
 create function public.server_staff_line_check(p_by uuid, p_user uuid) returns jsonb
@@ -308,7 +308,7 @@ declare f record;
 begin
   for f in select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace
             where (n.nspname = 'app' and p.proname = any (array['staff_has_line', 'staff_line_words', 'staff_line_set', 'staff_line_quo_done', 'server_staff_line_check',
-                    'server_staff_line_bought', 'server_staff_line_sid', 'server_staff_line_released', 'staff_lines_read', 'my_line_read', 'server_staff_line_missed', 'door_pre5301']))
+                    'server_staff_line_bought', 'server_staff_line_sid', 'server_staff_line_released', 'staff_lines_read', 'my_line_read', 'server_staff_line_missed', 'door_pre5200']))
                or (n.nspname = 'public' and p.proname = any (array['server_staff_line_check', 'server_staff_line_bought', 'server_staff_line_sid', 'server_staff_line_released', 'server_staff_line_missed'])) loop
     execute format('revoke all on function %s from public, anon, authenticated', f.sig);
     execute format('grant execute on function %s to service_role', f.sig);

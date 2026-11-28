@@ -109,7 +109,7 @@ export async function POST(req: Request) {
   const w = await who();
   if (!w) return NextResponse.json({ error: 'Sign in first' }, { status: 401, headers: H });
   const b = (await req.json().catch(() => null)) as ({ action?: string } & Record<string, unknown>) | null;
-  // R51 (5301, REQ-132): a staff member's own line. An Admin only, as themself: the price first, then the purchase they confirmed
+  // R51 (5200, REQ-132): a staff member's own line. An Admin only, as themself: the price first, then the purchase they confirmed
   if (b?.action === 'line_quote' || b?.action === 'line_buy' || b?.action === 'line_release') {
     if (!w.admin || (await viewAs())) return NextResponse.json({ error: 'Only an Admin, as themself, manages staff lines' }, { status: 403, headers: H });
     const who = String(b.user_id ?? '');

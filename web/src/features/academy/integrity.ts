@@ -1,4 +1,4 @@
-// R51 (5300, REQ-130): what the quiz page sees while a quiz is open, sent with each submit. The database turns it into
+// R51 (5199, REQ-130): what the quiz page sees while a quiz is open, sent with each submit. The database turns it into
 // reasons (app.academy_integrity_reasons) and voids the attempt on any of them. Best effort and honest about limits: a page
 // cannot stop an AI agent that controls the browser; these signals make most of them detectable.
 //   automation    navigator.webdriver, markers that browser drivers inject, a devtools protocol probe

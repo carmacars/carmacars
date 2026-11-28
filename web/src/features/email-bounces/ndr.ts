@@ -1,4 +1,4 @@
-// R51 (5307, REQ-136): a bounce email (an NDR or an RFC 3464 delivery status report) read into what failed. Pure: the route
+// R51 (5204, REQ-136): a bounce email (an NDR or an RFC 3464 delivery status report) read into what failed. Pure: the route
 // (app/api/inbound/bounce) passes the raw message; only these fields go to the database, the message is never stored.
 import { parseMime } from '../turo/email.ts';
 

@@ -23,7 +23,7 @@ export default async function AcademyPerson({ params }: { params: Promise<{ id: 
   const here = `/admin/academy/staff/${id}`;
   // 0802: held or open, and the waiver
   const gate = await adminRead<GateState>(user.id, 'academy_gate_state', { user_id: id }).catch(() => null);
-  // R51 (5300, REQ-130): attempts voided or flagged for AI, automation or cheating signals, with what the quiz page saw
+  // R51 (5199, REQ-130): attempts voided or flagged for AI, automation or cheating signals, with what the quiz page saw
   const voided = await adminRead<Array<{ id: string; section: string; at: string; voided: boolean; words: string; seconds: number | null }>>(user.id, 'academy_voided', { user_id: id }).catch(() => []);
   return (
     <>

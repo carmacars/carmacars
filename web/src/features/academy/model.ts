@@ -51,7 +51,7 @@ export interface Required { id: string; area: string; path: string; section: str
 export interface QuizResult { correct: number; total: number; score_bps: number; passed: boolean; pass_bps: number; results: Array<{ id: string; given: number | null; answer: number | null; right: boolean; explain: string }>;
   /** 1154 */ quiz?: QuizWait; flagged?: boolean; /** 5070: graded after the one fix */ fixed?: boolean }
 
-/** 5300 (REQ-130): a submit voided for an automation or cheating signal: never graded, kept with its reasons, Admin told. */
+/** 5199 (REQ-130): a submit voided for an automation or cheating signal: never graded, kept with its reasons, Admin told. */
 export interface QuizVoided { voided: true; passed: false; message: string; reasons: string[]; reason_words: string; quiz?: QuizWait }
 
 /** 4200: the funny wrong answers every question carries (jokes.json): the option text and the playful line for picking it. */

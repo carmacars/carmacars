@@ -216,7 +216,7 @@ async function sendOne(r: Row): Promise<'sent' | 'failed' | Held> {
         else more = [];
       }
     } catch { /* an older database: each email on its own */ }
-    // R51 (5307): our reference, so a bounce email (its copy of the headers) names the email it is about; a neutral name
+    // R51 (5204): our reference, so a bounce email (its copy of the headers) names the email it is about; a neutral name
     const headers: Record<string, string> = { 'X-Outbox-Ref': String(r.id) };
     if (r.category === 'marketing') {
       if (!r.unsubscribe_url) throw Object.assign(new Error('A marketing email needs its unsubscribe link'), { permanent: true });

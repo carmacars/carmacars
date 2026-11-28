@@ -99,7 +99,7 @@ test('the academy: a lesson with captions, a quiz failed then passed, the next s
     await check(page, 'quiz fix');
     await page.getByTestId('quiz-submit').click();
     await expect(page.getByTestId('quiz-result')).toContainText('Not passed yet');
-    // 5306: Try again starts the next try at once (the wait is off in this test)
+    // 5203: Try again starts the next try at once (the wait is off in this test)
     await page.getByTestId('quiz-retry').click();
     await answer('right', false);
     await expect(page.getByTestId('quiz-result')).toContainText('Passed');

@@ -4,7 +4,7 @@ import type { Json } from '@/lib/db/types';
 import { jobAuthorized, turoGmailAuthorized } from '@/server/job-auth';
 import { bounceWords, readBounce } from '@/features/email-bounces/ndr';
 
-// R51 (5307, REQ-136): bounce emails (NDRs and delivery status reports) from the mailbox our emails are sent from, posted as
+// R51 (5204, REQ-136): bounce emails (NDRs and delivery status reports) from the mailbox our emails are sent from, posted as
 // raw MIME by the Apps Script in rent@'s Gmail (scripts/turo-gmail.gs, its token) or by the Worker (the jobs' token).
 // Only the failed address, the status, the reason and our reference go to the database (app.server_email_bounce, which
 // acts only on an email we sent to that address). The message itself is never stored.

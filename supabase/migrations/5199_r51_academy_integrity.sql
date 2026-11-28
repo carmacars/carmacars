@@ -1,4 +1,4 @@
--- 5300 (R51 staff, REQ-130; docs/changes/2026-11-27-r51-staff.md): the academy is answered by the person, not by an AI.
+-- 5199 (R51 staff, REQ-130; docs/changes/2026-11-27-r51-staff.md): the academy is answered by the person, not by an AI.
 -- The owner (Nov 27 17:29): "put it on the academy on each question as a disclaimer somewhere that computer use is not
 -- allowed and carmacars will sue u and make sure that it just makes sure that they cant use ai and claude chrome to
 -- complete the tests".
@@ -14,7 +14,7 @@
 --      can call the API can also send a clean report, so its absence proves nothing.
 --   3. Admin reads the voided attempts of a person (door admin_read academy_voided) on Admin > Academy > the person.
 -- No web page can stop an AI agent that controls the browser: these checks make it detectable and void the attempt.
--- No applied migration is edited: academy_quiz_submit is wrapped (_pre5300); the door is wrapped (_pre5300).
+-- No applied migration is edited: academy_quiz_submit is wrapped (_pre5199); the door is wrapped (_pre5199).
 set local check_function_bodies = off;
 
 create function pg_temp.copy_grants(p_new regprocedure, p_old regprocedure) returns void
@@ -32,17 +32,17 @@ alter table program_settings
   add column if not exists academy_integrity_void boolean not null default true,
   add column if not exists academy_focus_loss_max integer not null default 2 check (academy_focus_loss_max between 0 and 50),
   add column if not exists academy_answer_floor_seconds integer not null default 2 check (academy_answer_floor_seconds between 0 and 30);
-comment on column program_settings.academy_integrity_void is 'Academy (5300): a quiz submit with an automation or cheating signal is voided (not graded, kept with its reasons, Admin alerted). Off: graded, the reasons kept and alerted only.';
-comment on column program_settings.academy_focus_loss_max is 'Academy (5300): how many times the quiz page may lose focus or be hidden (another tab or app) before the attempt is flagged.';
-comment on column program_settings.academy_answer_floor_seconds is 'Academy (5300): a first answer picked faster than this after the one before counts as too fast; half the questions (at least 3) too fast flags the attempt. 0 for off.';
+comment on column program_settings.academy_integrity_void is 'Academy (5199): a quiz submit with an automation or cheating signal is voided (not graded, kept with its reasons, Admin alerted). Off: graded, the reasons kept and alerted only.';
+comment on column program_settings.academy_focus_loss_max is 'Academy (5199): how many times the quiz page may lose focus or be hidden (another tab or app) before the attempt is flagged.';
+comment on column program_settings.academy_answer_floor_seconds is 'Academy (5199): a first answer picked faster than this after the one before counts as too fast; half the questions (at least 3) too fast flags the attempt. 0 for off.';
 
 alter table academy_attempts
   add column if not exists voided boolean not null default false,
   add column if not exists void_reasons text[] not null default '{}',
   add column if not exists integrity jsonb;
-comment on column academy_attempts.voided is 'Academy (5300): voided for an automation or cheating signal; never a pass.';
-comment on column academy_attempts.void_reasons is 'Academy (5300): the reasons the page''s report gave (automation, synthetic_events, pointer_jumps, paste, copy, focus_lost, too_fast). Also kept when the setting only flags.';
-comment on column academy_attempts.integrity is 'Academy (5300): what the quiz page saw (counts and flags only, no answers or text).';
+comment on column academy_attempts.voided is 'Academy (5199): voided for an automation or cheating signal; never a pass.';
+comment on column academy_attempts.void_reasons is 'Academy (5199): the reasons the page''s report gave (automation, synthetic_events, pointer_jumps, paste, copy, focus_lost, too_fast). Also kept when the setting only flags.';
+comment on column academy_attempts.integrity is 'Academy (5199): what the quiz page saw (counts and flags only, no answers or text).';
 alter table academy_attempts add constraint academy_attempts_voided_not_passed check (not (voided and passed));
 
 -- ================================================================ 2. the reasons
@@ -73,7 +73,7 @@ language sql stable security definer set search_path = public, app, pg_temp as $
       case when (select fs from s) > 0 and i.fast >= greatest(3, ceil(greatest(n, 1) / 2.0)::int) then 'too_fast' end], null)
     from i
 $$;
-comment on function app.academy_integrity_reasons(jsonb, integer) is 'Academy (5300): the cheating or automation reasons in the quiz page''s report; empty when none.';
+comment on function app.academy_integrity_reasons(jsonb, integer) is 'Academy (5199): the cheating or automation reasons in the quiz page''s report; empty when none.';
 
 -- the words of the reasons, for the alert and the page
 create function app.academy_integrity_words(p text[]) returns text
@@ -90,7 +90,7 @@ language sql immutable set search_path = public, app, pg_temp as $$
 $$;
 
 -- ================================================================ 3. the submit
-alter function app.academy_quiz_submit(uuid, jsonb) rename to academy_quiz_submit_pre5300;
+alter function app.academy_quiz_submit(uuid, jsonb) rename to academy_quiz_submit_pre5199;
 create function app.academy_quiz_submit(p_user uuid, p jsonb) returns jsonb
 language plpgsql security definer set search_path = public, app, pg_temp as $$
 declare
@@ -104,7 +104,7 @@ declare
   r jsonb;
 begin
   -- Admins preview quizzes without a start: as before
-  if app.user_is_admin(p_user) then return app.academy_quiz_submit_pre5300(p_user, p - 'integrity'); end if;
+  if app.user_is_admin(p_user) then return app.academy_quiz_submit_pre5199(p_user, p - 'integrity'); end if;
   v_sec := app.academy_section_id(p_user, p);
   select count(*) into v_n from academy_questions where section_id = v_sec;
   v_reasons := app.academy_integrity_reasons(p -> 'integrity', v_n);
@@ -132,7 +132,7 @@ begin
       'quiz', app.academy_quiz_wait(p_user, v_sec));
   end if;
 
-  r := app.academy_quiz_submit_pre5300(p_user, p - 'integrity');
+  r := app.academy_quiz_submit_pre5199(p_user, p - 'integrity');
   -- a graded attempt (not the fix step): keep what the page saw, and the reasons when the setting only flags
   if not coalesce((r ->> 'fix')::boolean, false) then
     select id into v_att from academy_attempts where user_id = p_user and section_id = v_sec and created_at > now() - interval '1 minute' order by created_at desc limit 1;
@@ -144,7 +144,7 @@ begin
   end if;
   return r || case when cardinality(v_reasons) > 0 then jsonb_build_object('flags', to_jsonb(v_reasons)) else '{}'::jsonb end;
 end $$;
-select pg_temp.copy_grants('app.academy_quiz_submit(uuid, jsonb)'::regprocedure, 'app.academy_quiz_submit_pre5300(uuid, jsonb)'::regprocedure);
+select pg_temp.copy_grants('app.academy_quiz_submit(uuid, jsonb)'::regprocedure, 'app.academy_quiz_submit_pre5199(uuid, jsonb)'::regprocedure);
 
 create function app.academy_integrity_alert(p_user uuid, p_sec uuid, p_att uuid, p_reasons text[], p_voided boolean) returns void
 language plpgsql security definer set search_path = public, app, pg_temp as $$
@@ -173,7 +173,7 @@ begin
                     where a.user_id = v_user and cardinality(a.void_reasons) > 0), '[]'::jsonb);
 end $$;
 
-alter function app.door(uuid, text, text, text, jsonb) rename to door_pre5300;
+alter function app.door(uuid, text, text, text, jsonb) rename to door_pre5199;
 create function app.door(p_user uuid, p_aal text, p_call text, p_name text, p jsonb default '{}'::jsonb) returns jsonb
 language plpgsql security definer set search_path = public, app, pg_temp as $$
 begin
@@ -181,12 +181,12 @@ begin
     perform app.door_begin(p_user, p_aal);
     return app.academy_voided_read(p_user, coalesce(p, '{}'::jsonb) - '_va');
   end if;
-  return app.door_pre5300(p_user, p_aal, p_call, p_name, p);
+  return app.door_pre5199(p_user, p_aal, p_call, p_name, p);
 end $$;
-select pg_temp.copy_grants('app.door(uuid, text, text, text, jsonb)'::regprocedure, 'app.door_pre5300(uuid, text, text, text, jsonb)'::regprocedure);
+select pg_temp.copy_grants('app.door(uuid, text, text, text, jsonb)'::regprocedure, 'app.door_pre5199(uuid, text, text, text, jsonb)'::regprocedure);
 
 -- ================================================================ privileges: the server only
-revoke all on function app.academy_integrity_reasons(jsonb, integer), app.academy_integrity_words(text[]), app.academy_quiz_submit_pre5300(uuid, jsonb),
-  app.academy_integrity_alert(uuid, uuid, uuid, text[], boolean), app.academy_voided_read(uuid, jsonb), app.door_pre5300(uuid, text, text, text, jsonb) from public, anon, authenticated;
-grant execute on function app.academy_integrity_reasons(jsonb, integer), app.academy_integrity_words(text[]), app.academy_quiz_submit_pre5300(uuid, jsonb),
-  app.academy_integrity_alert(uuid, uuid, uuid, text[], boolean), app.academy_voided_read(uuid, jsonb), app.door_pre5300(uuid, text, text, text, jsonb) to service_role;
+revoke all on function app.academy_integrity_reasons(jsonb, integer), app.academy_integrity_words(text[]), app.academy_quiz_submit_pre5199(uuid, jsonb),
+  app.academy_integrity_alert(uuid, uuid, uuid, text[], boolean), app.academy_voided_read(uuid, jsonb), app.door_pre5199(uuid, text, text, text, jsonb) from public, anon, authenticated;
+grant execute on function app.academy_integrity_reasons(jsonb, integer), app.academy_integrity_words(text[]), app.academy_quiz_submit_pre5199(uuid, jsonb),
+  app.academy_integrity_alert(uuid, uuid, uuid, text[], boolean), app.academy_voided_read(uuid, jsonb), app.door_pre5199(uuid, text, text, text, jsonb) to service_role;

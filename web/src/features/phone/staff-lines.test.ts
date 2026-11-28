@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { lineBuyBlocked, linePrice, maskedNumber, pickNumber } from './staff-lines.ts';
 
-// R51 (5301, REQ-132): the parts of buying a staff line that decide what is bought, shown and refused.
+// R51 (5200, REQ-132): the parts of buying a staff line that decide what is bought, shown and refused.
 test('the first voice number Twilio offers, in E.164', () => {
   assert.equal(pickNumber({ available_phone_numbers: [{ phone_number: 'bad' }, { phone_number: '+16475550199' }] }), '+16475550199');
   assert.equal(pickNumber({ available_phone_numbers: [] }), null);

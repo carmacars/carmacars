@@ -103,7 +103,10 @@ test('4200: every section has a See it lesson with at least one picture with alt
   for (const s of Object.keys(VISUALS)) assert.ok(slugs.includes(s), `${s}: visuals for no section`);
   // and the migration inserts the lesson for each of them
   const sql = readFileSync(`${migrations}4200_r50_academy_jokes_visuals.sql`, 'utf8');
-  for (const s of slugs) assert.ok(sql.includes(`where s.slug = '${s}' and not exists`), `${s}: not in the migration`);
+  // R51 (5206): a section added after 4200 carries the same lesson in its own migration
+  const own = (s: string) => readdirSync(migrations).filter((f) => Number(f.slice(0, 4)) > 4200).some((f) => { const t = readFileSync(`${migrations}${f}`, 'utf8');
+    return t.includes(`values ('${s}'`) && t.includes(`where s.slug = '${s}' and not exists`); });
+  for (const s of slugs) assert.ok(sql.includes(`where s.slug = '${s}' and not exists`) || own(s), `${s}: not in the migration`);
 });
 
 test('4200: the pictures: webp, about 150 KB or less, in public/academy, sized, with alt text on every image and lazy loading', async () => {

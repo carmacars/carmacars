@@ -3,16 +3,35 @@ import { notFound } from 'next/navigation';
 import { door } from '@/server/door';
 import { $, Card, PageHead, Table, label, t } from '@/features/admin/ui';
 import { Scorecard, type Score } from '@/features/va/Scorecard';
-import { academyWords, actionWords, hoursWords, owedCents, type TeamMember, type TeamRow } from './model';
+import { FOLLOWUP_LABEL, academyWords, actionWords, hoursWords, owedCents, type Followup, type TeamMember, type TeamRow } from './model';
+import { ContactButtons } from '@/features/phone/QuoButtons';
+import { Act } from '@/features/admin/Act';
 
-// R51 (5302, REQ-131): My team, read only. A manager sees each staff member assigned to them: hours, academy progress,
+// R51 (5201, REQ-131): My team, read only. A manager sees each staff member assigned to them: hours, academy progress,
 // KPIs, pay owed, field jobs and activity, with the masking an Admin has (no pay details, no addresses, no customer numbers).
 // The database refuses anyone who is not their manager.
 export async function TeamPage({ userId, aal }: { userId: string; aal: 'aal1' | 'aal2' | null }) {
-  const r = await door<{ members: TeamRow[] }>(userId, 'ops_read', 'my_team', {}, aal);
+  const r = await door<{ members: TeamRow[]; followups: Followup[]; followups_waiting: number; manager_passed: boolean; manager_section: string }>(userId, 'ops_read', 'my_team', {}, aal);
   return (
     <>
       <PageHead title="My team" kicker="Manager" purpose="The staff assigned to you, read only: hours in the last 7 days, academy, pay owed, field jobs and when they were last on. Open a person for their KPIs, jobs and activity." />
+      {/* 5206 (REQ-138): the follow-ups, after the Manager section of the academy is passed */}
+      <Card title={`Follow up (${r.followups_waiting})`} testId="team-followups" tone={r.followups_waiting ? 'next' : undefined}>
+        {!r.manager_passed ? <div className="alert alert--warn stack" role="status" data-testid="team-followups-locked"><span className="alert__title">Pass the Manager section first</span>
+            <span>{r.followups_waiting ? `${r.followups_waiting} follow-up${r.followups_waiting === 1 ? ' is' : 's are'} waiting. ` : ''}The academy&apos;s Manager section teaches how to follow up, coach, escalate and check hours. Pass it to open your follow-ups.</span>
+            <p><Link prefetch={false} className="btn btn--primary" href={r.manager_section} data-testid="team-manager-section">Open the Manager section</Link></p></div>
+          : r.followups.length === 0 ? <p className="ad-empty">Nothing to follow up. New ones come when someone stalls in the academy, has onboarding steps open, misses a shift or a job, or was below a KPI target last week.</p>
+          : <ul className="ad-list" data-testid="team-followup-list">{r.followups.map((f) => (
+            <li key={f.id} className="stack" data-testid={`team-followup-${f.id}`}>
+              <span><b>{f.name}</b> · {FOLLOWUP_LABEL[f.kind]}{f.overdue ? <span className="ad-flag ad-flag--red"> Overdue: sent to the Admins</span> : <span className="small muted"> · due {t(f.due_at)}</span>}</span>
+              <span className="small">{f.detail}</span>
+              <span className="ad-actions">
+                <ContactButtons phone={f.phone} name={f.name} testId={`team-followup-contact-${f.id}`} />
+                <Act ops action="team_followup_done" payload={{ id: f.id }} label="Mark followed up" variant="primary" title={`Followed up with ${f.name}`} submitLabel="Save" refresh={['/staff/team']} done="Followed up."
+                  testId={`team-followup-done-${f.id}`} fields={[{ name: 'note', label: 'What you agreed', type: 'textarea', required: true, placeholder: 'For example: two sections by Friday' }]} />
+              </span>
+            </li>))}</ul>}
+      </Card>
       <Card title={`Your team (${r.members.length})`} testId="team">
         <Table rows={r.members as unknown as Array<TeamRow & Record<string, unknown>>} testId="team-list" empty="Nobody is assigned to you yet. An Admin assigns staff on Settings > Staff." cols={[
           { key: 'name', label: 'Name', render: (m) => <Link prefetch={false} className="link" href={`/staff/team/${m.id}`} data-testid={`team-open-${m.id}`}>{m.name}</Link> },

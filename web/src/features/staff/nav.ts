@@ -66,7 +66,7 @@ export function staffSections(fns: readonly string[] | null | undefined): Sectio
     .filter((x) => order.includes(x.key)).sort((a, b) => order.indexOf(a.key) - order.indexOf(b.key));
 }
 
-/** The menu for a person holding these functions. R51 (5302): a manager also has My team, before Me. */
+/** The menu for a person holding these functions. R51 (5201): a manager also has My team, before Me. */
 export function staffNav(fns: readonly string[] | null | undefined, opts: { manager?: boolean } = {}): NavGroup[] {
   const held = heldFunctions(fns);
   const office = held.some((f) => f !== 'field');

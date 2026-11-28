@@ -1,4 +1,4 @@
--- 99: R51 manager follow-ups (migration 5310, REQ-138; docs/changes/2026-11-27-r51-staff.md). A manager's team needs
+-- 99: R51 manager follow-ups (migration 5206, REQ-138; docs/changes/2026-11-27-r51-staff.md). A manager's team needs
 -- follow-ups (academy stalled, onboarding open, a missed shift or job); the manager is told, follows up with a note once
 -- the Manager section is passed, overdue ones go to the Admins, and a weekly summary arrives. Fixtures "mf51".
 select test.suite('99 r51 manager follow-ups: the To dos, closing them, the Manager section, overdue, the weekly summary');
@@ -12,6 +12,7 @@ create function pg_temp.dr(p_user text, p_call text, p_name text, p jsonb defaul
 $$ select public.door(test.id(p_user), 'aal2', p_call, p_name, p) $$;
 update users set created_at = now() - interval '10 days', phone = '+16475550181' where id = test.id('mf51_slow');
 update users set created_at = now() - interval '10 days' where id in (test.id('mf51_new'), test.id('mf51_field'));
+update staff_profiles set created_at = now() - interval '10 days' where user_id in (test.id('mf51_slow'), test.id('mf51_new'), test.id('mf51_field'));
 update staff_profiles set onboarding_exempt = false where user_id = test.id('mf51_new');
 select pg_temp.dr('mf51_admin', 'admin_do', 'staff_manager_set', jsonb_build_object('user_id', test.id('mf51_boss'), 'manager', true));
 select pg_temp.dr('mf51_admin', 'admin_do', 'staff_team_set', jsonb_build_object('user_id', u, 'manager_id', test.id('mf51_boss')))

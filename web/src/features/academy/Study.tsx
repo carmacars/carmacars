@@ -10,7 +10,7 @@ import { ownJokeQuip, pct, waitLeft, type QuizFix, type QuizFixResult, type Quiz
 
 // A section to study (Release 21b, item 9): its lessons, each a scene player, then its quiz. The quiz is graded in the database;
 // the pass mark opens the next section of the path. 1154: opening the section starts its reading clock; the quiz opens after the
-// section's reading time, is handed out in a random order (questions and options), waits after a failed try (2 minutes since 5070, 1 since 5306) and
+// section's reading time, is handed out in a random order (questions and options), waits after a failed try (2 minutes since 5070, 1 since 5203) and
 // allows a number of tries a day (10 since 5070) (all set in Program settings); a failed try shows which answers were wrong, not the right ones.
 // R50 hotfix 2 (5070): a first check below the pass mark is not a try yet: the questions marked wrong (only those) can be
 // changed once, and the second check is graded. The database keeps the fix, so reopening the quiz brings it back.
@@ -50,7 +50,7 @@ function Quiz({ s, base, wait, setWait, onPassed }: { s: SectionView; base: stri
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
   const [now, setNow] = useState(() => Date.now());
-  // R51 (5300, REQ-130): what the page sees while the quiz is open; sent with each submit, voided by the database on a signal
+  // R51 (5199, REQ-130): what the page sees while the quiz is open; sent with each submit, voided by the database on a signal
   const watch = useRef<IntegrityWatch | null>(null);
   const [voided, setVoided] = useState('');
   // r50 hotfix 2: the countdown starts once the page is in the browser; the server's second and the browser's differed (#418)
@@ -157,7 +157,7 @@ function Quiz({ s, base, wait, setWait, onPassed }: { s: SectionView; base: stri
           <span className="alert__title">{res.passed ? 'Passed' : 'Not passed yet'}: {res.correct} of {res.total} ({pct(res.score_bps)})</span>
           <span>{res.passed ? (s.next ? 'The next section is open.' : 'You finished this path.') : `You need ${pct(res.pass_bps)}. Go over the lessons again. ${res.quiz?.message ?? ''}`}</span>
           <span className="row" style={{ gap: 'var(--s-2)', flexWrap: 'wrap' }}>
-            {/* 5306 (REQ-134): one press starts the next try once the wait is over (it was Try again later, then Start the quiz) */}
+            {/* 5203 (REQ-134): one press starts the next try once the wait is over (it was Try again later, then Start the quiz) */}
             {!res.passed && <button type="button" className="btn btn--sm btn--primary" disabled={busy || !ready} aria-describedby="quiz-retry-hint" onClick={() => { setRes(null); setFix(null); setAnswers({}); void start(); }} data-testid="quiz-retry">{ready ? 'Try again' : `Try again in ${left}`}</button>}
             {!res.passed && <span id="quiz-retry-hint" className="small muted">{ready ? 'Go over the lessons first.' : 'Wait for the minute to pass, then press Try again.'}</span>}
             {res.passed && s.next && <Link prefetch={false} className="btn btn--sm btn--primary" href={`${base}/${s.path}/${s.next}`} data-testid="quiz-next">Next section</Link>}

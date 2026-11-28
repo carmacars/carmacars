@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { HONEST_NOTE, IntegrityWatch, cdpProbe, markersOf } from './integrity.ts';
 
-// R51 (5300, REQ-130): what the quiz page reports. The database decides the reasons (99_r51_academy_integrity.sql).
+// R51 (5199, REQ-130): what the quiz page reports. The database decides the reasons (99_r51_academy_integrity.sql).
 const fresh = () => new IntegrityWatch({ webdriver: false, markers: [], cdp: false }, 1000);
 
 test('the disclaimer says it plainly, with no long dash', () => {

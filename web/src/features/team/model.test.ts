@@ -11,3 +11,8 @@ test('team words: hours, academy, pay owed, actions', () => {
   assert.equal(owedCents({ pay_lines_cents: 12000, commission_cents: 3450, held: false }), 15450);
   assert.equal(actionWords('UPDATE', 'field_jobs'), 'field jobs update');
 });
+
+test('5206: every follow-up kind has its label', async () => {
+  const { FOLLOWUP_LABEL } = await import('./model.ts');
+  assert.deepEqual(Object.keys(FOLLOWUP_LABEL).sort(), ['academy', 'kpi', 'missed_job', 'missed_shift', 'onboarding']);
+});

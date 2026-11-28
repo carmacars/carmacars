@@ -1023,7 +1023,7 @@ select test.eq('N it flags card payments no payout has carried, but not the ones
 create table test.op_outW as select test.op_return('opW', 'op_fleet', '2031-07-12 10:00', 20400) as r;
 select test.eq('W kilometres across the swap: 200 on the first car (5,000 to 5,200) and 100 on the second (20,300 to 20,400)',
   (select r ->> 'km_driven' from test.op_outW) || '/' || app.booking_km_driven(test.b('opW')), '300/300');
--- R51 (5303, REQ-133): cleaning only when the return report says so; this return's report does not
+-- R51 (5202, REQ-133): cleaning only when the return report says so; this return's report does not
 select test.eq('W the return closes the late-return tasks and the replacement car is available again (no cleaning flagged)',
   (select string_agg(distinct status, ',') from tasks where booking_id = test.b('opW') and task_type in ('late_return', 'late_return_admin'))
   || '/' || (select status::text from vehicles where id = test.id('vehicle:OP5')), 'done/available');

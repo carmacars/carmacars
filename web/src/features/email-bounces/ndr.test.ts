@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { bounceWords, readBounce } from './ndr.ts';
 
-// R51 (5307, REQ-136): bounce emails read into the address that failed, the status, the reason and our reference.
+// R51 (5204, REQ-136): bounce emails read into the address that failed, the status, the reason and our reference.
 const REF = '0f6c2d3e-1111-4a2b-9c3d-123456789abc';
 const dsn = `From: postmaster@insurer.example.test
 To: sender@example.test

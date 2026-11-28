@@ -1,4 +1,4 @@
-// R51 (5302, REQ-131): a manager's team (ops_read my_team, team_member). Pure: the words of each fact. No imports.
+// R51 (5201, REQ-131): a manager's team (ops_read my_team, team_member). Pure: the words of each fact. No imports.
 export interface TeamPay { pay_lines_cents: number; commission_cents: number; held: boolean }
 export interface TeamRow { id: string; name: string; status: string; functions: string[]; last_seen_at: string | null; minutes_7d: number;
   academy: { core_passed: number; core_total: number; passed: number; total: number }; pay: TeamPay; jobs_open: number; jobs_done_7d: number }
@@ -24,3 +24,7 @@ export function academyWords(a: TeamRow['academy']): string {
 export const owedCents = (p: TeamPay): number => (Number(p.pay_lines_cents) || 0) + (Number(p.commission_cents) || 0);
 /** An audit action in plain words: "booking update", "vehicle insert". */
 export const actionWords = (action: string, what: string | null): string => `${(what ?? '').replace(/_/g, ' ')} ${action.replace(/_/g, ' ').toLowerCase()}`.trim();
+
+/** 5206 (REQ-138): a manager's follow-up on My team. */
+export interface Followup { id: string; member_id: string; name: string; phone: string | null; kind: 'academy' | 'onboarding' | 'missed_shift' | 'missed_job' | 'kpi'; detail: string; due_at: string; overdue: boolean }
+export const FOLLOWUP_LABEL: Record<Followup['kind'], string> = { academy: 'Academy', onboarding: 'Onboarding', missed_shift: 'Missed shift', missed_job: 'Missed job', kpi: 'KPIs' };

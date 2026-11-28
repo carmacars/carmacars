@@ -1,4 +1,4 @@
--- 99: R51 cleaning only when the return report says so (migration 5303, REQ-133; docs/changes/2026-11-27-r51-staff.md).
+-- 99: R51 cleaning only when the return report says so (migration 5202, REQ-133; docs/changes/2026-11-27-r51-staff.md).
 -- A return with a clean report leaves the car available; a report that says cleaning puts it in cleaning, before or after
 -- the return; the detail job then closes it (5195). Fixtures "rc51".
 select test.suite('99 r51 return clean: available after a return unless the report says cleaning');

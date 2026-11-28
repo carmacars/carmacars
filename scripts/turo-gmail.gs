@@ -2,7 +2,7 @@
 // Paste into script.google.com (signed in as rent@carmacars.ca), put the token in TOKEN, then Run "setup" once.
 // Every 5 minutes it sends each new email from turo.com, as received, to carmacars.ca, which reads the trip and blocks
 // the car's calendar. Each email is sent once (its id is remembered). Nothing in Gmail is changed or deleted.
-// R51 (5307): bounce emails (mailer-daemon, postmaster: emails that an insurer's server refused) go to /api/inbound/bounce
+// R51 (5204): bounce emails (mailer-daemon, postmaster: emails that an insurer's server refused) go to /api/inbound/bounce
 // the same way, so the site marks the send failed and tells an Admin. After updating, Run "setup" once again.
 const ENDPOINT = 'https://carmacars.ca/api/inbound/turo';
 const BOUNCES = 'https://carmacars.ca/api/inbound/bounce';

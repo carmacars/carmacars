@@ -1,4 +1,4 @@
--- 99: R51 managers (migration 5302, REQ-131; docs/changes/2026-11-27-r51-staff.md). An Admin marks a manager and assigns
+-- 99: R51 managers (migration 5201, REQ-131; docs/changes/2026-11-27-r51-staff.md). An Admin marks a manager and assigns
 -- staff; the manager reads their team, read only, and nobody else's. Fixtures "mg51".
 select test.suite('99 r51 managers: Admin sets managers and teams, a manager reads their team only');
 

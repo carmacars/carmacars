@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Act } from '@/features/admin/Act';
 
-// R51 (5301, REQ-132): a staff member's own line on Admin > Settings > Staff. The extension (Set extension), then Get a
+// R51 (5200, REQ-132): a staff member's own line on Admin > Settings > Staff. The extension (Set extension), then Get a
 // number: Twilio's monthly price and the last 4 digits of the number it would sell; nothing is bought until the Admin
 // presses Buy with that price. Release gives the number back. Added in Quo records the owner's step in Quo's phone menu.
 export interface LineRow { extension: string; status: 'no_number' | 'active' | 'released'; words: string; quo_added: boolean; monthly_cents: number | null; currency: string | null }

@@ -1,4 +1,4 @@
--- 5302 (R51 staff, REQ-131; docs/changes/2026-11-27-r51-staff.md): managers see the staff assigned to them. The owner
+-- 5201 (R51 staff, REQ-131; docs/changes/2026-11-27-r51-staff.md): managers see the staff assigned to them. The owner
 -- (Nov 27 17:29): "also i need to be able to set staff to managers that have insight on the staff that are assigned to them".
 --   1. staff_profiles.is_manager and staff_profiles.manager_id. An Admin marks a manager (admin_do staff_manager_set) and
 --      assigns staff to one (admin_do staff_team_set). Nobody manages themself and a team never loops back to its member.
@@ -11,7 +11,7 @@
 --      log names them; no values). Nothing a manager reads is more than an Admin sees: no pay details, no addresses, no
 --      customer numbers. Anyone else is refused.
 --   3. app.my_roles says manager (and the team size), for the staff menu and the app.
--- No applied migration is edited: my_roles and the door are wrapped (_pre5302).
+-- No applied migration is edited: my_roles and the door are wrapped (_pre5201).
 set local check_function_bodies = off;
 
 create function pg_temp.copy_grants(p_new regprocedure, p_old regprocedure) returns void
@@ -30,8 +30,8 @@ alter table staff_profiles
   add column if not exists manager_id uuid references users (id) on delete set null;
 alter table staff_profiles add constraint staff_profiles_not_own_manager check (manager_id is null or manager_id <> user_id);
 create index if not exists staff_profiles_manager_idx on staff_profiles (manager_id) where manager_id is not null;
-comment on column staff_profiles.is_manager is 'Managers (5302, REQ-131): this staff member manages the staff assigned to them (manager_id) and reads their team, read only.';
-comment on column staff_profiles.manager_id is 'Managers (5302): the manager this staff member is assigned to.';
+comment on column staff_profiles.is_manager is 'Managers (5201, REQ-131): this staff member manages the staff assigned to them (manager_id) and reads their team, read only.';
+comment on column staff_profiles.manager_id is 'Managers (5201): the manager this staff member is assigned to.';
 
 create function app.staff_is_manager(p_user uuid) returns boolean
 language sql stable security definer set search_path = public, app, pg_temp as $$
@@ -174,13 +174,13 @@ begin
 end $$;
 
 -- ================================================================ 3. the roles say manager
-alter function app.my_roles(uuid) rename to my_roles_pre5302;
+alter function app.my_roles(uuid) rename to my_roles_pre5201;
 create function app.my_roles(p_user uuid) returns jsonb
 language sql stable security definer set search_path = public, app, pg_temp as $$
-  select app.my_roles_pre5302(p_user) || jsonb_build_object('manager', coalesce(app.staff_is_manager(p_user), false),
+  select app.my_roles_pre5201(p_user) || jsonb_build_object('manager', coalesce(app.staff_is_manager(p_user), false),
            'team_size', case when app.staff_is_manager(p_user) then (select count(*) from staff_profiles sp where sp.manager_id = p_user) else 0 end)
 $$;
-select pg_temp.copy_grants('app.my_roles(uuid)', 'app.my_roles_pre5302(uuid)');
+select pg_temp.copy_grants('app.my_roles(uuid)', 'app.my_roles_pre5201(uuid)');
 
 -- Admin > Settings > Staff: who manages, and whom
 create function app.staff_teams_read(p_by uuid) returns jsonb
@@ -196,7 +196,7 @@ begin
                           from staff_profiles sp), '{}'::jsonb));
 end $$;
 
-alter function app.door(uuid, text, text, text, jsonb) rename to door_pre5302;
+alter function app.door(uuid, text, text, text, jsonb) rename to door_pre5201;
 create function app.door(p_user uuid, p_aal text, p_call text, p_name text, p jsonb default '{}'::jsonb) returns jsonb
 language plpgsql security definer set search_path = public, app, pg_temp as $$
 declare p_ jsonb := coalesce(p, '{}'::jsonb) - '_va';
@@ -210,9 +210,9 @@ begin
                        when 'staff_manager_set' then app.staff_manager_set(p_user, p_)
                        else app.staff_team_set(p_user, p_) end;
   end if;
-  return app.door_pre5302(p_user, p_aal, p_call, p_name, p);
+  return app.door_pre5201(p_user, p_aal, p_call, p_name, p);
 end $$;
-select pg_temp.copy_grants('app.door(uuid, text, text, text, jsonb)'::regprocedure, 'app.door_pre5302(uuid, text, text, text, jsonb)'::regprocedure);
+select pg_temp.copy_grants('app.door(uuid, text, text, text, jsonb)'::regprocedure, 'app.door_pre5201(uuid, text, text, text, jsonb)'::regprocedure);
 
 -- ================================================================ privileges: the server only
 do $$
@@ -220,7 +220,7 @@ declare f record;
 begin
   for f in select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace
             where n.nspname = 'app' and p.proname = any (array['staff_is_manager', 'manages', 'team_notify', 'staff_manager_set', 'staff_team_set', 'team_minutes', 'team_pay_owed',
-                    'team_row', 'my_team_read', 'team_member_read', 'staff_teams_read', 'my_roles_pre5302', 'door_pre5302']) loop
+                    'team_row', 'my_team_read', 'team_member_read', 'staff_teams_read', 'my_roles_pre5201', 'door_pre5201']) loop
     execute format('revoke all on function %s from public, anon, authenticated', f.sig);
     execute format('grant execute on function %s to service_role', f.sig);
   end loop;

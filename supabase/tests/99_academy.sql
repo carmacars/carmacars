@@ -10,7 +10,7 @@ select test.mk_user('acd_field', 'field', null, 'driver');
 select test.mk_user('acd_renter', 'renter');
 
 -- ================================================================ 1. the content and the paths
-select test.eq('eight paths: one per function, and The renter''s side (2990)', (select count(*)::int from academy_paths), 8);
+select test.eq('nine paths: one per function, The renter''s side (2990) and Managers (R51, 5206)', (select count(*)::int from academy_paths), 9);
 -- 5172: the audit removed the questions the lessons never teach and the repeats, so a short section keeps 3 or 4
 select test.ok('every path has sections, every section lessons and at least 3 questions',
   not exists (select 1 from academy_paths p where not exists (select 1 from academy_path_sections ps where ps.path_code = p.code))

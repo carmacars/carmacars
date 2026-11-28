@@ -1,4 +1,4 @@
--- 5303 (R51 staff, REQ-133; docs/changes/2026-11-27-r51-staff.md): a car goes straight back to available after a return,
+-- 5202 (R51 staff, REQ-133; docs/changes/2026-11-27-r51-staff.md): a car goes straight back to available after a return,
 -- unless the return report says it needs cleaning. The owner (Nov 27 17:29): "these cleaning jobs seem like a headache".
 -- 5195 (REQ-129) already lets a handover take a car in cleaning and puts it back to available when its detail job is done.
 --   1. A return (booking returned) sets the car to available, not cleaning, when no return report of that booking says it
@@ -13,11 +13,11 @@ create function pg_temp.patch_fn(p_sig regprocedure, p_old text, p_new text) ret
 language plpgsql as $$
 declare d text := pg_get_functiondef(p_sig);
 begin
-  if position(p_old in d) = 0 then raise exception '5303: the text to change was not found in %: %', p_sig, left(p_old, 160); end if;
+  if position(p_old in d) = 0 then raise exception '5202: the text to change was not found in %: %', p_sig, left(p_old, 160); end if;
   execute replace(d, p_old, p_new);
 end $$;
 
-insert into status_transitions (entity, from_status, to_status, note) values ('vehicle', 'on_rent', 'available', 'returned clean (5303)')
+insert into status_transitions (entity, from_status, to_status, note) values ('vehicle', 'on_rent', 'available', 'returned clean (5202)')
 on conflict do nothing;
 
 -- the return report of this booking says the car needs cleaning (its latest return report)
@@ -27,13 +27,13 @@ language sql stable security definer set search_path = public, app, pg_temp as $
                     where r.booking_id = p_booking and r.kind = 'return' and r.cleanliness is not null
                     order by r.performed_at desc, r.created_at desc limit 1), false)
 $$;
-comment on function app.return_needs_cleaning(uuid) is 'REQ-133 (5303): the latest return report of the booking says cleaning, heavy, pet or smoking.';
+comment on function app.return_needs_cleaning(uuid) is 'REQ-133 (5202): the latest return report of the booking says cleaning, heavy, pet or smoking.';
 
 select pg_temp.patch_fn('app.booking_after_status()'::regprocedure,
   $o$then 'exit_notice'::vehicle_status else 'cleaning'::vehicle_status end
      where v.id = new.vehicle_id and v.status = 'on_rent';$o$,
   $n$then 'exit_notice'::vehicle_status
-                         -- REQ-133 (5303): cleaning only when the return report says so
+                         -- REQ-133 (5202): cleaning only when the return report says so
                          when app.return_needs_cleaning(new.id) then 'cleaning'::vehicle_status else 'available'::vehicle_status end
      where v.id = new.vehicle_id and v.status = 'on_rent';$n$);
 
