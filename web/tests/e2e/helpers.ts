@@ -9,8 +9,10 @@ export const db = () => postgres(process.env.DATABASE_URL ?? 'postgresql://postg
 /** Collects console errors and failed requests while a test runs. */
 export function watch(page: Page) {
   const errors: string[] = [];
-  page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
-  page.on('pageerror', (e) => errors.push(String(e)));
+  // a hydration error (React #418) names the page it came from, so a failure shows where
+  const at = (t: string) => (/#4(18|23|25)/.test(t) ? `${t} @ ${page.url()}` : t);
+  page.on('console', (m) => { if (m.type() === 'error') errors.push(at(m.text())); });
+  page.on('pageerror', (e) => errors.push(at(String(e))));
   return errors;
 }
 
@@ -257,7 +259,8 @@ export async function strongSign(page: Page, scope: Page | Locator = page, chann
     // r49: wait for the button to enable (the drawing reached the draft state), then for the real save response (the
     // server action POST), never a fixed pause
     const save = flow.getByTestId(`esign-save-initials-${id!.replace(/^initials-/, '')}`);
-    await expect(save).toBeEnabled({ timeout: 15_000 });
+    // (a failure names what the pad and the page looked like)
+    await expect(save, `pad ${id}: ${await flow.locator(`canvas[data-testid="${id}"]`).evaluate((c) => `signed=${!!c.closest('.sigpad__box')?.classList.contains('is-signed')} ${c.getBoundingClientRect().width}x${c.getBoundingClientRect().height} busyButtons=${[...document.querySelectorAll('[data-testid="esign-flow"] button[disabled]')].map((b) => b.getAttribute('data-testid')).join(',')}`).catch(() => 'gone')}`).toBeEnabled({ timeout: 15_000 });
     const saved = page.waitForResponse((r) => r.request().method() === 'POST' && r.request().headers()['next-action'] !== undefined, { timeout: 30_000 });
     await save.click();
     expect((await saved).ok()).toBe(true);

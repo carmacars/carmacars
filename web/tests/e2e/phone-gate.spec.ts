@@ -168,8 +168,10 @@ test('the phone number box: crawlers see every photo; dates stay open; full avai
     await next.click();
     await expect(g.locator('.gallery__count b')).toHaveText(new RegExp('^2 / '));
     await expect(g.getByTestId('phone-gate')).toBeHidden();
+    // (the smooth scroll to photo 2 ends before the next press: the gallery reads the photo it stands on)
+    await g.waitForTimeout(800);
     await next.click();
-    await expect(g.getByTestId('phone-gate')).toContainText('See every photo of this car.');
+    await expect(g.getByTestId('phone-gate')).toContainText('See every photo of this car.', { timeout: 15_000 });
     await check(g, 'the box on the gallery');
     await g.keyboard.press('Escape');
     await expect(g.getByTestId('phone-gate')).toBeHidden();
