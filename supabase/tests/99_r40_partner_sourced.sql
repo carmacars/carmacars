@@ -2,6 +2,9 @@
 -- app.user_is_sales_staff does not know) is listed, can be saved as Sourced by, and earns sourced_by_bps of a completed
 -- referred rental. Fixtures start with "r40p".
 select test.suite('99 r40 partner sourced by');
+-- the onboarding gate on, whatever an earlier file left (REQ-117): put back at the end
+create temp table r40p_gate as select id, staff_onboarding_gate g from program_settings;
+update program_settings set staff_onboarding_gate = true;
 select test.mk_user('r40p_admin', 'admin');
 select test.mk_user('r40p_inperson', 'va', 'sales');
 select test.mk_user('r40p_cs', 'va', 'cs');
@@ -42,3 +45,4 @@ select test.ok('B Portals lists them as field', exists (select 1 from jsonb_arra
   where x ->> 'id' = test.id('r40p_field')::text and (x -> 'portals' ->> 'field')::boolean));
 select test.eq('B View as (Field work) starts', public.server_view_as_start(test.id('r40p_admin'), test.id('r40p_field'), 'field') ->> 'portal', 'field');
 select test.ok('B and their own field role is still refused by the gate', not app.is_field_person(test.id('r40p_field')) and not app.user_is_field(test.id('r40p_field')));
+update program_settings p set staff_onboarding_gate = x.g from r40p_gate x where x.id = p.id;

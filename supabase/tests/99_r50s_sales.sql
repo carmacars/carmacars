@@ -376,7 +376,9 @@ select test.throws('merge: two live claims of different people are not merged',
 select test.eq('merge: both claims are kept', (select count(*)::int from lead_claims where lead_id in (test.id('lead:rss_k1'), test.id('lead:rss_k2')) and expires_at > now()), 2);
 -- the claim of the folded lead moves with its holder
 delete from lead_claims where lead_id = test.id('lead:rss_k1');
+select set_config('app.lead_admin_move', 'on', false);
 select app.lead_merge(test.id('rss_admin'), test.id('lead:rss_k1'), test.id('lead:rss_k2'));
+select set_config('app.lead_admin_move', '', false);
 select test.eq('merge: the folded lead''s live claim moves to the kept lead with its holder', (select claimed_by from lead_claims where lead_id = test.id('lead:rss_k1')), test.id('rss_eric'));
 -- credits: move with the merge; one live credit an owner; a voided credit blocks nothing
 insert into leads (id, kind, name, email, source, created_at) values (test.id('lead:rss_g1'), 'owner_program', 'Rss Gwen Ray', 'rss_gwen1@example.test', 'web', now() - interval '2 days');
