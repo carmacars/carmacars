@@ -28,6 +28,9 @@ create function test.rzt(p_offset interval) returns text language sql stable as 
 select test.mk_booking('RZ-1', 'RZA', 'rz_rita', test.rzt('-2 days'), test.rzt('-30 minutes'), 'on_rent');
 insert into field_jobs (id, kind, booking_id, vehicle_id, assigned_to, scheduled_at, place)
 values (test.id('job:rz-1'), 'return_check_in', test.id('booking:RZ-1'), test.id('vehicle:RZA'), test.id('rz_field'), (select return_at from bookings where booking_number = 'RZ-1'), '1 Example Street, Toronto');
+-- the job above is the return check-in: a job made by field_jobs_auto for the same return would tie on scheduled_at and the
+-- alert could pick it, unassigned (CI 46126421568, after another suite turned field_jobs_auto on)
+delete from field_jobs where booking_id = test.id('booking:RZ-1') and id <> test.id('job:rz-1');
 -- a renter with nothing coming: the customer service lane
 select test.mk_booking('RZ-OLD', 'RZB', 'rz_quiet', '2025-01-05 10:00', '2025-01-07 10:00', 'closed');
 
