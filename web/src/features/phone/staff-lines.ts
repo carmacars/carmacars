@@ -19,12 +19,13 @@ export function maskedNumber(e164: string): string {
   return d.length >= 4 ? `•••-•••-${d.slice(-4)}` : '•••';
 }
 
-/** A number is bought only by the live site: a public https address (Twilio must reach its webhook). Every test server
- *  (localhost, 127.0.0.1, a .test or .local host, plain http) is refused, so a test never buys a number. */
+/** The live site's hosts: a number is bought only when NEXT_PUBLIC_APP_URL is one of them over https (Twilio must reach its webhook).
+ *  Every test, preview and local server is refused, so a test never buys a number. */
+export const PRODUCTION_HOSTS = ['carmacars.ca', 'www.carmacars.ca'] as const;
+
 export function lineBuyBlocked(base: string): string | null {
   let u: URL;
   try { u = new URL(base); } catch { return 'The site address is not set (NEXT_PUBLIC_APP_URL).'; }
-  if (u.protocol !== 'https:' || /^(localhost|127\.|0\.0\.0\.0|\[::1\])/.test(u.hostname) || /\.(test|local|localhost|example)$/.test(u.hostname))
-    return 'Numbers are bought only from the live site.';
+  if (u.protocol !== 'https:' || !(PRODUCTION_HOSTS as readonly string[]).includes(u.hostname.toLowerCase())) return 'Numbers are bought only from the live site.';
   return null;
 }

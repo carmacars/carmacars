@@ -57,6 +57,14 @@ select test.eq('done, kept with who and the note', (select status || '/' || note
 select test.throws('someone else''s follow-up is refused', format($$select app.team_followup_done(test.id('mf51_slow'), jsonb_build_object('id', %L, 'note', 'x'))$$,
   (select id from team_followups where member_id = test.id('mf51_new') and kind = 'academy')), '%Not one of your%');
 
+-- R51 review fix: a manager reassigned away cannot close the old follow-up
+update staff_profiles set manager_id = null where user_id = test.id('mf51_new');
+select test.throws('reassigned away: the old follow-up cannot be closed', format($$select pg_temp.dr('mf51_boss', 'ops_do', 'team_followup_done', jsonb_build_object('id', %L, 'note', 'Called'))$$,
+  (select id from team_followups where member_id = test.id('mf51_new') and kind = 'academy')), '%Not one of your%');
+select test.eq('and it stays open', (select status from team_followups where member_id = test.id('mf51_new') and kind = 'academy'), 'open');
+update staff_profiles set manager_id = test.id('mf51_boss') where user_id = test.id('mf51_new');
+select test.eq('assigned again: the manager closes it', pg_temp.dr('mf51_boss', 'ops_do', 'team_followup_done', jsonb_build_object('id', (select id from team_followups where member_id = test.id('mf51_new') and kind = 'academy'), 'note', 'Called')) ->> 'ok', 'true');
+
 -- ================================================================ overdue and the weekly summary
 update team_followups set due_at = now() - interval '1 hour' where member_id = test.id('mf51_new') and kind = 'onboarding';
 select test.eq('overdue: escalated to the Admins once', (app.job_team_followups() ->> 'escalated')::int || '/' || (app.job_team_followups() ->> 'escalated')::int, '1/0');

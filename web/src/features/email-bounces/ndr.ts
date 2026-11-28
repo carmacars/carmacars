@@ -2,7 +2,7 @@
 // (app/api/inbound/bounce) passes the raw message; only these fields go to the database, the message is never stored.
 import { parseMime } from '../turo/email.ts';
 
-export interface Bounce { to: string; status: string | null; reason: string | null; ref: string | null }
+export interface Bounce { to: string; status: string | null; reason: string | null; ref: string | null; messageId: string | null }
 
 const EMAIL = /[A-Za-z0-9._%+'-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/;
 const isBounceSender = (from: string, subject: string, headers: Record<string, string>): boolean =>
@@ -17,6 +17,9 @@ export function readBounce(raw: string): Bounce[] {
   if (!isBounceSender(m.from, m.subject, m.headers)) return [];
   const src = raw.replace(/\r\n/g, '\n').replace(/=\n/g, '');
   const ref = /^X-Outbox-Ref:\s*([0-9a-f-]{36})\s*$/im.exec(src)?.[1]?.toLowerCase() ?? null;
+  // the Message-ID of the email we sent: in the returned headers (a part after rfc822-headers or message/rfc822), never the NDR's own
+  const orig = src.split(/\nContent-Type:\s*(?:text\/rfc822-headers|message\/rfc822)[^\n]*\n/i)[1] ?? '';
+  const messageId = /^Message-ID:\s*<?([^>\s]+)>?\s*$/im.exec(orig)?.[1] ?? null;
   const out: Bounce[] = [];
   // RFC 3464: a block per recipient (Final-Recipient, Status, Diagnostic-Code)
   const blocks = src.split(/\n(?=(?:Original|Final)-Recipient:)/i).filter((b) => /^(Final|Original)-Recipient:/i.test(b));
@@ -26,7 +29,7 @@ export function readBounce(raw: string): Bounce[] {
     if (!to || (status && !status.startsWith('5') && !status.startsWith('4'))) continue;
     if (status?.startsWith('2')) continue;
     const diag = /^Diagnostic-Code:\s*(?:smtp;)?\s*(.+(?:\n[ \t].+)*)/im.exec(b)?.[1]?.replace(/\s+/g, ' ').trim() ?? null;
-    out.push({ to: to.toLowerCase(), status, reason: diag ? diag.slice(0, 300) : null, ref });
+    out.push({ to: to.toLowerCase(), status, reason: diag ? diag.slice(0, 300) : null, ref, messageId });
   }
   if (out.length) return dedupe(out);
   // an NDR without a report part: the text names the address and the server's answer
@@ -34,7 +37,7 @@ export function readBounce(raw: string): Bounce[] {
   const code = /\b([45]\d\d)[ -]([45]\.\d{1,3}\.\d{1,3})\b[^\n]*/.exec(text);
   const to = /(?:delivered to|delivery to|to these recipients[^:]*:|recipient(?:s)?:)\s*<?([^\s<>]+@[^\s<>]+)/i.exec(text)?.[1] ?? EMAIL.exec(text.split(/remote server|diagnostic/i)[0] ?? '')?.[0];
   if (!to || !code) return [];
-  return [{ to: to.toLowerCase().replace(/[.,;]+$/, ''), status: code[2] ?? null, reason: code[0].replace(/\s+/g, ' ').trim().slice(0, 300), ref }];
+  return [{ to: to.toLowerCase().replace(/[.,;]+$/, ''), status: code[2] ?? null, reason: code[0].replace(/\s+/g, ' ').trim().slice(0, 300), ref, messageId }];
 }
 
 const dedupe = (xs: Bounce[]) => xs.filter((x, i) => xs.findIndex((y) => y.to === x.to) === i);

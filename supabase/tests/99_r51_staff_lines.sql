@@ -26,6 +26,19 @@ select test.throws('staff cannot set extensions', $$select app.staff_line_set(te
 select test.eq('the server checks before Twilio: an Admin, an extension, no live line',
   (select (x ->> 'extension') || '/' || (x ->> 'area_code') from (select public.server_staff_line_check(test.id('sl51_admin'), test.id('sl51_fleet')) x) q), '7051/647');
 select test.throws('only an Admin buys', $$select public.server_staff_line_check(test.id('sl51_cs'), test.id('sl51_fleet'))$$);
+-- R51 review fix: the quoted number is carried to the Buy step, price and currency must match, one purchase at a time
+select test.throws('Buy with no quote buys nothing', $$select public.server_staff_line_claim(jsonb_build_object('by', test.id('sl51_admin'), 'user_id', test.id('sl51_fleet'), 'confirm', '1.15', 'currency', 'USD'))$$, '%quote is gone%');
+select public.server_staff_line_quoted(jsonb_build_object('by', test.id('sl51_admin'), 'user_id', test.id('sl51_fleet'), 'number', '+16475550772', 'monthly', '1.15', 'currency', 'USD'));
+select test.throws('another amount is refused', $$select public.server_staff_line_claim(jsonb_build_object('by', test.id('sl51_admin'), 'user_id', test.id('sl51_fleet'), 'confirm', '1.00', 'currency', 'USD'))$$, '%not the one quoted%');
+select test.throws('another currency is refused', $$select public.server_staff_line_claim(jsonb_build_object('by', test.id('sl51_admin'), 'user_id', test.id('sl51_fleet'), 'confirm', '1.15', 'currency', 'CAD'))$$, '%not the one quoted%');
+select test.eq('the confirmed quote hands back the quoted number', public.server_staff_line_claim(jsonb_build_object('by', test.id('sl51_admin'), 'user_id', test.id('sl51_fleet'), 'confirm', '1.15', 'currency', 'usd')) ->> 'number', '+16475550772');
+select test.throws('a second Buy while one is in progress is refused', $$select public.server_staff_line_claim(jsonb_build_object('by', test.id('sl51_admin'), 'user_id', test.id('sl51_fleet'), 'confirm', '1.15', 'currency', 'USD'))$$, '%already in progress%');
+select test.throws('a new quote waits for it too', $$select public.server_staff_line_quoted(jsonb_build_object('by', test.id('sl51_admin'), 'user_id', test.id('sl51_fleet'), 'number', '+16475550773', 'monthly', '1.15', 'currency', 'USD'))$$, '%in progress%');
+update staff_line_quotes set buying_at = now() - interval '11 minutes' where user_id = test.id('sl51_fleet');
+select test.eq('a purchase that died frees the quote after 10 minutes', public.server_staff_line_claim(jsonb_build_object('by', test.id('sl51_admin'), 'user_id', test.id('sl51_fleet'), 'confirm', '1.15', 'currency', 'USD')) ->> 'currency', 'USD');
+select public.server_staff_line_quote_end(test.id('sl51_admin'), test.id('sl51_fleet'));
+select test.eq('the spent quote is gone', (select count(*) from staff_line_quotes where user_id = test.id('sl51_fleet')), 0::bigint);
+select test.eq('no browser role reads a quote', has_table_privilege('authenticated', 'staff_line_quotes', 'select') or has_function_privilege('authenticated', 'public.server_staff_line_claim(jsonb)', 'execute'), false);
 select test.throws('no extension, no purchase', $$select public.server_staff_line_check(test.id('sl51_admin'), test.id('sl51_cs'))$$, '%extension first%');
 select test.eq('recorded', public.server_staff_line_bought(jsonb_build_object('by', test.id('sl51_admin'), 'user_id', test.id('sl51_fleet'), 'number', '+16475550771',
   'sid', 'PN' || repeat('a', 32), 'monthly_cents', 115, 'currency', 'USD')) ->> 'line', 'Ext 7051, number ending 0771');

@@ -30114,6 +30114,36 @@ export type Database = {
         };
         Relationships: [];
       };
+      staff_line_quotes: {
+        Row: {
+          user_id: string;
+          number: string;
+          monthly: string;
+          currency: string;
+          quoted_by: string;
+          quoted_at: string;
+          buying_at: string | null;
+        };
+        Insert: {
+          user_id: string;
+          number: string;
+          monthly: string;
+          currency: string;
+          quoted_by: string;
+          quoted_at?: string;
+          buying_at?: string | null;
+        };
+        Update: {
+          user_id?: string;
+          number?: string;
+          monthly?: string;
+          currency?: string;
+          quoted_by?: string;
+          quoted_at?: string;
+          buying_at?: string | null;
+        };
+        Relationships: [];
+      };
       staff_onboarding: {
         Row: {
           application_id: string;
@@ -39135,7 +39165,10 @@ export type Database = {
       server_staff_agreements_due: { Args: { p_limit?: number }; Returns: Json };
       server_staff_line_bought: { Args: { p: Json }; Returns: Json };
       server_staff_line_check: { Args: { p_by: string; p_user: string }; Returns: Json };
+      server_staff_line_claim: { Args: { p: Json }; Returns: Json };
       server_staff_line_missed: { Args: { p: Json }; Returns: Json };
+      server_staff_line_quote_end: { Args: { p_by: string; p_user: string }; Returns: undefined };
+      server_staff_line_quoted: { Args: { p: Json }; Returns: Json };
       server_staff_line_released: { Args: { p: Json }; Returns: Json };
       server_staff_line_sid: { Args: { p_by: string; p_user: string }; Returns: string };
       server_staff_restore_request: { Args: { p_token: string }; Returns: Json };
