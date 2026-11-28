@@ -680,6 +680,15 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 - Rule: the agreement step always offers Sign now: it makes the agreement at once when there is none (also after the automatic job gave up) and opens it to sign; if it still waits for something, the page says exactly what, with a button for what the person gives and an alert to Admin for what only Admin gives. Welcome is one checklist for every staff role: each remaining step is one big button (Sign agreement, Set availability, Join the WhatsApp group and Confirm, Pay details), done steps ticked, and the portal opens when the list is done. No blocking screen is a dead end.
 - Done when: a staff member in Jamal's state (Sales and Field, academy waived, no agreement made, availability not set, WhatsApp not confirmed) sees a big button for each step left on Welcome, Sign now makes and opens the agreement, and every blocking screen links to its next step.
 
+### REQ-138 Managers follow up on their staff, and pass a Manager academy section
+- Status: in progress
+- Proof: branch r51-staff (not on main)
+- Test: to be added with the work
+- Asked: Nov 27 19:45
+- Owner: "Managers should be following up on their assigned staff and what not and get academy shit for it"
+- Rule: a manager gets To dos for their own team: a member stalled in the academy 2 days or more, onboarding steps still open, a missed field job or shift, KPIs below target, and their own follow-ups that are overdue. Each has one-tap actions: message, call, and mark followed up with a note. The manager gets a weekly team summary. A Manager section of the academy (how to follow up, coach, escalate, approve hours) is on every manager's path, wired like the other role sections, and must be passed before the follow-up tools open.
+- Done when: a manager of a stalled or behind team member gets the To do with message, call and followed-up actions; the weekly summary arrives; the Manager section is on their academy path and My team's follow-ups wait until it is passed.
+
 ## 11. Townhall and weekly Admin call
 
 ### REQ-070 Townhall join and slide
