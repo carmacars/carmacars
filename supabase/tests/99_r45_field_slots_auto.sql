@@ -49,7 +49,8 @@ select test.eq('the days before a slot already published are never filled in', (
 select test.mk_owner('fsa_o'); select test.mk_vehicle('FSA1', 'fsa_o'); select test.mk_renter('fsa_r');
 select test.mk_booking('CC-FSA1', 'FSA1', 'fsa_r', to_char(app.today() + 7, 'YYYY-MM-DD') || ' 22:00', to_char(app.today() + 9, 'YYYY-MM-DD') || ' 12:00', 'confirmed', 10000);
 select test.mk_booking('CC-FSA2', 'FSA1', 'fsa_r', to_char(app.today() + 2, 'YYYY-MM-DD') || ' 22:00', to_char(app.today() + 3, 'YYYY-MM-DD') || ' 08:00', 'confirmed', 10000);
-update program_settings set field_slots_auto_from = app.today() + 4;
+-- the window reaches the handover at any hour (6 days from now() ends before day 7 22:00 once Toronto's day is late: CI 46098506576)
+update program_settings set field_slots_auto_from = app.today() + 4, field_slots_auto_days = 10;
 select app.field_slots_auto_publish(now());
 select test.eq('the uncovered handover gets a covering slot; the return at 12:00 is in a shift already',
   (select string_agg(cover_leg, ',') from field_shift_slots where cover_booking_id = test.id('booking:CC-FSA1')), 'handover');
