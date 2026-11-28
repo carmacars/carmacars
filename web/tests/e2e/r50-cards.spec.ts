@@ -178,13 +178,17 @@ test.describe('a phone', () => {
     let last = '';
     await expect.poll(async () => { const k = await page.evaluate(() => `${scrollY}/${document.documentElement.scrollHeight}`); const still = k === last; last = k; return still; }, { intervals: [300], timeout: 10_000 }).toBe(true);
     await page.waitForTimeout(600);
-    const y0 = await page.evaluate(() => scrollY);
     const room = await page.evaluate(() => document.documentElement.scrollHeight - innerHeight - scrollY);
     const up = room < 120;
     const m2 = (await box(page));
     await gesture(page, m2.x + m2.width / 2, m2.y + m2.height / 2, 6, up ? 200 : -200);
-    if (up) await expect.poll(() => page.evaluate(() => scrollY)).toBeLessThan(y0 - 50);
-    else await expect.poll(() => page.evaluate(() => scrollY), { message: `scrollY from ${y0} with ${room}px of room below` }).toBeGreaterThan(y0 + 50);
+    // the page moved under the finger: the photo's own place on the screen (not scrollY). Near the top of the list the dates bar folds by
+    // itself once the cars scroll 200px under it (the owner's request of Oct 23): it shrinks the page above the viewport and the browser's
+    // scroll anchoring lowers scrollY by the same amount, so scrollY can end below where it began while the cars moved up (run 46112569166:
+    // scrollY 356, 552 under the finger, 319 after the fold; the page scrolled, touchmove was never cancelled)
+    const mediaTop = async () => (await cardOf(page).locator('.car-card__media').boundingBox())!.y;
+    if (up) await expect.poll(mediaTop, { message: `the photo from ${m2.y} with ${room}px of room below` }).toBeGreaterThan(m2.y + 50);
+    else await expect.poll(mediaTop, { message: `the photo from ${m2.y} with ${room}px of room below` }).toBeLessThan(m2.y - 50);
     expect(await onIndex(page)).toBe(1);
     // a tap opens the car
     await c.evaluate((e) => e.scrollIntoView({ block: 'center' }));
