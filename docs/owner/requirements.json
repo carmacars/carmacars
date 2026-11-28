@@ -936,6 +936,18 @@
     "test": "supabase/tests/99_r51_manager_followups.sql; web/src/features/team/model.test.ts"
   },
   {
+    "id": "REQ-139",
+    "title": "One deployment: a failed run absorbs the queued work",
+    "area": "10. Staff portals and academy",
+    "status": "in progress",
+    "asked": "Nov 27 21:19",
+    "owner_quote": "\"every time the run fails, just merge all the future stuff that we've talked about into that same deployment. Don't just create multiple deployments unnecessarily.\"",
+    "rule": "when a release run fails, the next finished work is merged into that same release before the rerun. No second release is cut while one is pending.",
+    "done_when": "every release log shows one deployment per pending release, with queued work folded in after each failure.",
+    "proof": "this release (r50-hotfix2) carries R50 hotfix 2, R51 and the R51 review fixes in one CI run with deploy",
+    "test": "GAP (process rule, checked by the release log)"
+  },
+  {
     "id": "REQ-070",
     "title": "Townhall join and slide",
     "area": "11. Townhall and weekly Admin call",

@@ -689,6 +689,15 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 - Rule: a manager gets To dos for their own team: a member stalled in the academy 2 days or more, onboarding steps still open, a missed field job or shift, KPIs below target, and their own follow-ups that are overdue. Each has one-tap actions: message, call, and mark followed up with a note. The manager gets a weekly team summary. A Manager section of the academy (how to follow up, coach, escalate, approve hours) is on every manager's path, wired like the other role sections, and must be passed before the follow-up tools open.
 - Done when: a manager of a stalled or behind team member gets the To do with message, call and followed-up actions; the weekly summary arrives; the Manager section is on their academy path and My team's follow-ups wait until it is passed.
 
+### REQ-139 One deployment: a failed run absorbs the queued work
+- Status: in progress
+- Proof: this release (r50-hotfix2) carries R50 hotfix 2, R51 and the R51 review fixes in one CI run with deploy
+- Test: GAP (process rule, checked by the release log)
+- Asked: Nov 27 21:19
+- Owner: "every time the run fails, just merge all the future stuff that we've talked about into that same deployment. Don't just create multiple deployments unnecessarily."
+- Rule: when a release run fails, the next finished work is merged into that same release before the rerun. No second release is cut while one is pending.
+- Done when: every release log shows one deployment per pending release, with queued work folded in after each failure.
+
 ## 11. Townhall and weekly Admin call
 
 ### REQ-070 Townhall join and slide
