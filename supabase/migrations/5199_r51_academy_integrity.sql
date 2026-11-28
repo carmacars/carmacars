@@ -32,6 +32,8 @@ alter table program_settings
   add column if not exists academy_integrity_void boolean not null default true,
   add column if not exists academy_focus_loss_max integer not null default 2 check (academy_focus_loss_max between 0 and 50),
   add column if not exists academy_answer_floor_seconds integer not null default 2 check (academy_answer_floor_seconds between 0 and 30);
+-- clear this transaction's copy of the settings row: it has the old columns (0827 caches it; deploy 46122920273 failed on 5170)
+select set_config('app.settings_gen', gen_random_uuid()::text, true);
 comment on column program_settings.academy_integrity_void is 'Academy (5199): a quiz submit with an automation or cheating signal is voided (not graded, kept with its reasons, Admin alerted). Off: graded, the reasons kept and alerted only.';
 comment on column program_settings.academy_focus_loss_max is 'Academy (5199): how many times the quiz page may lose focus or be hidden (another tab or app) before the attempt is flagged.';
 comment on column program_settings.academy_answer_floor_seconds is 'Academy (5199): a first answer picked faster than this after the one before counts as too fast; half the questions (at least 3) too fast flags the attempt. 0 for off.';

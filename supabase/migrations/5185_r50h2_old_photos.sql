@@ -26,6 +26,8 @@ alter table program_settings
   add column old_photos_match_hours integer not null default 12 check (old_photos_match_hours between 1 and 72),
   add column old_photos_group_minutes integer not null default 30 check (old_photos_group_minutes between 1 and 240),
   add column old_photos_plate_daily integer not null default 30 check (old_photos_plate_daily between 1 and 500);
+-- clear this transaction's copy of the settings row: it has the old columns (0827 caches it; deploy 46122920273 failed on 5170)
+select set_config('app.settings_gen', gen_random_uuid()::text, true);
 comment on column program_settings.old_photos_days is 'Add old photos: how far back the past bookings go, in days (5185)';
 comment on column program_settings.old_photos_match_hours is 'Add old photos: hours from a pickup or return within which a photo is suggested for it (5185)';
 comment on column program_settings.old_photos_group_minutes is 'Add old photos: photos taken within this many minutes of each other are one group (5185)';

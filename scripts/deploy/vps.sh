@@ -141,7 +141,7 @@ vps_sql_file() {
   code=$(curl -sS -o "$out" -w '%{http_code}' --max-time 900 -X POST "http://127.0.0.1:$VPS_META_PORT/query" \
     -H 'content-type: application/json' --data-binary @"$body") || code=000
   rm -f "$body"
-  if [ "${code:0:1}" != 2 ]; then echo "SQL failed ($code): $(head -c 1500 "$out")" >&2; rm -f "$out"; return 1; fi
+  if [ "${code:0:1}" != 2 ]; then echo "SQL failed ($code): $(head -c 1500 "$out" | sed -E 's/(literal: ).*/\1(value hidden: the public log never shows table data)/')" >&2; rm -f "$out"; return 1; fi
   cat "$out"; rm -f "$out"
 }
 vps_sql() { local f; f=$(mktemp); printf '%s' "$1" > "$f"; local rc=0; vps_sql_file "$f" || rc=$?; rm -f "$f"; return $rc; }

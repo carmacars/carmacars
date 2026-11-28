@@ -162,6 +162,8 @@ $$;
 
 -- ================================================================ 3. the payouts
 alter table program_settings add column if not exists academy_hold_hours boolean not null default true;
+-- clear this transaction's copy of the settings row: it has the old columns (0827 caches it; deploy 46122920273 failed on 5170)
+select set_config('app.settings_gen', gen_random_uuid()::text, true);
 comment on column program_settings.academy_hold_hours is 'Academy (5170, the owner Nov 27): the pay for hours of Field, customer service, Fleet and Finance staff is held until they pass the whole academy (or an Admin waives it), then paid in full on the next Record all payments. Off: only commission, bonuses and referral fees are held.';
 alter table field_pay_lines add column if not exists academy_held_at timestamptz;
 comment on column field_pay_lines.academy_held_at is 'When Record all payments first held this line for the academy (5170); the release pays it in full and notes it.';

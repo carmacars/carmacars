@@ -65,7 +65,7 @@ sbq() {
   code=$(curl -sS -o "$out" -w '%{http_code}' -X POST "$SB_API/database/query" \
     -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H 'content-type: application/json' --data-binary "$body")
   if [ "${code:0:1}" != "2" ]; then
-    echo "SQL failed ($code): $(head -c 1500 "$out")" >&2
+    echo "SQL failed ($code): $(head -c 1500 "$out" | sed -E 's/(literal: ).*/\1(value hidden: the public log never shows table data)/')" >&2
     rm -f "$out"; return 1
   fi
   cat "$out"; rm -f "$out"
@@ -82,7 +82,7 @@ sbq_file() {
     -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H 'content-type: application/json' --data-binary @"$body")
   rm -f "$body"
   if [ "${code:0:1}" != "2" ]; then
-    echo "SQL failed ($code): $(head -c 1500 "$out")" >&2
+    echo "SQL failed ($code): $(head -c 1500 "$out" | sed -E 's/(literal: ).*/\1(value hidden: the public log never shows table data)/')" >&2
     rm -f "$out"; return 1
   fi
   cat "$out"; rm -f "$out"

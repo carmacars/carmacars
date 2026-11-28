@@ -40,6 +40,8 @@ alter table program_settings
   add column if not exists phone_line_area_code text not null default '647' check (phone_line_area_code ~ '^[2-9][0-9]{2}$'),
   add column if not exists phone_line_message text not null default 'Sorry, they cannot take your call right now. Please call the main CarmaCars number. CarmaCars.'
     check (length(phone_line_message) between 1 and 300);
+-- clear this transaction's copy of the settings row: it has the old columns (0827 caches it; deploy 46122920273 failed on 5170)
+select set_config('app.settings_gen', gen_random_uuid()::text, true);
 comment on column program_settings.phone_line_area_code is 'Staff lines (5200): the area code a new staff line is bought in (a Canadian local number at Twilio).';
 comment on column program_settings.phone_line_message is 'Staff lines (5200): what a caller hears when the staff member is not online or does not answer.';
 

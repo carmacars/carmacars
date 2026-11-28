@@ -11,7 +11,7 @@
 // present on both sides are compared. Without the base ref (no network, a shallow clone) the history check is skipped
 // with a notice, never failed.
 import { execFileSync } from 'node:child_process';
-import { readdirSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -48,6 +48,19 @@ if (base) {
   }
 } else {
   console.log(`notice: ${BASE} is not available here, so the history check was skipped`);
+}
+
+// A migration that adds a column to program_settings clears the transaction's cached settings row (0827) after the change:
+// a later app.settings() in the same file would read the old row and fail with "malformed record literal" (deploy
+// 46122920273, 5170). The fresh test database does not show it; the live data does. Checked from 5170 on.
+for (const f of files) {
+  if (f.slice(0, 4) < '5170') continue;
+  const sql = readFileSync(join(ROOT, DIR, f), 'utf8');
+  const re = /alter table (?:public\.)?program_settings\b[^;]*\badd column[^;]*;/gi;
+  let m, last = -1;
+  while ((m = re.exec(sql))) last = m.index + m[0].length;
+  if (last >= 0 && !sql.slice(last).includes("set_config('app.settings_gen'"))
+    problems.push(`${f}: adds a column to program_settings; after it add select set_config('app.settings_gen', gen_random_uuid()::text, true);`);
 }
 
 if (problems.length) {
