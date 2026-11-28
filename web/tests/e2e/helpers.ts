@@ -260,7 +260,7 @@ export async function strongSign(page: Page, scope: Page | Locator = page, chann
     // server action POST), never a fixed pause
     const save = flow.getByTestId(`esign-save-initials-${id!.replace(/^initials-/, '')}`);
     // (a failure names what the pad and the page looked like)
-    await expect(save, `pad ${id}: ${await flow.locator(`canvas[data-testid="${id}"]`).evaluate((c) => `signed=${!!c.closest('.sigpad__box')?.classList.contains('is-signed')} ${c.getBoundingClientRect().width}x${c.getBoundingClientRect().height} busyButtons=${[...document.querySelectorAll('[data-testid="esign-flow"] button[disabled]')].map((b) => b.getAttribute('data-testid')).join(',')}`).catch(() => 'gone')}`).toBeEnabled({ timeout: 15_000 });
+    await expect(save, `pad ${id}: ${await flow.locator(`canvas[data-testid="${id}"]`).evaluate((c) => `signed=${!!c.closest('.sigpad__box')?.classList.contains('is-signed')} ${c.getBoundingClientRect().width}x${c.getBoundingClientRect().height} busyButtons=${[...document.querySelectorAll('[data-testid="esign-flow"] button[disabled]')].map((b) => b.getAttribute('data-testid')).join(',')} top=${((r) => { const t = document.elementFromPoint(r.x + 12, r.y + r.height * 0.6); return t === c ? 'the pad' : t ? `${t.tagName.toLowerCase()}.${String(t.className).slice(0, 60)}[${t.getAttribute('data-testid') ?? ''}] in ${t.closest('[data-testid]')?.getAttribute('data-testid') ?? ''}` : 'nothing'; })(c.getBoundingClientRect())} at=${new Date().toISOString()}`).catch(() => 'gone')}`).toBeEnabled({ timeout: 15_000 });
     const saved = page.waitForResponse((r) => r.request().method() === 'POST' && r.request().headers()['next-action'] !== undefined, { timeout: 30_000 });
     await save.click();
     expect((await saved).ok()).toBe(true);
