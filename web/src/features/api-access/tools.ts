@@ -436,6 +436,13 @@ export const ERROR_TOOLS: Tool[] = [
 ];
 TOOLS.push(...ERROR_TOOLS);
 
+// R51 (5211, REQ-140): the site's visitors week by week, read only. The database (app.api_call) decides and logs each call.
+export const VISITOR_TOOLS: Tool[] = [
+  read('visitor_weeks', 'Visitors by week', 'The site\'s visitors week by week (weeks start Monday, Toronto), newest first, the current week marked in progress: visits, new and returning visits, unique browsers (null before the kept visits), page views, sign-ups, requests, bookings and contacts. Bots and staff are left out. Read only.',
+    { weeks: { type: 'integer', minimum: 1, maximum: 156, description: 'How many weeks back, this week included (12 by default)' } })
+];
+TOOLS.push(...VISITOR_TOOLS);
+
 // Release 50 (4800): self-healing, read only. The incidents the site saw (open, healing, healed or escalated) with what it
 // tried and whether the check after each fix found the problem gone, the fix library with each fix's success and failure
 // counts, the whitelisted actions and what the heal agent on the server last reported. The database (app.api_call) decides

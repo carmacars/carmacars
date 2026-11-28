@@ -312,6 +312,16 @@ test('r50: site_errors, site_health and search_console_issues are read only (adm
   assert.match(SQL4701, /app\.redact_text/);
 });
 
+// R51 (5211, REQ-140): visitors by week, read only
+const SQL5211 = readFileSync(new URL('../../../../supabase/migrations/5211_r51_visitor_weeks.sql', import.meta.url), 'utf8');
+test('R51: visitor_weeks is read only (admin:read) and runs in the database', async () => {
+  const { VISITOR_TOOLS } = await import('./tools.ts');
+  assert.deepEqual(VISITOR_TOOLS.map((t) => t.name), ['visitor_weeks']);
+  for (const t of VISITOR_TOOLS) { assert.ok(t.readOnly && t.scope === 'admin:read', t.name); assert.ok(TOOLS.includes(t), t.name); assert.ok(toolsFor(['admin:read']).includes(t), t.name); }
+  assert.match(SQL5211, /app\.api_call_pre5211\(p_hash, p_tool, p_args, p_client\); end if;/);
+  assert.match(SQL5211, /exclude_reason is null/);
+});
+
 // r50 (4800): self-healing, read only
 const SQL4800 = readFileSync(new URL('../../../../supabase/migrations/4800_r50_self_heal.sql', import.meta.url), 'utf8');
 test('r50: heal_status is read only (admin:read) and runs in the database', async () => {

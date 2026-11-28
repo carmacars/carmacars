@@ -948,6 +948,18 @@
     "test": "GAP (process rule, checked by the release log)"
   },
   {
+    "id": "REQ-140",
+    "title": "Visitors week over week, on the connector",
+    "area": "10. Staff portals and academy",
+    "status": "in progress",
+    "asked": "Nov 27 22:28",
+    "owner_quote": "\"How many users am I getting week over week\"",
+    "rule": "Claude can read the site's visitors week by week (visits, new visits, unique browsers, sign-ups, requests, bookings) through the Admin connector, bots and staff left out.",
+    "done_when": "the visitor_weeks tool answers on production with the last 12 weeks.",
+    "proof": "supabase/migrations/5211_r51_visitor_weeks.sql (app.visitor_weeks, api_call wrapper); web/src/features/api-access/tools.ts (visitor_weeks)",
+    "test": "supabase/tests/99_r51_visitor_weeks.sql; web/src/features/api-access/tools.test.ts"
+  },
+  {
     "id": "REQ-070",
     "title": "Townhall join and slide",
     "area": "11. Townhall and weekly Admin call",

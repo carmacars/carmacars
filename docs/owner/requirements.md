@@ -698,6 +698,15 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 - Rule: when a release run fails, the next finished work is merged into that same release before the rerun. No second release is cut while one is pending.
 - Done when: every release log shows one deployment per pending release, with queued work folded in after each failure.
 
+### REQ-140 Visitors week over week, on the connector
+- Status: in progress
+- Proof: supabase/migrations/5211_r51_visitor_weeks.sql (app.visitor_weeks, api_call wrapper); web/src/features/api-access/tools.ts (visitor_weeks)
+- Test: supabase/tests/99_r51_visitor_weeks.sql; web/src/features/api-access/tools.test.ts
+- Asked: Nov 27 22:28
+- Owner: "How many users am I getting week over week"
+- Rule: Claude can read the site's visitors week by week (visits, new visits, unique browsers, sign-ups, requests, bookings) through the Admin connector, bots and staff left out.
+- Done when: the visitor_weeks tool answers on production with the last 12 weeks.
+
 ## 11. Townhall and weekly Admin call
 
 ### REQ-070 Townhall join and slide
