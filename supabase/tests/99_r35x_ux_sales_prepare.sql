@@ -83,8 +83,9 @@ select test.ok('customer service is unchanged (reads a confirmed booking as befo
 -- ================================================================ 6. the Prepare checklist, read only for the office (1107)
 insert into booking_addons (booking_id, addon_id, name, fee_type_code, quantity, pricing_unit, unit_price_cents, hst_applies, status, added_via)
 select test.uxb('UX-1'), a.id, a.name, a.fee_type_code, 2, a.pricing_unit, coalesce(a.price_cents, 0), a.hst_applies, 'confirmed', 'staff' from addons a where a.code = 'booster_seat';
+-- the job is set after the pickup time, so it is the latest one with or without the job a fresh database makes from the booking (5173)
 insert into field_jobs (kind, vehicle_id, booking_id, scheduled_at, assigned_to, status, created_by)
-values ('delivery', test.id('vehicle:UXA'), test.uxb('UX-1'), now() + interval '5 days', test.id('ux_field'), 'scheduled', test.id('ux_admin'));
+select 'delivery', test.id('vehicle:UXA'), id, pickup_at + interval '1 hour', test.id('ux_field'), 'scheduled', test.id('ux_admin') from bookings where id = test.uxb('UX-1');
 select test.eq('Sales, customer service, Fleet, Finance and an Admin read it: the add-on with its quantity, the count, the job and who has it',
   (select string_agg(u || ':' || coalesce((x -> 'items' -> 0 ->> 'quantity') || 'x' || (x ->> 'ticked') || '/' || (x ->> 'total') || ' ' || (x -> 'job' ->> 'kind') || ' ' || (x -> 'job' ->> 'status'), 'null'), ',' order by u)
      from unnest(array['ux_admin', 'ux_cs', 'ux_fin', 'ux_fleet', 'ux_sales']) u, app.door(test.id(u), 'aal2', 'ops_read', 'prepare_progress', '{"booking": "UX-1"}') x),

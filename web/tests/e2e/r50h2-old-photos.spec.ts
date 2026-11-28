@@ -107,7 +107,8 @@ test('add old photos: one booking by plate, then a pile matched by time, on the 
   const one = await photos(sql, n1, 'return');
   expect(one.length).toBe(3);
   expect(one.every((x) => x.later && x.uploaded_by === field && x.shot === 'other')).toBe(true);
-  expect(one.map((x) => Math.round((x.device_taken_at as Date).getTime() / 1000)).sort()).toEqual(taken.map((d) => Math.round(d.getTime() / 1000)).sort());
+  // the photo holds whole seconds (Exif has no fraction): compare whole seconds, rounded down, never up (a fraction of .5 or more failed the run of Nov 28)
+  expect(one.map((x) => Math.floor((x.device_taken_at as Date).getTime() / 1000)).sort()).toEqual(taken.map((d) => Math.floor(d.getTime() / 1000)).sort());
   // the same photos picked again after a reload: answered "Already added", nothing stored twice
   await p.reload({ waitUntil: 'networkidle' });
   await p.getByTestId('op-kind-return').click();

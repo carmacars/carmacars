@@ -127,9 +127,16 @@ select test.ok('5102: a new request raises the Admin and Sales alert at once',
   exists (select 1 from app_events e where e.entity_id = test.id('booking:RQ50E-4') and e.code like 'staff_alert%'));
 select test.mk_booking('RQ50E-5', 'rq50e_car2', 'rq50e_rita', to_char((now() - interval '2 days') at time zone 'America/Toronto', 'YYYY-MM-DD HH24:MI'),
                        to_char((now() + interval '20 minutes') at time zone 'America/Toronto', 'YYYY-MM-DD HH24:MI'), 'on_rent');
-select test.eq('5102: a car due back within 30 minutes is told once', app.return_due_alerts(now()), 1);
-select test.eq('5102: and not twice', app.return_due_alerts(now() + interval '1 minute'), 0);
-select test.eq('5102: then at the return time', app.return_due_alerts(now() + interval '21 minutes'), 1);
+-- the alerts are counted on this test's own booking: an earlier 99_ file may leave a car out that is also due back (99_r47b leaves one an hour out
+-- of its return time), and app.return_due_alerts counts every car in the window (REQ-117; run 46112569166)
+create function test.rq50e_told() returns integer language sql stable as $$
+  select count(*)::integer from app_events e where e.entity_id = test.id('booking:RQ50E-5') and e.code like 'staff_alert%' $$;
+select app.return_due_alerts(now());
+select test.eq('5102: a car due back within 30 minutes is told once', test.rq50e_told(), 1);
+select app.return_due_alerts(now() + interval '1 minute');
+select test.eq('5102: and not twice', test.rq50e_told(), 1);
+select app.return_due_alerts(now() + interval '21 minutes');
+select test.eq('5102: then at the return time', test.rq50e_told(), 2);
 
 -- ---------------------------------------------------------------- 9. one bug report per self-healing problem (5104)
 insert into heal_incidents (id, fingerprint, source, key, title, status, first_seen, last_seen) values
