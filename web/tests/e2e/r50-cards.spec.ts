@@ -172,10 +172,14 @@ test.describe('a phone', () => {
     expect(await track.evaluate((t) => Math.round(t.scrollLeft / t.clientWidth))).toBe(1);
     expect(page.url()).toMatch(/\/cars$/);
     // a vertical scroll on the photo scrolls the page, not the photos
+    // (the card sits mid-screen after scrollIntoView: a short list leaves no room below it, so the finger goes the way the page can move)
     const y0 = await page.evaluate(() => scrollY);
+    const room = await page.evaluate(() => document.documentElement.scrollHeight - innerHeight - scrollY);
+    const up = room < 120;
     const m2 = (await box(page));
-    await gesture(page, m2.x + m2.width / 2, m2.y + m2.height / 2, 6, -200);
-    await expect.poll(() => page.evaluate(() => scrollY)).toBeGreaterThan(y0 + 50);
+    await gesture(page, m2.x + m2.width / 2, m2.y + m2.height / 2, 6, up ? 200 : -200);
+    if (up) await expect.poll(() => page.evaluate(() => scrollY)).toBeLessThan(y0 - 50);
+    else await expect.poll(() => page.evaluate(() => scrollY)).toBeGreaterThan(y0 + 50);
     expect(await onIndex(page)).toBe(1);
     // a tap opens the car
     await c.evaluate((e) => e.scrollIntoView({ block: 'center' }));

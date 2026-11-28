@@ -38,7 +38,7 @@ select test.eq('step 2, every role: the academy done, the agreement holds the po
   (select string_agg(p.label || '=' || app.academy_locked(test.id(p.label)) || '/' || app.agreement_locked(test.id(p.label)) || '/' || jsonb_array_length(app.staff_team_groups(test.id(p.label))), ',' order by p.label) from r35k_people p),
   'r35k_cs=false/true/0,r35k_field=false/true/0,r35k_fin=false/true/0,r35k_fleet=false/true/0,r35k_spi=false/true/0,r35k_spr=false/true/0');
 select test.eq('Welcome lists the steps in order (3198): agreement, then academy, then the team group (1154: then the approval)',
-  (select string_agg(s ->> 'key', ',' order by o) from jsonb_array_elements(app.staff_welcome(test.id('r35k_cs')) -> 'steps') with ordinality x(s, o)), 'welcome,profile,agreement,academy,team,approval,tasks');
+  (select string_agg(s ->> 'key', ',' order by o) from jsonb_array_elements(app.staff_welcome(test.id('r35k_cs')) -> 'steps') with ordinality x(s, o)), 'welcome,profile,agreement,academy,team,approval,pay,tasks');
 select test.eq('the team group stays closed on Welcome until the agreement is done', (select (s ->> 'open')::boolean from jsonb_array_elements(app.staff_welcome(test.id('r35k_cs')) -> 'steps') s where s ->> 'key' = 'team'), false);
 select test.eq('the profile step asks for the preferred name', (select (s ->> 'done')::boolean from jsonb_array_elements(app.staff_welcome(test.id('r35k_cs')) -> 'steps') s where s ->> 'key' = 'profile'), false);
 select test.r35k('r35k_cs', 'ops_do', 'staff_preferred_name_save', '{"preferred_name": "Kay"}');
