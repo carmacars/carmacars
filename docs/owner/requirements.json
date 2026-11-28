@@ -960,6 +960,18 @@
     "test": "supabase/tests/99_r51_visitor_weeks.sql; web/src/features/api-access/tools.test.ts"
   },
   {
+    "id": "REQ-141",
+    "title": "The plate is asked after the car is registered, not at the application",
+    "area": "10. Staff portals and academy",
+    "status": "in progress",
+    "asked": "Nov 27 23:40",
+    "owner_quote": "\"U ask owners for their plate when the plate gets registered after the owners apply. It's a broken process\"",
+    "rule": "the owner application never requires the plate (a car is often registered after the owner applies). A car without a real plate (empty or a placeholder such as XXXXXXXX) gets an \"Add the plate\" step for the owner (portal step, email first) and a To do for Fleet; the plate is required before the car is published or handed over, never at the application.",
+    "done_when": "an owner can apply with no plate; the owner portal and Fleet see the missing-plate step; a car with no real plate cannot be published or handed over and says why; adding the plate clears the step.",
+    "proof": "not yet",
+    "test": "GAP"
+  },
+  {
     "id": "REQ-070",
     "title": "Townhall join and slide",
     "area": "11. Townhall and weekly Admin call",

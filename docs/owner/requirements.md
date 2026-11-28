@@ -707,6 +707,15 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 - Rule: Claude can read the site's visitors week by week (visits, new visits, unique browsers, sign-ups, requests, bookings) through the Admin connector, bots and staff left out.
 - Done when: the visitor_weeks tool answers on production with the last 12 weeks.
 
+### REQ-141 The plate is asked after the car is registered, not at the application
+- Status: in progress
+- Proof: not yet
+- Test: GAP
+- Asked: Nov 27 23:40
+- Owner: "U ask owners for their plate when the plate gets registered after the owners apply. It's a broken process"
+- Rule: the owner application never requires the plate (a car is often registered after the owner applies). A car without a real plate (empty or a placeholder such as XXXXXXXX) gets an "Add the plate" step for the owner (portal step, email first) and a To do for Fleet; the plate is required before the car is published or handed over, never at the application.
+- Done when: an owner can apply with no plate; the owner portal and Fleet see the missing-plate step; a car with no real plate cannot be published or handed over and says why; adding the plate clears the step.
+
 ## 11. Townhall and weekly Admin call
 
 ### REQ-070 Townhall join and slide
