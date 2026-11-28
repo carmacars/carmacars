@@ -251,6 +251,7 @@ test('gaps: field checklists, the report, referrals, profile and the home screen
   const [job] = await sql`select app.create_field_job('detail', ${car!.id}::uuid, now() + interval '1 hour', ${admin.id}::uuid, null, ${field.id}::uuid, 'Yard', 'Full detail') id`;
   const page = await ctx(browser, true);
   const errors = watch(page);
+  let why = '';
   await signIn(page, field.email, '/staff/field');
   await page.goto(`/staff/field/jobs/${job!.id as string}`);
   await page.getByTestId('acknowledge').click(); await page.getByTestId('start').click({ timeout: 15_000 });
@@ -267,6 +268,17 @@ test('gaps: field checklists, the report, referrals, profile and the home screen
   // the report
   // r35 part X: a problem is reported from Add on Today (the old address opens it)
   await page.goto('/staff/field/report'); await page.waitForURL(/\/staff\/field\?add=problem/); await check(page, 'field report');
+  // a hydration error names the first place the server's text and the browser's text differ
+  await page.waitForTimeout(1500);
+  if (clean(errors).some((e) => /#418/.test(e))) {
+    const text = (h: string) => h.replace(/<script[\s\S]*?<\/script>/g, '').replace(/<style[\s\S]*?<\/style>/g, '').replace(/<[^>]+>/g, '\u0001').replace(/&amp;/g, '&').replace(/&#x27;/g, "'").replace(/\u0001+/g, '|');
+    const ssr = text(await (await page.request.get('/staff/field?add=problem')).text());
+    const dom = await page.evaluate(() => [...document.body.querySelectorAll('*')].filter((e) => e.children.length === 0).map((e) => e.textContent).join('|'));
+    const a = ssr.split('|').map((x) => x.trim()).filter(Boolean); const b = dom.split('|').map((x) => x.trim()).filter(Boolean);
+    const miss = a.filter((x) => !b.includes(x)).slice(0, 6); const extra = b.filter((x) => !a.includes(x)).slice(0, 6);
+    why = `server only: ${JSON.stringify(miss)} browser only: ${JSON.stringify(extra)}`;
+  }
+
   await page.getByTestId('what-warning_light').click();
   await page.getByTestId('report-details').fill('Tire pressure light came on after the wash');
   await page.getByTestId('report-send').click();
@@ -284,7 +296,7 @@ test('gaps: field checklists, the report, referrals, profile and the home screen
   expect(man).toMatchObject({ start_url: '/staff/field', display: 'standalone' });
   for (const i of man.icons) expect((await page.request.get(i.src)).status()).toBe(200);
   await expect(page.locator('link[rel="manifest"]')).toHaveAttribute('href', '/staff/field/manifest.webmanifest');
-  expect(clean(errors)).toEqual([]);
+  expect(clean(errors), why).toEqual([]);
   await sql.end();
 });
 
