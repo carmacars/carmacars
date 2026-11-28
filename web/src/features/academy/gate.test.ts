@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { areaOf, requiredFor, agreementWaiting, opensBeforeSigning, currentStep, gateWords, opensWhileHeld, opensWhileOnboarding, opensWhileUnsigned, profileHref, signHref, stepWords, type GateState, type WelcomeStep } from './gate.ts';
+import { areaOf, requiredFor, agreementWaiting, opensBeforeSigning, currentStep, gateWords, opensWhileHeld, opensWhileOnboarding, opensWhileUnsigned, profileHref, signHref, stepAction, stepWords, type GateState, type WelcomeStep } from './gate.ts';
 
 // The academy gate (0802): what a held person still opens, the Welcome steps of a new hire, the Admin's words for the gate,
 // and the content of releases 33 and 34 (supabase/seed/academy/r34.mjs): a quiz per section, on every role that uses it,
@@ -123,4 +123,26 @@ test('review: the onboarding pages never wait for a stuck section (no loop from 
   const r = [{ area: '/staff', href: '/staff/academy/cs/cs-requests' }, { area: '/staff/documents', href: '/staff/academy/cs/cs-requests' }];
   for (const p of ['/staff/documents', '/staff/documents/abc', '/staff/sign/xyz', '/staff/field/sign/1', '/staff/welcome', '/staff/profile']) assert.equal(requiredFor(r, p), null, p);
   assert.match(readFileSync(new URL('../../server/door.ts', import.meta.url), 'utf8'), /roles\.agreement_locked \? null : requiredFor\(/);
+});
+
+test('5304 (REQ-135): every step left has a button; the agreement is always Sign now or Sign', () => {
+  const jamal: WelcomeStep[] = [
+    { key: 'profile', done: true },
+    { key: 'agreement', done: false, state: 'none', missing: [] },
+    { key: 'academy', done: true, waived: true },
+    { key: 'availability', done: false, slots: [] },
+    { key: 'team', done: false, open: false, groups: [] },
+    { key: 'approval', done: false, open: false },
+    { key: 'pay', done: false }];
+  const acts = jamal.map((s) => [s.key, stepAction(s, 'va').kind]);
+  assert.deepEqual(acts, [['profile', 'none'], ['agreement', 'sign_now'], ['academy', 'none'], ['availability', 'here'], ['team', 'wait'], ['approval', 'wait'], ['pay', 'link']]);
+  // no step that is left is without something to press or a form, except the steps that wait on someone else
+  for (const s of jamal.filter((x) => !x.done)) assert.notEqual(stepAction(s, 'va').kind, 'none', s.key);
+  assert.deepEqual(stepAction({ key: 'agreement', done: false, state: 'sent' }, 'field'), { kind: 'link', label: 'Sign my agreement', href: '/staff/field/sign' });
+  assert.equal(stepAction({ key: 'agreement', done: false, state: 'none', needs_licence: true }, 'field').kind, 'here');
+  assert.equal(stepAction({ key: 'academy', done: false, waiting_for_agreement: true }, 'va').kind, 'sign_now');
+  assert.deepEqual(stepAction({ key: 'pay', done: false }, 'field'), { kind: 'link', label: 'Add my pay details', href: '/staff/field/pay#pay' });
+  assert.equal(stepAction({ key: 'team', done: false, open: true, groups: [] }, 'va').kind, 'here');
+  assert.equal(stepAction({ key: 'approval', done: false, open: true, reject_reason: 'Photo missing' }, 'va').kind, 'here');
+  assert.match(stepWords({ key: 'pay', done: false }), /first pay/);
 });

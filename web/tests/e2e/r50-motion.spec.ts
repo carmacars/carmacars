@@ -83,8 +83,12 @@ test.describe('with motion', () => {
       await expect(save).toHaveAttribute('data-mo-result', 'ok', { timeout: 15_000 });
       await expect(save).toHaveAttribute('data-mo-done', 'Saved');
       await expect(form.locator('[role="status"][data-mo-saved]')).toBeVisible();
-      // the morph shows the word over the button, then the button comes back as it was
+      // the morph shows the word over the button and keeps it (r50 hotfix2, c4482770: "Sent only when saved"); it goes
+      // when the person changes something in the form
       expect(await save.evaluate((el) => getComputedStyle(el, '::after').content)).toContain('Saved');
+      await page.waitForTimeout(1500);
+      await expect(save).toHaveAttribute('data-mo-result', 'ok');
+      await days.fill(String(Number(next) + 1));
       await expect(save).not.toHaveAttribute('data-mo-result', /./, { timeout: 4000 });
     } finally {
       await sql`update program_settings set promo_default_valid_days = ${before!.v}`;

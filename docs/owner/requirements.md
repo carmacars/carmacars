@@ -423,6 +423,15 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 - Rule: salespeople cannot text phone numbers on the main line; flag phone numbers, swearing and risky words said on calls.
 - Done when: both flags raise an Admin item.
 
+### REQ-132 A Twilio line for every staff member behind a Quo extension
+- Status: in progress
+- Proof: branch r51-staff (not on main)
+- Test: to be added with the work
+- Asked: Nov 27 17:29
+- Owner: "i need all staff to have a dedicated twilio line that corresponds with an extension number that is on quo, so that all staff can get incoming calls to their portals and their apps via their extension numbers that forward to their twilio phone numbers (nobody will ever know what those numbers are)"
+- Rule: each staff member has an extension number and their own Twilio number. A call to that number rings only that person's portal and app (the browser phone). Nobody else rings; a missed call is logged and alerts that person. The Twilio number is never shown to staff or renters; Admin sees its last 4 digits only. Buying a number costs money: only an Admin buys one, with a button that shows the monthly cost and asks for confirmation; tests and jobs never buy numbers. Quo's API cannot create a phone menu option or a forward, so the owner adds each extension in Quo by hand (steps in the change doc).
+- Done when: an Admin gets a line for a staff member after confirming the cost shown; a call to that line rings only that person's portal or app; no screen, email or read gives the full number to anyone; the Quo steps are in the change doc.
+
 ## 7. Alerts, To do's, self-heal
 
 ### REQ-048 Alerts and To do's do not pile up
@@ -507,6 +516,15 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 - Asked: Nov 20
 - Rule: unclean return needs 3 or more guided photos and a description; the fee drafts for review.
 - Done when: a return cannot complete without them.
+
+### REQ-133 Cleaning is not a step after every return
+- Status: in progress
+- Proof: branch r51-staff (not on main)
+- Test: to be added with the work
+- Asked: Nov 27 17:29
+- Owner: "these cleaning jobs seem like a headache"
+- Rule: cleaning never blocks a booking and the detail job closes it (REQ-129, 5195). A car goes straight back to available after a return, unless the return report says it needs cleaning (cleanliness other than clean); only then is it in cleaning until the detail job is done.
+- Done when: a return with a clean report leaves the car available; a return whose report says it needs cleaning puts it in cleaning; the detail job marked done makes it available.
 
 ## 9. Sales, leads, hiring
 
@@ -607,6 +625,42 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 - Asked: Nov 20
 - Rule: agreement before academy; staff rewards (15% off, free days per 100); VAs get no rental perks.
 - Done when: each is built per the rules.
+
+### REQ-130 Academy: answer yourself, no AI or computer use
+- Status: in progress
+- Proof: branch r51-staff (not on main)
+- Test: to be added with the work
+- Asked: Nov 27 17:29
+- Owner: "put it on the academy on each question as a disclaimer somewhere that computer use is not allowed and carmacars will sue u and make sure that it just makes sure that they cant use ai and claude chrome to complete the tests"
+- Rule: every academy question shows: "Answer yourself. Using AI tools, browser agents or computer-use software on this test is not allowed and breaks your agreement; CarmaCars may take legal action." The staff agreements say the same (no other legal terms; the owner's lawyer reviews the wording). The quiz blocks paste into answers, records focus loss and tab switches, flags answers faster than a floor per question, hands out questions and options in a random order, and detects automation signals (navigator.webdriver, automation markers that drivers and extensions inject, events not made by a person, a mouse that jumps without moving). A flagged attempt is voided, kept on record with its reasons, and Admin gets an alert. No web page can fully stop an AI agent: these checks make it detectable, not impossible.
+- Done when: every question of a started quiz shows the disclaimer; a submit carrying an automation signal, a paste or too many focus losses is recorded as a voided attempt with its reasons, never as a pass, and Admin gets the alert; the staff agreement texts carry the sentence.
+
+### REQ-131 Managers see their team
+- Status: in progress
+- Proof: branch r51-staff (not on main)
+- Test: to be added with the work
+- Asked: Nov 27 17:29
+- Owner: "also i need to be able to set staff to managers that have insight on the staff that are assigned to them"
+- Rule: Admin marks a staff member as a manager and assigns staff to them. A manager sees, read only, each team member's hours, academy progress, KPIs, pay owed, field jobs and activity, with the same masking as Admin, in the staff portal and the app, with a guide chapter. A manager never changes a team member's records from this view.
+- Done when: an Admin sets a manager and a team; the manager's My team page shows those facts for their team only and refuses anyone else; the app opens it from Profile; the guide chapter describes it.
+
+### REQ-134 Academy: retry the wrong ones first, shorter wait, fewer steps
+- Status: in progress
+- Proof: branch r51-staff (not on main)
+- Test: to be added with the work
+- Asked: Nov 27 17:45
+- Owner: "the academy wait time when getting things wrong is too long and they need to have 1 chance to retry the wrong questions before it starts the wait time. also i think theres a lot of redundant sections or questions and just unnecessary steps. it needs to be easier"
+- Rule: after a quiz below the pass mark, the person retries only the wrong questions once, straight away; the wait starts only if that retry fails. The wait is half of what it was (REQ-067 set 2 minutes: now 1 minute). Sections and questions are audited per role: duplicates merged, questions that test the same thing twice dropped, steps that add clicks without teaching removed; the change doc lists what was removed.
+- Done when: a failed first try offers the retry of only the wrong questions with no wait; a failed retry waits 1 minute; the change doc lists every section, question and step removed.
+
+### REQ-135 Easy onboarding: every blocking screen has its next button
+- Status: in progress
+- Proof: branch r51-staff (not on main, not live): docs/changes/2026-11-27-r51-staff.md; migration 5304 (app.staff_agreement_now clears the agreements job's wait and 5-try stop; staff_agreement_help alerts the Admins; staff_welcome gains the pay step and next); web/src/app/staff/welcome/page.tsx (a big button per step, stepAction in features/academy/gate.ts), features/staff-onboarding/SignNow.tsx, server/actions/onboarding-now.ts; guides 5305. Why production Jamal had no agreement (waiting, failed or stopped) is not readable through the connector
+- Test: supabase/tests/99_r51_easy_onboarding.sql; web/src/features/academy/gate.test.ts
+- Asked: Nov 27 17:45
+- Owner: "jamal got the academy waived for him and now it says your agreement first and theres no buttons to click anywhere other than resign. this is bad ui, he needs to have things to click to finish up his profile so he can start using his portal. he needs extremely easy steps to follow for getting access to portals. all staff should have easy flows."
+- Rule: the agreement step always offers Sign now: it makes the agreement at once when there is none (also after the automatic job gave up) and opens it to sign; if it still waits for something, the page says exactly what, with a button for what the person gives and an alert to Admin for what only Admin gives. Welcome is one checklist for every staff role: each remaining step is one big button (Sign agreement, Set availability, Join the WhatsApp group and Confirm, Pay details), done steps ticked, and the portal opens when the list is done. No blocking screen is a dead end.
+- Done when: a staff member in Jamal's state (Sales and Field, academy waived, no agreement made, availability not set, WhatsApp not confirmed) sees a big button for each step left on Welcome, Sign now makes and opens the agreement, and every blocking screen links to its next step.
 
 ## 11. Townhall and weekly Admin call
 

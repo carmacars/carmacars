@@ -39,7 +39,12 @@ export function AccountMenu({ children, label = 'Account' }: { children: React.R
       </button>
       {/* an item's own click runs first (a dialog it opens is modal: the button behind it cannot take focus); then the menu closes */}
       <div ref={panel} id={id} className="hd-more__panel" data-testid="account-menu-panel"
-        onClick={(e) => { if ((e.target as Element).closest('a, button') && !(e.target as Element).closest('dialog')) close(!dialogOpen()); }}>
+        onClick={(e) => {
+          const t = e.target as Element;
+          // an item that opens its own list inside the panel (Guide me) keeps the menu open: a closed panel is 0 by 0 and clips it
+          if (t.closest('button[aria-haspopup="true"][aria-expanded]')) return;
+          if (t.closest('a, button') && !t.closest('dialog')) close(!dialogOpen());
+        }}>
         {children}
       </div>
     </div>
