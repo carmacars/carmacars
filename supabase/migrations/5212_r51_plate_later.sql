@@ -5,9 +5,11 @@
 --   2. The application never asks the plate: the fleet supplier route (app.submit_owner_application_pre3800, from 0710)
 --      and the VIN list (app.owner_add_vins, 3800) no longer refuse a car without one. The standard route never did in
 --      the database (the web form did).
---   3. A car with us without its plate (not a partner's car, not a sample, not retired or gone): the owner gets the
---      email owner_plate_needed once per car (email first, no text), the owner portal shows the step "Add the plate"
---      (web, steps.ts), and Fleet gets the To do "Plate needed". Adding the plate closes the To do by itself.
+--   3. A car with us without its plate (not a partner's car, not a sample, not retired or gone): Fleet gets the To do
+--      "Plate needed" and the owner portal shows the step "Add the plate" (web, steps.ts). The owner gets the email
+--      owner_plate_needed once per car (email only, no text), and only while the car is onboarding or ready to list,
+--      the owner has a portal login and is not a test owner; never on the insert from the application (one rule for
+--      the trigger and the backfill: a listed car never gets a late email). Adding the plate closes the To do.
 --   4. The owner adds it (ops_do vehicle_plate_set, own car, only while it is missing); Fleet, customer service and the
 --      Admins add or correct it on the car page (the same call).
 --   5. No car without its plate is published (vehicle_listings to published refused; listing_auto_publish says why) or
@@ -90,9 +92,10 @@ begin
                          case when v_owner_car then 'The owner is asked by email to add it in their portal once the car is registered; or add it on the car page. '
                               else 'Add it on the car page. ' end),
       p_vehicle => v.id, p_owner => v.owner_id, p_dedupe => 'plate_needed:' || v.id, p_queue => 'fleet');
-    if p_email and v_owner_car then
+    if p_email and v_owner_car and v.status::text in ('onboarding', 'ready_to_list') then
       select * into o from owners where id = v.owner_id;
-      if o.id is not null and nullif(btrim(coalesce(o.email, '')), '') is not null then
+      if o.id is not null and o.user_id is not null and not coalesce(o.is_test, false)
+         and nullif(btrim(coalesce(o.email, '')), '') is not null then
         perform app.ntf_emit('owner_plate_needed', 'owner', o.id, v.id::text, jsonb_build_object('owner_id', o.id, 'vehicle_id', v.id,
           'first_name', app.owner_first_name(o), 'vehicle_name', app.vehicle_name(v.id),
           'plate_url', rtrim(coalesce((app.settings()).notify_base_url, 'https://carmacars.ca'), '/') || '/owner/vehicles/' || v.id || '#plate'));
@@ -107,7 +110,8 @@ end $$;
 create function app.plate_step_trg() returns trigger
 language plpgsql security definer set search_path = public, app, pg_temp as $$
 begin
-  if app.plate_needed(new) or (tg_op = 'UPDATE' and app.plate_needed(old)) then perform app.plate_step_sync(new.id); end if;
+  -- the To do on any change; the email never on the insert from the application
+  if app.plate_needed(new) or (tg_op = 'UPDATE' and app.plate_needed(old)) then perform app.plate_step_sync(new.id, tg_op = 'UPDATE'); end if;
   return null;
 end $$;
 create trigger vehicles_plate_step after insert or update of plate, status, retired_at, id_pending, is_sample, supply_type on vehicles
@@ -248,7 +252,7 @@ do $$
 declare r record;
 begin
   for r in select v.id, v.status from vehicles v where app.plate_needed(v) loop
-    perform app.plate_step_sync(r.id, r.status::text in ('onboarding', 'ready_to_list'));
+    perform app.plate_step_sync(r.id, true);   -- the email rule of plate_step_sync: onboarding or ready to list, a login, not a test owner
   end loop;
 end $$;
 

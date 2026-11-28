@@ -32,19 +32,29 @@ select test.ok('an owner applies with no plate', exists (select 1 from vehicles 
 select test.eq('Fleet has the To do "Plate needed"', (select test.pl_open(id) from pl_car), 1::bigint);
 select test.ok('in the Fleet queue, titled with the car', exists (select 1 from tasks t join pl_car c on c.id = t.vehicle_id
   where t.task_type = 'plate_needed' and t.queue = 'fleet' and t.title like 'Plate needed: %Honda Accord%'));
-select test.eq('the owner is emailed once', (select test.pl_mails(id) from pl_car), 1::bigint);
+select test.eq('no email on the insert from the application', (select test.pl_mails(id) from pl_car), 0::bigint);
+select test.eq('the email goes by email only (no text template)', (select count(*) from notification_catalogue where code = 'owner_plate_needed' and audience = 'owner'), 1::bigint);
+update vehicles set status = 'ready_to_list' where id = (select id from pl_car);
+select test.eq('onboarding car, owner with a login: emailed once on the next change', (select test.pl_open(id) || ':' || test.pl_mails(id) from pl_car), '1:1');
 select test.ok('the email links to the car''s plate step in the portal', exists (select 1 from app_events e join pl_car c on e.payload ->> 'vehicle_id' = c.id::text
   where e.code = 'owner_plate_needed' and e.entity_id = test.id('owner:plt_olive') and e.payload ->> 'plate_url' like '%/owner/vehicles/' || c.id || '#plate'
     and e.payload ->> 'first_name' is not null and e.payload ->> 'vehicle_name' like '%Honda Accord%'));
-select test.eq('the email goes by email only (no text template)', (select count(*) from notification_catalogue where code = 'owner_plate_needed' and audience = 'owner'), 1::bigint);
-update vehicles set status = 'ready_to_list' where id = (select id from pl_car);
-select test.eq('a status change neither repeats the email nor the To do', (select test.pl_open(id) || ':' || test.pl_mails(id) from pl_car), '1:1');
+update vehicles set plate = 'XXXXXXXX' where id = (select id from pl_car);
+select test.eq('another change repeats neither the email nor the To do', (select test.pl_open(id) || ':' || test.pl_mails(id) from pl_car), '1:1');
+-- a test owner: the To do, never the email
+select test.mk_owner('plt_tess');
+update owners set is_test = true where id = test.id('owner:plt_tess');
+create temp table pl_test_car as select (app.add_owner_vehicle(test.id('owner:plt_tess'),
+  '{"vin": "2PLTE5213RA000142", "title_status": "owned_outright", "year": 2020, "make": "Honda", "model": "Civic", "colour": "Blue", "odometer_km": 52000}'::jsonb, null, null) ->> 'vehicle_id')::uuid id;
+update vehicles set status = 'ready_to_list' where id = (select id from pl_test_car);
+select test.eq('a test owner gets no email (Fleet still has the To do)', (select test.pl_open(id) || ':' || test.pl_mails(id) from pl_test_car), '1:0');
 
 -- ================================================================ 4. a placeholder plate in real data: XXXXXXXX
 select test.mk_vehicle('PL1', 'plt_olive');
 select test.eq('a car with its plate has no step', test.pl_open(test.id('vehicle:PL1')), 0::bigint);
 update vehicles set plate = 'XXXXXXXX' where id = test.id('vehicle:PL1');
 select test.eq('XXXXXXXX counts as missing: the To do', test.pl_open(test.id('vehicle:PL1')), 1::bigint);
+select test.eq('a listed car gets no email', test.pl_mails(test.id('vehicle:PL1')), 0::bigint);
 select test.eq('not published, and says why', app.listing_auto_publish(test.id('vehicle:PL1')) ->> 'reason', 'Plate needed');
 select test.throws('a listing cannot go published', $$insert into vehicle_listings (vehicle_id, status) values (test.id('vehicle:PL1'), 'published')$$, 'Plate needed: add the plate%published%');
 select test.mk_booking('CC-PL1', 'PL1', 'plt_rita', '2031-03-02 10:00', '2031-03-05 10:00', 'confirmed');
