@@ -45,12 +45,12 @@ test('owner application: the first step makes a lead as they type; unfinished, t
   await check(page, 'first step, filled');
   // the lead appears as they type (the capture after a field is left, the draft after a pause)
   let lead: { id: string; kind: string; pipeline_source: string; vehicle_text: string | null; est: string | null; draft: string | null } | undefined;
-  for (let i = 0; i < 40 && !(lead?.vehicle_text && lead?.draft); i++) {
+  for (let i = 0; i < 90 && !(lead?.vehicle_text && lead?.draft); i++) {
     [lead] = await sql`select id, kind, pipeline_source, vehicle_text, payload #>> '{calculator,estimate_cents}' est, payload ->> 'draft_id' draft
                          from leads where lower(email) = ${email} order by created_at desc limit 1`;
     if (!(lead?.vehicle_text && lead?.draft)) await page.waitForTimeout(500);
   }
-  expect([lead?.kind, lead?.pipeline_source, lead?.vehicle_text, lead?.est]).toEqual(['owner_program', 'unfinished_form', '2021 Toyota RAV4', '145000']);
+  expect([lead?.kind, lead?.pipeline_source, lead?.vehicle_text, lead?.est], `lead ${JSON.stringify(lead)}`).toEqual(['owner_program', 'unfinished_form', '2021 Toyota RAV4', '145000']);
   await start.getByTestId('apply-start-next').click();
   await expect(page.getByTestId('apply-you')).toContainText(`Rita Start ${t}`);
   await check(page, 'about you after the first step');

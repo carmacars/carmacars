@@ -80,8 +80,10 @@ test('Settings > Partners > 01 Motors: connect, test, sync, what they see (no pa
     const [row] = await sql`select token_hint, (to_jsonb(c)::text like ${'%' + token + '%'}) leaked from partner_crm_connections c where partner_id = ${partnerId}` as unknown as [{ token_hint: string; leaked: boolean }];
     expect([row.token_hint, row.leaked]).toEqual([token.slice(-4), false]);
     // the first sync put our one car in their CRM, never a partner car
-    const recs = await sql`select v.supply_type from partner_crm_records r join partner_crm_connections c on c.id = r.connection_id join vehicles v on v.id = r.vehicle_id where c.partner_id = ${partnerId}` as unknown as Array<{ supply_type: string }>;
-    expect(recs.map((r) => r.supply_type)).toEqual(['program_owner']);
+    // (a program car another test publishes while this runs may be shared too: ours is in, no partner car is)
+    const recs = await sql`select v.id, v.supply_type from partner_crm_records r join partner_crm_connections c on c.id = r.connection_id join vehicles v on v.id = r.vehicle_id where c.partner_id = ${partnerId}` as unknown as Array<{ id: string; supply_type: string }>;
+    expect(recs.map((r) => r.id)).toContain(car.id);
+    expect(recs.map((r) => r.supply_type).filter((t) => t !== 'program_owner')).toEqual([]);
 
     // the partner price
     await page.getByTestId('crm-price').click();

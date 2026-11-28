@@ -174,15 +174,17 @@ test.describe('a phone', () => {
     // a vertical scroll on the photo scrolls the page, not the photos
     // (the card sits mid-screen after scrollIntoView: a short list leaves no room below it, so the finger goes the way the page can move)
     // the scroll settles first (scrollIntoView and late images move it): a finger on a moving page is not a pan
-    let last = -1;
-    await expect.poll(async () => { const y = await page.evaluate(() => scrollY); const still = y === last; last = y; return still; }, { intervals: [150], timeout: 5000 }).toBe(true);
+    // (the page height settles too: a list that shrinks under a finger moves the scroll by itself)
+    let last = '';
+    await expect.poll(async () => { const k = await page.evaluate(() => `${scrollY}/${document.documentElement.scrollHeight}`); const still = k === last; last = k; return still; }, { intervals: [300], timeout: 10_000 }).toBe(true);
+    await page.waitForTimeout(600);
     const y0 = await page.evaluate(() => scrollY);
     const room = await page.evaluate(() => document.documentElement.scrollHeight - innerHeight - scrollY);
     const up = room < 120;
     const m2 = (await box(page));
     await gesture(page, m2.x + m2.width / 2, m2.y + m2.height / 2, 6, up ? 200 : -200);
     if (up) await expect.poll(() => page.evaluate(() => scrollY)).toBeLessThan(y0 - 50);
-    else await expect.poll(() => page.evaluate(() => scrollY)).toBeGreaterThan(y0 + 50);
+    else await expect.poll(() => page.evaluate(() => scrollY), { message: `scrollY from ${y0} with ${room}px of room below` }).toBeGreaterThan(y0 + 50);
     expect(await onIndex(page)).toBe(1);
     // a tap opens the car
     await c.evaluate((e) => e.scrollIntoView({ block: 'center' }));

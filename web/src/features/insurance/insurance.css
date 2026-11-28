@@ -1,5 +1,7 @@
 /* Insurance replacements (5120): the list, the short form and the invoice editor. Tokens and the shared kit only. */
-.ins-nowrap { white-space: nowrap; }
+.ins-nowrap { overflow-wrap: anywhere; }
+/* one line only where the table has the room: on a phone the two dates wrap inside the card */
+@media (min-width: 900px) { .ins-nowrap { white-space: nowrap; overflow-wrap: normal; } }
 .ins-late { color: var(--accent-text); font-weight: 600; }
 .ins-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); gap: var(--s-3); }
 .ins-grid--wide { grid-column: 1 / -1; }
