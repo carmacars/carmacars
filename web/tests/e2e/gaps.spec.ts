@@ -272,7 +272,7 @@ test('gaps: field checklists, the report, referrals, profile and the home screen
   await page.waitForTimeout(1500);
   if (clean(errors).some((e) => /#418/.test(e))) {
     const text = (h: string) => h.replace(/<script[\s\S]*?<\/script>/g, '').replace(/<style[\s\S]*?<\/style>/g, '').replace(/<[^>]+>/g, '\u0001').replace(/&amp;/g, '&').replace(/&#x27;/g, "'").replace(/\u0001+/g, '|');
-    const ssr = text(await (await page.request.get('/staff/field?add=problem')).text());
+    const resp = await page.goto('/staff/field?add=problem'); const ssr = text(await resp!.text()); await page.waitForTimeout(1500);
     const dom = await page.evaluate(() => [...document.body.querySelectorAll('*')].filter((e) => e.children.length === 0).map((e) => e.textContent).join('|'));
     const a = ssr.split('|').map((x) => x.trim()).filter(Boolean); const b = dom.split('|').map((x) => x.trim()).filter(Boolean);
     const miss = a.filter((x) => !b.includes(x)).slice(0, 6); const extra = b.filter((x) => !a.includes(x)).slice(0, 6);
