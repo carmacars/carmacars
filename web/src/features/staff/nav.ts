@@ -66,8 +66,8 @@ export function staffSections(fns: readonly string[] | null | undefined): Sectio
     .filter((x) => order.includes(x.key)).sort((a, b) => order.indexOf(a.key) - order.indexOf(b.key));
 }
 
-/** The menu for a person holding these functions. */
-export function staffNav(fns: readonly string[] | null | undefined): NavGroup[] {
+/** The menu for a person holding these functions. R51 (5302): a manager also has My team, before Me. */
+export function staffNav(fns: readonly string[] | null | undefined, opts: { manager?: boolean } = {}): NavGroup[] {
   const held = heldFunctions(fns);
   const office = held.some((f) => f !== 'field');
   const hubs = staffHubs(held);
@@ -83,6 +83,7 @@ export function staffNav(fns: readonly string[] | null | undefined): NavGroup[] 
       return x ? { ...x, ...(l.key ? { key: l.key } : {}) } : null;
     }).filter((l): l is NavLink => !!l && !(office && FIELD_ALONE.has(l.href)) && !seen.has(l.href));
     for (const l of links) seen.add(l.href);
+    if (g.key === 'me' && opts.manager) out.push({ key: 'team', label: 'My team', links: [{ href: '/staff/team', label: 'My team' }] });
     if (links.length) out.push({ ...g, links });
   }
   return out;

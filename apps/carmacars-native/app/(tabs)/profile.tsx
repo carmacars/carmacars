@@ -89,6 +89,8 @@ export default function Profile() {
         <Card>
           <Small style={{ marginBottom: space.sm }}>{me?.roles.admin ? 'The Admin portal opens in the browser inside the app, signed in on carmacars.ca.' : 'Pages the app does not have open on carmacars.ca, inside the app.'}</Small>
           <Button label={me?.roles.admin ? 'Open the Admin portal' : 'Open my portal'} variant="dark" onPress={() => site(portalHome)} testID="open-portal" />
+          {/* R51 (5302, REQ-131): a manager's team, read only */}
+          {me?.roles.manager && !me.roles.admin ? <Button label="My team" variant="outline" onPress={() => site('/staff/team')} testID="open-team" /> : null}
         </Card>
       </>) : null}
 
