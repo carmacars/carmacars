@@ -1,4 +1,4 @@
--- 99: R51 easy onboarding (migration 5304, REQ-135; docs/changes/2026-11-27-r51-staff.md). A staff member in the state the
+-- 99: R51 easy onboarding (migration 5197, REQ-135; docs/changes/2026-11-27-r51-staff.md). A staff member in the state the
 -- owner reported (Nov 27): Sales and Field, the academy waived, no agreement made (the agreements job gave up after 5 tries),
 -- when they can work not set, the WhatsApp groups not confirmed. Welcome names the next step, every step left has its
 -- button, Sign now clears the job's stop so the agreement is made at once, and the Admins hear what only they can set.
