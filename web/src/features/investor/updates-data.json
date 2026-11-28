@@ -4,13 +4,19 @@
   "title": "Release 51",
   "date": "2026-11-27",
   "seq": 0,
-  "summary": "New staff finish onboarding from one checklist with a button for every step, starting with signing their agreement at once.",
+  "summary": "New staff finish onboarding from one checklist, academy quizzes are answered by the person and are quicker to retry, staff get their own phone extension, managers see their team, and cars go back on sale right after a clean return.",
   "areas": [
    {
     "area": "Staff tools",
     "items": [
      "Welcome is one checklist for every new staff member: a big button for each step left, done steps ticked, and the portal opens when the list is done",
-     "**Sign my agreement now** makes the staff agreement at once and opens it to sign; if something is missing, the page says what and an Admin is told"
+     "**Sign my agreement now** makes the staff agreement at once and opens it to sign; if something is missing, the page says what and an Admin is told",
+     "Every academy question says to answer it yourself; the quiz notices browser automation, copy and paste and switching away, and a try that shows them does not count",
+     "After a quiz under the pass mark, fix the wrong answers at once; the wait after a failed fix is 1 minute, and Try again starts the next try in one press",
+     "Each staff member can have their own extension on the CarmaCars phone menu that rings their portal and the app",
+     "Managers see the hours, training, pay owed and field jobs of the staff assigned to them, read only",
+     "A car is available again as soon as it comes back clean; only a return that needs cleaning waits for the detail job",
+     "An email an insurer's server refuses is caught: the invoice shows it bounced, it goes again to the insurer's general claims address, and an Admin gets the request to send them"
     ]
    }
   ]
