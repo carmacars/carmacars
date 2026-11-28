@@ -10,6 +10,8 @@ import { readToken, sha256Hex, signToken } from '@/server/links';
 import { encryptField, PAYOUT_KEY_VERSION } from '@/server/crypto';
 import { ownerHome, requireOwnerUser } from '@/server/owner/data';
 import { openOwnerPacket } from '@/server/owner/agreements';
+import { plateProblem } from '@/features/vehicles/plate';
+import { door } from '@/server/door';
 import { finishDebitSetup, invoiceFacts, invoiceIdFor, invoiceIntent, publishableKey, settleInvoiceIntent, startDebitSetup, type InvoiceSettle, type StartedDebitSetup, type StartedInvoicePayment } from '@/server/owner/payment';
 
 // Every owner action: a server action run for the signed-in user. The database checks again that
@@ -176,6 +178,20 @@ export async function giveExitNotice(vehicleId: string, reason: string, returnTo
     const { user, home } = await owner();
     if (!home.vehicles.some((v) => v.vehicle_id === vehicleId)) return fail('Vehicle not found');
     const r = (await rpc('owner_give_exit_notice', { p_by: user.id, p_vehicle: vehicleId, p: { reason: reason.trim().slice(0, 500), return_registration_to: returnTo.trim().slice(0, 300) } }, SR)) as unknown as { exit_date: string; retransfer_fees_paid_by: string };
+    revalidatePath('/owner'); revalidatePath(`/owner/vehicles/${vehicleId}`);
+    return { ok: true, data: r };
+  } catch (e) { return fail(dbMessage(e)); }
+}
+
+/** REQ-141 (5212): the owner adds the plate of their car once it is registered (the database checks the car is theirs
+ *  and that no real plate is on file yet). */
+export async function addOwnerPlate(vehicleId: string, plate: string): Promise<R<{ plate: string }>> {
+  const why = plateProblem(plate);
+  if (why) return invalid({ plate: why });
+  try {
+    const { user, home } = await owner();
+    if (!home.vehicles.some((v) => v.vehicle_id === vehicleId)) return fail('Vehicle not found');
+    const r = await door<{ plate: string }>(user.id, 'ops_do', 'vehicle_plate_set', { vehicle_id: vehicleId, plate });
     revalidatePath('/owner'); revalidatePath(`/owner/vehicles/${vehicleId}`);
     return { ok: true, data: r };
   } catch (e) { return fail(dbMessage(e)); }

@@ -37,6 +37,7 @@ import { ValueFuel, type ValueFuelData } from './ValueFuel';
 import { CarLocation } from '@/features/tracking/CarLocation';
 import type { CarLoc } from '@/features/tracking/location';
 import { GovernmentForms, type GovData } from '@/features/onboarding/GovernmentForms';
+import { plateMissing } from '@/features/vehicles/plate';
 
 type R = Record<string, unknown>;
 type PriceLimitsRead = { owner_id: string | null; owner: Limits; car: Limits; effective: CarLimits };
@@ -119,6 +120,12 @@ export async function VehiclePage({ ctx, id, sp }: { ctx: PageCtx; id: string; s
         <span>Added before its VIN or plate was known. Until one is added it is not listed, not bookable and not put on the fleet policy.</span>
         <Act ops action="vehicle_id_set" payload={{ vehicle_id: id }} label="Add the VIN or plate" variant="primary" refresh={refresh} testId="vehicle-id-set"
           fields={[{ name: 'vin', label: 'VIN (17 characters)', type: 'vin' }, { name: 'plate', label: 'Plate', type: 'text' }]} /></div>}
+      {/* REQ-141 (5212): no real plate on file (empty or a placeholder such as XXXXXXXX): not published or handed over until added */}
+      {v.id_pending !== true && plateMissing(v.plate) && v.supply_type !== 'partner' && !v.is_sample && !v.retired_at && !['exited', 'total_loss', 'declined'].includes(v.status) && (
+        <div className="alert alert--warn" role="status" id="plate" data-testid="vehicle-plate-needed"><span className="alert__title">Plate needed</span>
+          <span>No real plate on file ({v.plate?.trim() || 'empty'}).{v.supply_type === 'program_owner' ? ' The owner is asked by email to add it once the car is registered.' : ''} Until it is added the car is not published or handed over.</span>
+          <Act ops action="vehicle_plate_set" payload={{ vehicle_id: id }} label="Add the plate" variant="primary" refresh={refresh} testId="vehicle-plate-set"
+            fields={[{ name: 'plate', label: 'Plate', type: 'text', required: true }]} /></div>)}
       {tab === 'overview' && (
         <div className="ad-cols ad-cols--2">
           <Card title="Where the car is" testId="vehicle-location"><CarLocation d={loc} at={at} mapHref="/admin/vehicles/tracking" /></Card>

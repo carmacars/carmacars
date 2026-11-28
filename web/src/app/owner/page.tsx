@@ -21,6 +21,7 @@ import { FleetLeaseCard } from '@/features/owner/FleetLeaseCard';
 import { OwnerPathCard } from '@/features/owner-path/OwnerPath';
 import { ownerPath, type SignStatus } from '@/features/owner-path/path';
 import { StageTracker } from '@/features/owner-stages/StageTracker';
+import { plateMissing } from '@/features/vehicles/plate';
 import type { Stages } from '@/features/owner-stages/model';
 import { ActionTiles, PortalHero, Sparkline, StatCard, Timeline, TimelineItem, type ActionTileItem } from '@/components/portal-ui';
 
@@ -163,7 +164,7 @@ export default async function OwnerHomePage({ searchParams }: { searchParams: Pr
                   <CarPhoto photo={photo[v.vehicle_id]} name={v.name} eager={i === 0} />
                   <span className="ow-hero-car__shade" aria-hidden="true" />
                   <span className={`pu-pill pu-pill--${live[v.vehicle_id]?.tone ?? 'muted'}`}>{live[v.vehicle_id]?.label}</span>
-                  <span className="ow-hero-car__name">{v.name}<small>{v.plate ?? 'Plate to come'}</small></span>
+                  <span className="ow-hero-car__name">{v.name}<small>{plateMissing(v.plate) ? 'Plate to come' : v.plate}</small></span>
                 </Link>
               </li>
             ))}

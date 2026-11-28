@@ -2,6 +2,7 @@
 // portals read the same facts (app.onboarding_overview) and show them through these rules. Each step has one state
 // (done, waiting on someone, blocked with the reason, not needed), says in plain words who it waits on, and has at most
 // one next action, the one for the person looking. Pure: unit-tested in steps.test.ts.
+import { plateMissing } from '../vehicles/plate.ts';
 
 export type Viewer = 'owner' | 'staff' | 'admin';
 export type StepState = 'done' | 'waiting' | 'blocked' | 'not_needed';
@@ -40,7 +41,7 @@ export function baseFor(viewer: Viewer, ownerId: string): Base {
 const LABEL: Record<string, string> = {
   terms: 'Terms approved', documents: 'Ownership permit and photos', government_forms: 'Government forms (ServiceOntario)', signatures: 'Agreements signed',
   witnessed_forms: 'Form D (and Form C) signed with witnesses', upfront_payment: 'Upfront payment', registry_visit: 'Registry visit', tracker_install: 'Tracker installed',
-  insurer_confirmation: 'Fleet insurance confirmed', photos: 'Listing photos', listing: 'Listed on the website'
+  insurer_confirmation: 'Fleet insurance confirmed', photos: 'Listing photos', listing: 'Listed on the website', plate: 'Add the plate'
 };
 
 /** Who a step waits on, in the viewer's words. */
@@ -53,7 +54,7 @@ export function whoText(who: Who | null, viewer: Viewer): string | null {
 // a step that cannot start until another one is done
 const NEEDS: Record<string, string[]> = {
   signatures: ['terms'], witnessed_forms: ['terms'], government_forms: ['terms'], upfront_payment: ['terms'],
-  registry_visit: ['signatures', 'government_forms'], insurer_confirmation: ['registry_visit'], listing: ['insurer_confirmation', 'photos']
+  registry_visit: ['signatures', 'government_forms'], insurer_confirmation: ['registry_visit'], listing: ['insurer_confirmation', 'photos', 'plate']
 };
 
 function act(code: string, car: OverviewCar, b: Base, ownerMissing: string[]): Action | null {
@@ -68,6 +69,7 @@ function act(code: string, car: OverviewCar, b: Base, ownerMissing: string[]): A
         // r35 (1000): each government form is signed on screen first
         return (car.forms.to_sign ?? 0) > 0 ? { label: (car.forms.changed ?? 0) > 0 ? 'Sign the forms again' : 'Sign your government forms', href: `/owner/sign/forms/${v}` } : { label: 'Open your government forms', href: '/owner/documents#ow-forms' };
       case 'upfront_payment': return { label: 'Pay the upfront invoice', href: '/owner/invoices' };
+      case 'plate': return { label: 'Add the plate', href: `/owner/vehicles/${v}#plate` };
       default: return null;
     }
   }
@@ -79,6 +81,7 @@ function act(code: string, car: OverviewCar, b: Base, ownerMissing: string[]): A
     case 'witnessed_forms': return { label: 'See Forms C and D', href: `${b.portal}/owner-forms` };
     case 'government_forms': return { label: car.forms.drafts > 0 ? 'See what the forms miss' : 'Open the government forms', href: `${b.ownerHref}#gov-forms` };
     case 'upfront_payment': return admin ? { label: 'Issue or record the upfront invoice', href: `${b.ownerHref}#ad-up` } : null;
+    case 'plate': return { label: 'Add the plate', href: `${b.carHref(v)}#plate` };
     default: return { label: 'Open the car', href: b.carHref(v) };
   }
 }
@@ -116,6 +119,12 @@ export function carSteps(car: OverviewCar, o: Overview, b: Base = baseFor(o.view
       }
     }
     steps.push({ code: r.code, label: LABEL[r.code] ?? r.label, state, who, waiting: null, why, action: null });
+  }
+  // REQ-141 (5212): no real plate on file (empty or a placeholder such as XXXXXXXX): the owner adds it once the car is
+  // registered (never at the application); needed before the car is listed or handed over. Gone once it is added.
+  if (plateMissing(car.plate)) {
+    steps.push({ code: 'plate', label: LABEL.plate!, state: 'waiting', who: 'owner', waiting: null,
+      why: 'Once the car is registered, add its plate. It is needed before the car is listed or handed to a renter.', action: null });
   }
   // a step that waits on one not done yet is blocked, with the reason
   const byCode = new Map(steps.map((s) => [s.code, s]));

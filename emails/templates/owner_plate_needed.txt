@@ -1,0 +1,29 @@
+CarmaCars  |  Plate
+
+========================================
+
+[One step for your car]
+Add the plate once it is registered
+
+Hi {{first_name}}, we do not have the plate of your {{vehicle_name}} yet. Once the car is registered, add the plate in your owner portal.
+
+Add the plate:
+{{plate_url}}
+
+We need the plate before the car is listed on the website or handed to a renter. Everything else carries on in the meantime.
+
+Questions? Reply to this email.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you have an owner account with CarmaCars. Notices about your vehicles, fees and payouts are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

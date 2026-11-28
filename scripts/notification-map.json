@@ -57,6 +57,7 @@
   "owner.master_agreement_ready": {"owner": "owner_master_agreement_ready"},
   "owner.schedule_ready": {"owner": "owner_schedule_ready"},
   "owner.sign_reminder": {"owner": "owner_sign_reminder"},
+  "vehicle.plate_needed": {"owner": "owner_plate_needed"},
   "owner.signed_master_or_schedule": {"staff_va_fleet": "staff_owner_signed", "staff_admin": "staff_owner_signed"},
   "owner.car_delivered": {"owner": "owner_car_delivered"},
   "owner.document_reissued": {"owner": "owner_document_reissued"},

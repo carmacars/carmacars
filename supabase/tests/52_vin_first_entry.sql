@@ -71,7 +71,8 @@ select test.eq('facts: a class chosen by hand sets the rate', (app.vin_class_hin
   (app.listing_default_daily(null, '{"class": "luxury", "make": "Cadillac", "model": "CTS"}') ->> 'daily_cents')::bigint);
 
 -- ================================================================ 3. Add a car (Admin): a company car from the VIN alone
-create temp table vf_add as select app.vehicle_add(test.id('vf_admin'), jsonb_build_object('supply_type', 'company', 'vin', 'WP1AB2A56GLB12345',
+-- 5212 (REQ-141): a car is published only with its plate, so the car added by its VIN carries one
+create temp table vf_add as select app.vehicle_add(test.id('vf_admin'), jsonb_build_object('supply_type', 'company', 'vin', 'WP1AB2A56GLB12345', 'plate', 'VFPL001',
   'class', 'premium', 'class_source', 'inferred', 'rates', jsonb_build_object('daily', 10900))) r;
 grant all on vf_add to public;
 create function test.vf_car() returns vehicles language sql stable as $$ select * from vehicles where id = (select (r ->> 'vehicle_id')::uuid from vf_add) $$;

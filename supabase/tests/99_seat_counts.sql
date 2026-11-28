@@ -16,11 +16,11 @@ select test.eq('body: an SUV or a minivan is never a guessed 5', array[app.body_
 
 -- ---------------------------------------------------------------- a 3-row SUV added by its VIN, the decode without seats
 select app.record_vin_decode('KM8R54GE0SU000350', 'fake', '{"ok": true, "year": "2026", "make": "Hyundai", "model": "Palisade", "trim": "SEL", "body_class": "Sport Utility Vehicle (SUV)/Multi-Purpose Vehicle (MPV)", "fuel": "gasoline", "drivetrain": "AWD/All-Wheel Drive", "transmission": "Automatic, 8 speeds", "doors": "4"}');
-create temp table seat_add as select app.vehicle_add(test.id('seat_admin'), jsonb_build_object('supply_type', 'company', 'vin', 'KM8R54GE0SU000350',
+create temp table seat_add as select app.vehicle_add(test.id('seat_admin'), jsonb_build_object('supply_type', 'company', 'vin', 'KM8R54GE0SU000350', 'plate', 'SEAT350',
   'class', 'suv', 'class_source', 'inferred', 'rates', jsonb_build_object('daily', 14900))) r;
 grant all on seat_add to public;
 create function test.seat_id() returns uuid language sql stable as $$ select (r ->> 'vehicle_id')::uuid from seat_add $$;
--- on the site (a car added without photos waits as a draft; the fixture publishes it)
+-- on the site (a car added without photos waits as a draft; the fixture publishes it; 5212: it has its plate)
 update vehicle_listings set status = 'published', first_published_at = coalesce(first_published_at, now()) where vehicle_id = test.seat_id();
 select test.eq('VIN add: the Palisade SEL has 8 seats, from the seat table', (select l.seats || '/' || (l.spec_sources #>> '{seats,source}') from vehicle_listings l where l.vehicle_id = test.seat_id()), '8/seat_table');
 select test.eq('VIN add: the public row says 8 (the /cars filter, the JSON-LD and the page all read it)', (app.public_listing_row(test.seat_id()) ->> 'seats')::integer, 8);

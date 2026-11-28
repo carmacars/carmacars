@@ -41,8 +41,8 @@ select test.throws('the signing officer''s title is asked', format($$select test
   jsonb_build_array(test.q33car('1HGCM82633A133001', 'Q33A', 'regular'))), 'title');
 select test.throws('each car needs its tier', format($$select test.q33app(%L, %L)$$, test.q33corp(),
   jsonb_build_array(test.q33car('1HGCM82633A133001', 'Q33A', null))), 'Regular or Troubled');
-select test.throws('each car needs its plate', format($$select test.q33app(%L, %L)$$, test.q33corp(),
-  jsonb_build_array(test.q33car('1HGCM82633A133001', null, 'regular'))), 'plate');
+-- 5212 (REQ-141): the plate is not asked at the application (it is added once the car is registered)
+select test.ok('a car without its plate is not refused for it', position('Enter each car''s plate' in pg_get_functiondef('app.submit_owner_application_pre3800(jsonb, uuid)'::regprocedure)) = 0);
 select test.throws('a tier is for the route only', format($$select test.q33app(%L, %L)$$, test.q33corp() - 'route',
   jsonb_build_array(test.q33car('1HGCM82633A133001', 'Q33A', 'regular'))), 'fleet supplier route only');
 select test.throws('each car says who it is registered to now', format($$select test.q33app(%L, %L)$$, test.q33corp(),

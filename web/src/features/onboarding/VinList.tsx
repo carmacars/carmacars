@@ -26,7 +26,8 @@ export function VinList({ ownerId, viewer, refresh, done, fleet = false }: { own
   const [err, setErr] = useState('');
   const good = (rows ?? []).filter((r) => r.ok);
   const lenderMissing = !fleet && good.some((r) => r.title_status && r.title_status !== 'owned_outright' && !(r.finance_party_name ?? '').trim());
-  const fleetMissing = fleet && good.some((r) => !r.lease_tier || !(r.plate ?? '').trim());
+  // REQ-141: the plate is optional here (added once the car is registered); the tier is set now
+  const fleetMissing = fleet && good.some((r) => !r.lease_tier);
   const preview = () => {
     const { vins, extra: x } = parseVinList(text);
     setExtra(x); setMade(null); setErr('');
@@ -65,7 +66,7 @@ export function VinList({ ownerId, viewer, refresh, done, fleet = false }: { own
                   <label className="vh" htmlFor={`${id}-t-${i}`}>Tier: {r.vin}</label>
                   <select className="select select--sm" id={`${id}-t-${i}`} value={r.lease_tier ?? ''} onChange={(e) => set(r.vin, 'lease_tier', e.target.value)} data-testid="vin-list-tier">{TIER.map(([k, l]) => <option key={k} value={k} disabled={!k}>{l}</option>)}</select>
                   <label className="vh" htmlFor={`${id}-p-${i}`}>Plate: {r.vin}</label>
-                  <input className="input input--sm" id={`${id}-p-${i}`} placeholder="Plate" autoCapitalize="characters" value={r.plate ?? ''} onChange={(e) => set(r.vin, 'plate', e.target.value.toUpperCase())} data-testid="vin-list-plate" />
+                  <input className="input input--sm" id={`${id}-p-${i}`} placeholder="Plate (optional)" autoCapitalize="characters" value={r.plate ?? ''} onChange={(e) => set(r.vin, 'plate', e.target.value.toUpperCase())} data-testid="vin-list-plate" />
                 </span> : <span className="small">{[r.lease_tier ? TIER.find(([k]) => k === r.lease_tier)?.[1] : null, r.plate].filter(Boolean).join(', ')}</span>)
                 : r.ok && !made ? <span className="stack">
                   <label className="vh" htmlFor={`${id}-s-${i}`}>Owned, financed or leased: {r.vin}</label>
@@ -79,8 +80,8 @@ export function VinList({ ownerId, viewer, refresh, done, fleet = false }: { own
         </div>)}
       {rows && !made && <div className="row" style={{ gap: 'var(--s-2)', alignItems: 'center', flexWrap: 'wrap' }}>
         <><button type="button" className="btn btn--primary btn--sm" disabled={pending || good.length === 0 || lenderMissing || fleetMissing} onClick={create} data-testid="vin-list-create" aria-describedby="why-vinlist-70">
-          {pending ? 'Adding' : `Add ${good.length} car${good.length === 1 ? '' : 's'}`}</button><WhyDisabled id="why-vinlist-70" why={((good.length === 0) || lenderMissing || fleetMissing) ? (lenderMissing ? 'Enter the lender first' : fleetMissing ? 'Give each car its tier and plate first' : 'Add at least one good VIN first') : null} /></>
-        <span className="small muted">{rows.length - good.length > 0 ? `${rows.length - good.length} not added (see why above). ` : ''}{lenderMissing ? 'Name the lender or lease company of each financed or leased car.' : ''}{fleetMissing ? 'Give each car its tier and plate.' : ''}</span></div>}
+          {pending ? 'Adding' : `Add ${good.length} car${good.length === 1 ? '' : 's'}`}</button><WhyDisabled id="why-vinlist-70" why={((good.length === 0) || lenderMissing || fleetMissing) ? (lenderMissing ? 'Enter the lender first' : fleetMissing ? 'Give each car its tier first' : 'Add at least one good VIN first') : null} /></>
+        <span className="small muted">{rows.length - good.length > 0 ? `${rows.length - good.length} not added (see why above). ` : ''}{lenderMissing ? 'Name the lender or lease company of each financed or leased car.' : ''}{fleetMissing ? 'Give each car its tier. The plate can wait until the car is registered.' : ''}</span></div>}
       {made && <p className="alert alert--ok" role="status" data-testid="vin-list-done"><span>{made.good} car{made.good === 1 ? '' : 's'} added{made.application_number ? ` (application ${made.application_number})` : ''}. {fleet ? (viewer === 'owner' ? 'Each is on Schedule A of your lease: confirm them with one signature in Sign.' : 'Each is on Schedule A; the supplier confirms them with one signature.') : viewer === 'owner' ? 'We approve the terms of each next; you see every step on its page.' : 'Each waits for the Admin to approve its terms on the application.'}{done ? ` ${done}` : ''}</span></p>}
     </section>
   );

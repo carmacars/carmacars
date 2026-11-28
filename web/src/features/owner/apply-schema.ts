@@ -135,6 +135,10 @@ export function ownerErrors(o: ApplyOwner): Record<string, string> {
   return e;
 }
 
+// REQ-141 (5212): the plate is never asked at the application (a car is often registered after the owner applies);
+// the owner adds it in the portal once the car is registered. A plate typed in is still checked.
+const PLATE_FORMAT = 'A plate has 2 to 8 letters and numbers. Leave it empty if the car is not registered yet.';
+
 export function vehicleErrors(v: ApplyVehicle, ownerType: ApplyOwner['owner_type'], fleet = false): Record<string, string> {
   const e: Record<string, string> = {};
   if (!VIN.test(cleanVin(v.vin))) e.vin = 'The VIN is 17 letters and numbers (no I, O or Q). It is on the ownership permit and the driver\'s door frame.';
@@ -143,7 +147,7 @@ export function vehicleErrors(v: ApplyVehicle, ownerType: ApplyOwner['owner_type
   if (!v.model.trim()) e.model = 'Enter the model.';
   // 0710: a fleet supplier's car: the VIN (its year, make and model), the plate and the tier; the ownership copy is uploaded in the portal
   if (fleet) {
-    if (!/^[A-Z0-9 ]{2,8}$/i.test(v.plate.trim())) e.plate = 'Enter the plate as on the ownership.';
+    if (v.plate.trim() && !/^[A-Z0-9 ]{2,8}$/i.test(v.plate.trim())) e.plate = PLATE_FORMAT;
     if (v.lease_tier !== 'regular' && v.lease_tier !== 'troubled') e.lease_tier = 'Choose Regular or Troubled. It is set now and does not change.';
     const t = v.fleet_transfer;
     if (!t?.registered_to) e.registered_to = 'Say who the car is registered to now.';
@@ -155,7 +159,7 @@ export function vehicleErrors(v: ApplyVehicle, ownerType: ApplyOwner['owner_type
     return e;
   }
   if (!v.colour.trim()) e.colour = 'Tap the colour.';
-  if (!/^[A-Z0-9 ]{2,8}$/i.test(v.plate.trim())) e.plate = 'Enter the plate as on the permit.';
+  if (v.plate.trim() && !/^[A-Z0-9 ]{2,8}$/i.test(v.plate.trim())) e.plate = PLATE_FORMAT;
   if (!/^\d{1,6}$/.test(v.odometer_km.replace(/[\s,]/g, ''))) e.odometer_km = 'Enter the kilometres on the odometer.';
   if (!v.current_insurer.trim()) e.current_insurer = 'Enter your insurer.';
   if (!v.branded) e.branded = 'Answer this question.';
@@ -181,7 +185,7 @@ export function planErrors(v: ApplyVehicle): Record<string, string> {
  *  the corporation, the forms its route needs). */
 export function fleetVehiclePayload(v: ApplyVehicle) {
   return {
-    vin: cleanVin(v.vin), plate: v.plate.toUpperCase().replace(/\s/g, ''), year: Number(v.year), make: v.make.trim(), model: v.model.trim(), trim: v.trim.trim() || null,
+    vin: cleanVin(v.vin), plate: v.plate.toUpperCase().replace(/\s/g, '') || null, year: Number(v.year), make: v.make.trim(), model: v.model.trim(), trim: v.trim.trim() || null,
     colour: v.colour.trim() || null, fuel: v.fuel || undefined, lease_tier: v.lease_tier || null,
     fleet_transfer: v.fleet_transfer?.registered_to === 'corporation' || !v.fleet_transfer ? { registered_to: v.fleet_transfer?.registered_to || null }
       : { registered_to: v.fleet_transfer.registered_to, name: v.fleet_transfer.name.trim(), address: v.fleet_transfer.address.trim(), date: v.fleet_transfer.date },
@@ -192,7 +196,7 @@ export function fleetVehiclePayload(v: ApplyVehicle) {
 /** The vehicle as app.add_owner_vehicle reads it. */
 export function vehiclePayload(v: ApplyVehicle) {
   return {
-    vin: cleanVin(v.vin), plate: v.plate.toUpperCase().replace(/\s/g, ''), year: Number(v.year), make: v.make.trim(), model: v.model.trim(), trim: v.trim.trim() || null,
+    vin: cleanVin(v.vin), plate: v.plate.toUpperCase().replace(/\s/g, '') || null, year: Number(v.year), make: v.make.trim(), model: v.model.trim(), trim: v.trim.trim() || null,
     colour: v.colour.trim(), fuel: v.fuel || undefined, odometer_km: Number(v.odometer_km.replace(/[\s,]/g, '')), current_insurer: v.current_insurer.trim(),
     title_brand_clear: v.branded !== 'yes', disclosures: { damage: v.damage === 'yes', details: v.damage_details.trim() || null },
     held_by: v.held_by, title_status: v.title_status, finance_party_name: v.title_status === 'owned_outright' ? null : v.finance_party_name.trim(),
