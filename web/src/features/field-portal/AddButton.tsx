@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { FdIcon } from '@/features/field/icons';
 import { FieldReport } from '@/features/field/FieldReport';
 import { SPEND_KINDS, toCents } from './model';
@@ -13,14 +13,18 @@ type Car = { id: string; name: string };
 type Booking = { id: string; number: string; vehicle: string };
 const ITEMS: Array<[string, string]> = [['oil_filter', 'Oil and filter'], ['tire_rotation', 'Tire rotation'], ['brake_inspection', 'Brake inspection'], ['brake_pads_rotors', 'Brake pads and rotors'],
   ['tires', 'New tires'], ['battery', 'Battery'], ['wipers', 'Wiper blades'], ['alignment', 'Wheel alignment'], ['fluids', 'Fluids']];
+const noSubscribe = () => () => {};
 const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
 
 export function AddButton({ cars, bookings, reportCars, preps = {}, startOpen = null }: { cars: Car[]; bookings: Booking[]; reportCars: Array<{ id: string; name: string; job: string }>;
   /** the onboarding prep of a car today: its money is linked to it */ preps?: Record<string, string>;
   startOpen?: 'menu' | 'money' | 'service' | 'photos' | 'problem' | null }) {
+  // opened from a link (?add=problem): after the page has loaded in the browser, so the server page and the browser's first
+  // render are the same (the sheet rendered by the server made React error #418 on /staff/field?add=problem, CI 46106974148)
   const [what, setWhat] = useState<null | 'menu' | 'money' | 'service' | 'photos' | 'problem'>(startOpen);
+  const loaded = useSyncExternalStore(noSubscribe, () => true, () => false);
   const panel = useRef<HTMLDivElement>(null);
-  useEffect(() => { if (what) panel.current?.querySelector<HTMLElement>('button, input, select')?.focus(); }, [what]);
+  useEffect(() => { if (what && loaded) panel.current?.querySelector<HTMLElement>('button, input, select')?.focus(); }, [what, loaded]);
   useEffect(() => {
     if (!what) return;
     const k = (e: KeyboardEvent) => { if (e.key === 'Escape') setWhat(null); };
@@ -30,7 +34,7 @@ export function AddButton({ cars, bookings, reportCars, preps = {}, startOpen = 
   return (
     <>
       <button type="button" className="fp-fab" onClick={() => setWhat('menu')} aria-haspopup="dialog" data-testid="add-button" data-guide="field-add"><FdIcon name="plus" />Add</button>
-      {what && <div className="fp-sheet" role="presentation" onClick={(e) => { if (e.target === e.currentTarget) setWhat(null); }}>
+      {what && loaded && <div className="fp-sheet" role="presentation" onClick={(e) => { if (e.target === e.currentTarget) setWhat(null); }}>
         <div className="fp-sheet__panel" role="dialog" aria-modal="true" aria-labelledby="fp-add-h" ref={panel} data-testid="add-sheet" data-guide="field-add-sheet">
           <div className="fp-sheet__head">
             {what !== 'menu' ? <button type="button" className="fp-sheet__x" onClick={() => setWhat('menu')} aria-label="Back"><FdIcon name="back" /></button> : <span />}
