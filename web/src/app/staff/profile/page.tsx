@@ -4,6 +4,7 @@ import { vaPage, FN_LABEL } from '@/server/va';
 import { PageHead } from '@/features/admin/ui';
 import { HomeAddressSection, homeAddressOf } from '@/features/staff/HomeAddress';
 import { PayDetails } from '@/features/staff/PayDetails';
+import { MyLine } from '@/features/phone/MyLine';
 import { door } from '@/server/door';
 import type { PayDetailsView } from '@/features/staff/pay-details';
 import { SignInSettings } from '@/features/portal/SignInSettings';
@@ -37,6 +38,7 @@ export default async function VaProfile() {
           <dl className="pt-dl"><div><dt>Email</dt><dd>{user.email}</dd></div><div><dt>Function</dt><dd>{FN_LABEL[roles.va!]}</dd></div></dl></section>
         {home.missing ? <p className="small" data-testid="home-address-above">Fill in your home address at the top of the page.</p> : <HomeAddressSection portal="va" state={home} />}
         <PayDetails portal="va" view={pay} canada={!!home.canada} />
+        <MyLine userId={user.id} call="va_read" className="pt-card stack" />
         {sp && <SelfProfile data={sp} password={false} />}
         <BirthdaySection userId={user.id} portal="va" className="pt-card stack" refresh={['/staff/profile']} />
         {si && <SignInSettings state={si} className="pt-card stack" />}

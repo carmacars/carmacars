@@ -92,7 +92,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
             {user && !viewing ? <TownhallLink userId={user.id} /> : null}
             {/* 1800: the inactivity tracker (the fact of activity only) for the staff who clock in */}
             {user && !viewing && (held.includes('cs') || held.includes('fleet') || held.includes('finance')) ? <ActivityBeat /> : null}
-            <StaffNav functions={held} open={open} chat={chat} hot={hot} />
+            <StaffNav functions={held} open={open} chat={chat} hot={hot} manager={!!roles.manager} />
           </aside>
         ) : <div />}
         <div className="ad__main">{/* r48 FE (3197): what looks wrong on the person's own record, in a pop-up */}{staff && user && !viewing ? <DataCheckModal issues={await dataChecks(user.id, 'staff')} /> : null}{needsAddress ? <HomeAddressCard portal={portal} canada={canada} /> : null}{staff && user ? <GuideBanner portal={portal} userId={user.id} /> : null}{staff && user ? <StuckHelp portal={portal} /> : null}{office && user ? <CallerPopup portal="va" quiet={Boolean(viewing)} topic={live.calls} /> : null}{staff && user ? <VoiceDock quiet={Boolean(viewing)} dialer={Boolean(office)} /> : null}{staff && user && !needsAddress ? <PushInvite portal={office ? 'staff' : 'field'} home={office ? '/staff' : ['/staff', '/staff/field']} userId={user.id} /> : null}{staff && user && !viewing ? <LocationSharer /> : null}{staff ? <HubBar hubs={staffHubs(held)} sections={staffSections(held)} /> : null}<DoorProvider kind="va"><RevampScope list={REVAMP_STAFF}>{staff && user ? <TermsGate userId={user.id} portal={office ? 'staff' : 'field'}>{children}</TermsGate> : children}</RevampScope></DoorProvider></div>

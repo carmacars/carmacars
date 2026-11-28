@@ -98,7 +98,7 @@ export function stepWords(s: WelcomeStep): string {
       : `Join ${s.groups.map((g) => g.name).join(' and ')} on WhatsApp, then tick each group you joined. Your portal opens once every group is ticked.`;
     case 'academy': return s.waived ? 'An Admin waived the academy for you.' : s.waiting_for_agreement && !s.done ? 'Opens once your staff agreement is signed.'
       : s.done ? `Basics passed. The rest of your portal is open. Finish the other sections (${s.full_passed ?? 0} of ${s.full_sections ?? 0} passed) before held pay is paid out (commission, bonuses, referral fees, and pay for hours for Field, customer service, Fleet and Finance).`
-      : `The basics: ${s.passed ?? 0} of ${s.sections ?? 0} sections passed. Passing them opens your portal and work. If a quiz is below the pass mark, fix the wrong answers once; after a failed try, wait 2 minutes.`;
+      : `The basics: ${s.passed ?? 0} of ${s.sections ?? 0} sections passed. Passing them opens your portal and work. If a quiz is below the pass mark, fix the wrong answers once; after a failed fix, wait 1 minute.`;
     case 'approval': return s.done ? `Approved${s.approved_by ? ` by ${s.approved_by}` : ''}.` : !s.open ? 'Opens once you confirm the WhatsApp groups.'
       : s.reject_reason ? `Not approved yet: ${s.reject_reason}. Fix it, then ask again.` : 'Waiting for approval: an Admin or a Fleet team member checks your onboarding and opens your portal.';
     case 'pay': return s.done ? 'On file.' : 'Add the account your pay goes to. Your portal does not wait for it; your first pay does.';

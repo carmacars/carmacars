@@ -425,12 +425,30 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 
 ### REQ-132 A Twilio line for every staff member behind a Quo extension
 - Status: in progress
-- Proof: branch r51-staff (not on main)
-- Test: to be added with the work
+- Proof: branch r51-staff (not on main, not live): migration 5200 (staff_phone_lines, staff_phone_line_secrets with no browser grant, ringing one person, staff_line_missed and staff_line_ready); web/src/server/staff-lines.ts (Get a number shows Twilio's price, Buy needs that price, never from a test server), features/phone/StaffLine.tsx, MyLine.tsx, twilio-call.ts incoming; the Quo owner steps in docs/changes/2026-11-27-r51-staff.md (Quo's API has no call flow endpoint). Nothing bought yet: the owner presses Buy per person
+- Test: supabase/tests/99_r51_staff_lines.sql; web/src/features/phone/staff-lines.test.ts
 - Asked: Nov 27 17:29
 - Owner: "i need all staff to have a dedicated twilio line that corresponds with an extension number that is on quo, so that all staff can get incoming calls to their portals and their apps via their extension numbers that forward to their twilio phone numbers (nobody will ever know what those numbers are)"
 - Rule: each staff member has an extension number and their own Twilio number. A call to that number rings only that person's portal and app (the browser phone). Nobody else rings; a missed call is logged and alerts that person. The Twilio number is never shown to staff or renters; Admin sees its last 4 digits only. Buying a number costs money: only an Admin buys one, with a button that shows the monthly cost and asks for confirmation; tests and jobs never buy numbers. Quo's API cannot create a phone menu option or a forward, so the owner adds each extension in Quo by hand (steps in the change doc).
 - Done when: an Admin gets a line for a staff member after confirming the cost shown; a call to that line rings only that person's portal or app; no screen, email or read gives the full number to anyone; the Quo steps are in the change doc.
+
+### REQ-136 Insurer emails that bounce are caught, retried and never silent
+- Status: in progress
+- Proof: branch r51-staff (not on main, not live): migration 5204 (email_bounces, app.server_email_bounce, insurers.claims_email and claims_phone, the version marked bounced, the To do with the allowlist request, the fallback send, insurer_delivery); web/src/app/api/inbound/bounce, features/email-bounces/ndr.ts, scripts/turo-gmail.gs (owner: paste and run setup), send-outbox X-Outbox-Ref; DMARC recommendation in docs/changes/2026-11-27-r51-staff.md (DNS not changed)
+- Test: supabase/tests/99_r51_insurer_bounces.sql; web/src/features/email-bounces/ndr.test.ts
+- Asked: Nov 27 18:22
+- Owner: "emails coming from blindspotcarrental @ carmacars are not getting passed insurance's firewall. can u fix that and make sure it doesnt happen again"
+- Rule: the cause is the insurer's accept list (550 5.7.129 RestrictedToRecipientsPermission; SPF, DKIM and DMARC passed), so the site cannot make the insurer accept the email; it makes every refusal visible and acted on. The site reads bounces (NDR and delivery reports) of insurer emails, marks the send failed on the invoice version and the booking, and raises one Admin To do with the reason, the adjuster, the insurer's general claims contact and an allowlist request ready to send. Insurers have a fallback claims email and phone; a bounced invoice or estimate goes again to the fallback once, in Blind Spot branding, never naming CarmaCars. Admin sees each insurer email's delivery (sent, delivered, bounced). DNS is not changed by Claude: moving DMARC from p=none to p=quarantine is a recommendation once every sender is aligned.
+- Done when: a bounce email for an insurer invoice marks that version bounced, logs it on the booking, raises the To do with the allowlist request, and sends the invoice again to the claims email when one is on file; the booking page shows each version's delivery.
+
+### REQ-137 Insurer emails never go from rent@carmacars.ca
+- Status: in progress
+- Proof: branch r51-staff (not on main, not live): migration 5204 (app.insurer_not_from_rent on notification_catalogue, email_reply_to and notification_outbox); the catalogue already sends as blindspotcarrental@carmacars.ca; docs/changes/2026-11-27-r51-staff.md. SES sends it once the owner sets the SES keys (docs/email-providers.md); Resend until then
+- Test: supabase/tests/99_r51_insurer_bounces.sql; web/src/features/insurance/insurer-sender.test.ts
+- Asked: Nov 27 18:43
+- Owner: "DO NOT SEND IT FROM RENT@CARMACARS.CA"
+- Rule: insurer emails never go from rent@carmacars.ca: not as the From, not as the reply-to, not as the envelope sender, not as a Gmail send-as alias of rent@. The site sends them itself as blindspotcarrental@carmacars.ca (SES with its aligned MAIL FROM once the SES keys are set; Resend until then). A check fails the build if any insurer email template or sender setting uses rent@, and the database refuses such a setting. The Gmail alias or Workspace idea is dropped. The Definity bounce (5.7.129) is the recipient's accept list: the bounce To do work (REQ-136) stays.
+- Done when: the build check and the database refuse rent@ in any insurer email's template, From, reply-to or outbox row, and every insurer email sent shows blindspotcarrental@carmacars.ca as its sender.
 
 ## 7. Alerts, To do's, self-heal
 
@@ -519,8 +537,8 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 
 ### REQ-133 Cleaning is not a step after every return
 - Status: in progress
-- Proof: branch r51-staff (not on main)
-- Test: to be added with the work
+- Proof: branch r51-staff (not on main, not live): migration 5202 (booking_after_status: available unless app.return_needs_cleaning; a report changed to need cleaning moves an available car to cleaning)
+- Test: supabase/tests/99_r51_return_clean.sql
 - Asked: Nov 27 17:29
 - Owner: "these cleaning jobs seem like a headache"
 - Rule: cleaning never blocks a booking and the detail job closes it (REQ-129, 5195). A car goes straight back to available after a return, unless the return report says it needs cleaning (cleanliness other than clean); only then is it in cleaning until the detail job is done.
@@ -628,8 +646,8 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 
 ### REQ-130 Academy: answer yourself, no AI or computer use
 - Status: in progress
-- Proof: branch r51-staff (not on main)
-- Test: to be added with the work
+- Proof: branch r51-staff (not on main, not live): docs/changes/2026-11-27-r51-staff.md; migration 5199 (app.academy_integrity_reasons, academy_quiz_submit voids and alerts academy_integrity, Admin read academy_voided); web/src/features/academy/integrity.ts and Study.tsx (the disclaimer on every question, paste and copy blocked, focus, pointer, isTrusted, webdriver, driver markers, devtools probe); the sentence in docs/source/va_agreement.md 2.4 and field_staff_agreement.md 2.3 (for the owner's lawyer); guides 5207. No web page can fully stop an AI agent: detectable, not impossible
+- Test: supabase/tests/99_r51_academy_integrity.sql; web/src/features/academy/integrity.test.ts
 - Asked: Nov 27 17:29
 - Owner: "put it on the academy on each question as a disclaimer somewhere that computer use is not allowed and carmacars will sue u and make sure that it just makes sure that they cant use ai and claude chrome to complete the tests"
 - Rule: every academy question shows: "Answer yourself. Using AI tools, browser agents or computer-use software on this test is not allowed and breaks your agreement; CarmaCars may take legal action." The staff agreements say the same (no other legal terms; the owner's lawyer reviews the wording). The quiz blocks paste into answers, records focus loss and tab switches, flags answers faster than a floor per question, hands out questions and options in a random order, and detects automation signals (navigator.webdriver, automation markers that drivers and extensions inject, events not made by a person, a mouse that jumps without moving). A flagged attempt is voided, kept on record with its reasons, and Admin gets an alert. No web page can fully stop an AI agent: these checks make it detectable, not impossible.
@@ -637,8 +655,8 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 
 ### REQ-131 Managers see their team
 - Status: in progress
-- Proof: branch r51-staff (not on main)
-- Test: to be added with the work
+- Proof: branch r51-staff (not on main, not live): migration 5201 (staff_profiles.is_manager, manager_id; staff_manager_set, staff_team_set, my_team, team_member, my_roles manager); web/src/features/team, /staff/team, Admin > Settings > Staff Manager column, the app's Profile My team; guide va/my-team (5207)
+- Test: supabase/tests/99_r51_managers.sql; web/src/features/team/model.test.ts; web/src/features/staff/nav.test.ts
 - Asked: Nov 27 17:29
 - Owner: "also i need to be able to set staff to managers that have insight on the staff that are assigned to them"
 - Rule: Admin marks a staff member as a manager and assigns staff to them. A manager sees, read only, each team member's hours, academy progress, KPIs, pay owed, field jobs and activity, with the same masking as Admin, in the staff portal and the app, with a guide chapter. A manager never changes a team member's records from this view.
@@ -646,8 +664,8 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 
 ### REQ-134 Academy: retry the wrong ones first, shorter wait, fewer steps
 - Status: in progress
-- Proof: branch r51-staff (not on main)
-- Test: to be added with the work
+- Proof: branch r51-staff (not on main, not live): migration 5203 (wait 2 to 1 minute; 4 questions that tested the same thing twice dropped; 2 wrong answers corrected); Study.tsx Try again in one press; the list in docs/changes/2026-11-27-r51-staff.md. The fix of only the wrong ones before any wait is 5070 (r50-hotfix2, not live)
+- Test: supabase/tests/99_r50h2_academy_leads.sql; supabase/tests/99_r48_academy_guides.sql
 - Asked: Nov 27 17:45
 - Owner: "the academy wait time when getting things wrong is too long and they need to have 1 chance to retry the wrong questions before it starts the wait time. also i think theres a lot of redundant sections or questions and just unnecessary steps. it needs to be easier"
 - Rule: after a quiz below the pass mark, the person retries only the wrong questions once, straight away; the wait starts only if that retry fails. The wait is half of what it was (REQ-067 set 2 minutes: now 1 minute). Sections and questions are audited per role: duplicates merged, questions that test the same thing twice dropped, steps that add clicks without teaching removed; the change doc lists what was removed.
@@ -655,12 +673,21 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 
 ### REQ-135 Easy onboarding: every blocking screen has its next button
 - Status: in progress
-- Proof: branch r51-staff (not on main, not live): docs/changes/2026-11-27-r51-staff.md; migration 5304 (app.staff_agreement_now clears the agreements job's wait and 5-try stop; staff_agreement_help alerts the Admins; staff_welcome gains the pay step and next); web/src/app/staff/welcome/page.tsx (a big button per step, stepAction in features/academy/gate.ts), features/staff-onboarding/SignNow.tsx, server/actions/onboarding-now.ts; guides 5305. Why production Jamal had no agreement (waiting, failed or stopped) is not readable through the connector
+- Proof: branch r51-staff (not on main, not live): docs/changes/2026-11-27-r51-staff.md; migrations 5197 (on hotfix 2; was 5304) and 5205 (the pay step last) (app.staff_agreement_now clears the agreements job's wait and 5-try stop; staff_agreement_help alerts the Admins; staff_welcome gains the pay step and next); web/src/app/staff/welcome/page.tsx (a big button per step, stepAction in features/academy/gate.ts), features/staff-onboarding/SignNow.tsx, server/actions/onboarding-now.ts; guides 5198. Why production Jamal had no agreement (waiting, failed or stopped) is not readable through the connector
 - Test: supabase/tests/99_r51_easy_onboarding.sql; web/src/features/academy/gate.test.ts
 - Asked: Nov 27 17:45
 - Owner: "jamal got the academy waived for him and now it says your agreement first and theres no buttons to click anywhere other than resign. this is bad ui, he needs to have things to click to finish up his profile so he can start using his portal. he needs extremely easy steps to follow for getting access to portals. all staff should have easy flows."
 - Rule: the agreement step always offers Sign now: it makes the agreement at once when there is none (also after the automatic job gave up) and opens it to sign; if it still waits for something, the page says exactly what, with a button for what the person gives and an alert to Admin for what only Admin gives. Welcome is one checklist for every staff role: each remaining step is one big button (Sign agreement, Set availability, Join the WhatsApp group and Confirm, Pay details), done steps ticked, and the portal opens when the list is done. No blocking screen is a dead end.
 - Done when: a staff member in Jamal's state (Sales and Field, academy waived, no agreement made, availability not set, WhatsApp not confirmed) sees a big button for each step left on Welcome, Sign now makes and opens the agreement, and every blocking screen links to its next step.
+
+### REQ-138 Managers follow up on their staff, and pass a Manager academy section
+- Status: in progress
+- Proof: branch r51-staff (not on main, not live): migration 5206 (team_followups, job_team_followups hourly, job_team_weekly Monday, the Managers academy path and section, team_followup_done); web/src/features/team/pages.tsx (Follow up card: Call, Text, Mark followed up); guide va/my-team (5207). Follow-ups are on My team and the alerts, not the function To do queues
+- Test: supabase/tests/99_r51_manager_followups.sql; web/src/features/team/model.test.ts
+- Asked: Nov 27 19:45
+- Owner: "Managers should be following up on their assigned staff and what not and get academy shit for it"
+- Rule: a manager gets To dos for their own team: a member stalled in the academy 2 days or more, onboarding steps still open, a missed field job or shift, KPIs below target, and their own follow-ups that are overdue. Each has one-tap actions: message, call, and mark followed up with a note. The manager gets a weekly team summary. A Manager section of the academy (how to follow up, coach, escalate, approve hours) is on every manager's path, wired like the other role sections, and must be passed before the follow-up tools open.
+- Done when: a manager of a stalled or behind team member gets the To do with message, call and followed-up actions; the weekly summary arrives; the Manager section is on their academy path and My team's follow-ups wait until it is passed.
 
 ## 11. Townhall and weekly Admin call
 

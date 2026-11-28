@@ -1,15 +1,16 @@
 'use client';
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import Link from '@/components/Link';
 import { useRouter } from 'next/navigation';
 import { opsAct } from '@/server/actions/ops';
 import { ScenePlayer } from './ScenePlayer';
 import { LessonVideo } from './LessonVideo';
-import { ownJokeQuip, pct, waitLeft, type QuizFix, type QuizFixResult, type QuizResult, type QuizStart, type QuizWait, type SectionView } from './model';
+import { HONEST_NOTE, IntegrityWatch, cdpProbe, markersOf } from './integrity';
+import { ownJokeQuip, pct, waitLeft, type QuizFix, type QuizFixResult, type QuizResult, type QuizStart, type QuizVoided, type QuizWait, type SectionView } from './model';
 
 // A section to study (Release 21b, item 9): its lessons, each a scene player, then its quiz. The quiz is graded in the database;
 // the pass mark opens the next section of the path. 1154: opening the section starts its reading clock; the quiz opens after the
-// section's reading time, is handed out in a random order (questions and options), waits after a failed try (2 minutes since 5070) and
+// section's reading time, is handed out in a random order (questions and options), waits after a failed try (2 minutes since 5070, 1 since 5203) and
 // allows a number of tries a day (10 since 5070) (all set in Program settings); a failed try shows which answers were wrong, not the right ones.
 // R50 hotfix 2 (5070): a first check below the pass mark is not a try yet: the questions marked wrong (only those) can be
 // changed once, and the second check is graded. The database keeps the fix, so reopening the quiz brings it back.
@@ -49,6 +50,9 @@ function Quiz({ s, base, wait, setWait, onPassed }: { s: SectionView; base: stri
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
   const [now, setNow] = useState(() => Date.now());
+  // R51 (5199, REQ-130): what the page sees while the quiz is open; sent with each submit, voided by the database on a signal
+  const watch = useRef<IntegrityWatch | null>(null);
+  const [voided, setVoided] = useState('');
   // r50 hotfix 2: the countdown starts once the page is in the browser; the server's second and the browser's differed (#418)
   const hydrated = useSyncExternalStore(noop, yes, no);
   const left = hydrated && wait && !wait.ok ? waitLeft(wait.until, now) : '';
@@ -63,19 +67,37 @@ function Quiz({ s, base, wait, setWait, onPassed }: { s: SectionView; base: stri
     const r = await opsAct<QuizStart>('academy_quiz_start', { section: s.id });
     setBusy(false);
     if (!r.ok) { setErr(r.message); return; }
-    setQuiz(r.data); setRes(null);
+    setQuiz(r.data); setRes(null); setVoided('');
     setFix(r.data.fix ?? null); setAnswers(r.data.fix?.given ?? {});
+    // a fix of the same quiz keeps counting from the first try
+    if (!r.data.fix || !watch.current) {
+      let wd = false; try { wd = navigator.webdriver === true; } catch { /* none */ }
+      // the devtools protocol probe logs one empty error at debug level (integrity.ts cdpProbe)
+      // eslint-disable-next-line no-console
+      watch.current = new IntegrityWatch({ webdriver: wd, markers: markersOf(window as unknown as Record<string, unknown>, document as unknown as Record<string, unknown>), cdp: cdpProbe((e) => console.debug(e)) }, Date.now());
+    }
   };
+  // the page lost focus or was hidden while the quiz is open
+  useEffect(() => {
+    if (!quiz || res) return;
+    const away = () => watch.current?.leave();
+    const back = () => { if (!document.hidden && document.hasFocus()) watch.current?.back(); };
+    const vis = () => (document.hidden ? away() : back());
+    window.addEventListener('blur', away); window.addEventListener('focus', back); document.addEventListener('visibilitychange', vis);
+    return () => { window.removeEventListener('blur', away); window.removeEventListener('focus', back); document.removeEventListener('visibilitychange', vis); };
+  }, [quiz, res]);
   const qs = quiz?.questions ?? [];
   const all = qs.length > 0 && qs.every((q) => answers[q.id] !== undefined);
   const submit = async () => {
     if (!all) { setErr('Answer every question first.'); return; }
     setBusy(true); setErr('');
-    const r = await opsAct<QuizResult | QuizFixResult>('academy_quiz_submit', { section: s.id, answers });
+    const r = await opsAct<QuizResult | QuizFixResult | QuizVoided>('academy_quiz_submit', { section: s.id, answers, integrity: watch.current?.report() ?? null });
     setBusy(false);
     if (!r.ok) { setErr(r.message); return; }
+    if ('voided' in r.data) { watch.current = null; setFix(null); setQuiz(null); setAnswers({}); setWait(r.data.quiz); setNow(Date.now()); setVoided(r.data.message ?? 'This attempt was voided.'); return; }
     if ('fix' in r.data && r.data.fix) { setFix({ wrong: r.data.wrong, given: answers }); return; }
     const g = r.data as QuizResult;
+    watch.current = null;
     setFix(null); setRes(g); setWait(g.quiz); setNow(Date.now());
     if (g.passed) onPassed();
   };
@@ -94,12 +116,18 @@ function Quiz({ s, base, wait, setWait, onPassed }: { s: SectionView; base: stri
           <span className="alert__title">Fix the ones marked wrong</span>
           <span>{fix.wrong.length} of {qs.length} {fix.wrong.length === 1 ? 'answer is' : 'answers are'} wrong. You can change only those, once. The next check counts.</span>
         </div>)}
-      {quiz && <form className="stack" noValidate onSubmit={(e) => { e.preventDefault(); void submit(); }}>
+      <p className="small ac-honest" data-testid="quiz-honest">{HONEST_NOTE}</p>
+      {voided && <p className="alert alert--warn" role="alert" data-testid="quiz-voided"><span className="alert__title">Attempt voided</span><span>{voided}</span></p>}
+      {quiz && <form className="stack ac-guarded" noValidate onSubmit={(e) => { e.preventDefault(); void submit(); }}
+        onPasteCapture={(e) => { e.preventDefault(); watch.current?.paste(); }} onCopyCapture={(e) => { e.preventDefault(); watch.current?.copy(); }} onCutCapture={(e) => { e.preventDefault(); watch.current?.copy(); }}
+        onContextMenu={(e) => e.preventDefault()} onPointerMoveCapture={(e) => watch.current?.pointerMove(e)} onPointerDownCapture={(e) => watch.current?.pointerDown(e.nativeEvent)}
+        onClickCapture={(e) => watch.current?.input(e.nativeEvent)} onKeyDownCapture={(e) => watch.current?.input(e.nativeEvent)} onChangeCapture={(e) => watch.current?.input(e.nativeEvent)}>
         {qs.map((q, qi) => {
           const r = by.get(q.id);
           return (
             <fieldset key={q.id} data-testid={`q-${qi}`} className={!res && fix ? (toFix.has(q.id) ? 'ac-fix' : 'ac-fix-ok') : undefined} data-fix={!res && fix ? (toFix.has(q.id) ? 'wrong' : 'right') : undefined}>
               <legend>{qi + 1}. {q.prompt}</legend>
+              <p className="small muted ac-honest" data-testid={`q-${qi}-honest`}>{HONEST_NOTE}</p>
               {!res && fix && (toFix.has(q.id)
                 ? <p className="small is-wrong" data-testid={`q-${qi}-fix`}>Marked wrong: choose again.</p>
                 : <p className="small muted">Right. Kept as you answered.</p>)}
@@ -107,7 +135,7 @@ function Quiz({ s, base, wait, setWait, onPassed }: { s: SectionView; base: stri
                 const k = q.keys[oi] ?? oi;
                 return (
                   <label key={oi} className={`check${r && r.answer !== null && k === r.answer ? ' is-right' : r && k === r.given && !r.right ? ' is-wrong' : ''}`}>
-                    <input type="radio" name={`q-${q.id}`} checked={answers[q.id] === k} disabled={!!res || (!!fix && !toFix.has(q.id))} onChange={() => setAnswers((a) => ({ ...a, [q.id]: k }))} data-testid={`q-${qi}-${oi}`} />
+                    <input type="radio" name={`q-${q.id}`} checked={answers[q.id] === k} disabled={!!res || (!!fix && !toFix.has(q.id))} onChange={() => { watch.current?.pick(q.id, Date.now()); setAnswers((a) => ({ ...a, [q.id]: k })); }} data-testid={`q-${qi}-${oi}`} />
                     <span>{o}{r && r.answer !== null && k === r.answer ? ' (right answer)' : ''}</span>
                   </label>
                 );
@@ -129,7 +157,9 @@ function Quiz({ s, base, wait, setWait, onPassed }: { s: SectionView; base: stri
           <span className="alert__title">{res.passed ? 'Passed' : 'Not passed yet'}: {res.correct} of {res.total} ({pct(res.score_bps)})</span>
           <span>{res.passed ? (s.next ? 'The next section is open.' : 'You finished this path.') : `You need ${pct(res.pass_bps)}. Go over the lessons again. ${res.quiz?.message ?? ''}`}</span>
           <span className="row" style={{ gap: 'var(--s-2)', flexWrap: 'wrap' }}>
-            {!res.passed && <button type="button" className="btn btn--sm btn--primary" onClick={() => { setRes(null); setQuiz(null); setFix(null); setAnswers({}); }} data-testid="quiz-retry">Try again later</button>}
+            {/* 5203 (REQ-134): one press starts the next try once the wait is over (it was Try again later, then Start the quiz) */}
+            {!res.passed && <button type="button" className="btn btn--sm btn--primary" disabled={busy || !ready} aria-describedby="quiz-retry-hint" onClick={() => { setRes(null); setFix(null); setAnswers({}); void start(); }} data-testid="quiz-retry">{ready ? 'Try again' : `Try again in ${left}`}</button>}
+            {!res.passed && <span id="quiz-retry-hint" className="small muted">{ready ? 'Go over the lessons first.' : 'Wait for the minute to pass, then press Try again.'}</span>}
             {res.passed && s.next && <Link prefetch={false} className="btn btn--sm btn--primary" href={`${base}/${s.path}/${s.next}`} data-testid="quiz-next">Next section</Link>}
             <Link prefetch={false} className="btn btn--sm btn--quiet" href={base}>Back to my paths</Link>
           </span>

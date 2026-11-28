@@ -205,7 +205,8 @@ export interface MobileUser { id: string; email: string; phone: string | null }
 export interface MobileSession { access_token: string; refresh_token: string; expires_at: number; user: MobileUser }
 export type Portal = (typeof PORTALS)[number];
 export interface Roles { admin: boolean; va: 'finance' | 'fleet' | 'cs' | 'sales' | null; va_functions?: string[]; field: boolean; owner: boolean; renter: boolean; investor: boolean; staff: boolean;
-  two_step_required: boolean; name: string | null; greeting?: string | null; onboarding_locked?: boolean; academy_locked?: boolean; agreement_locked?: boolean; inactive_locked?: boolean }
+  two_step_required: boolean; name: string | null; greeting?: string | null; onboarding_locked?: boolean; academy_locked?: boolean; agreement_locked?: boolean; inactive_locked?: boolean;
+  /** 5201 (REQ-131): a manager opens My team */ manager?: boolean }
 export interface Deletion { allowed: boolean; request: { status: 'open' | 'done' | 'withdrawn'; requested_at: string; closed_at: string | null } | null }
 export interface PushState { enabled: boolean; role: Portal; topics: string[]; defaults: string[]; chosen: boolean; this_device: boolean | null; devices: Array<{ id: string; device: string; created_at: string; this: boolean }> }
 export interface Me { user: MobileUser; aal: 'aal1' | 'aal2'; roles: Roles; needs_two_step: boolean; deletion: Deletion | null; push: PushState | null; push_available: boolean }

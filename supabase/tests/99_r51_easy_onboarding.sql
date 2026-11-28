@@ -35,9 +35,7 @@ select test.eq('the profile is done', (pg_temp.step('profile') ->> 'done')::bool
 select test.eq('Welcome names the agreement as the next step', pg_temp.dr('eo51_new', 'ops_read', 'staff_welcome') ->> 'next', 'agreement');
 select test.ok('the pay details step is listed, not done, not holding the portal',
   pg_temp.step('pay') is not null and not (pg_temp.step('pay') ->> 'done')::boolean and (pg_temp.step('pay') ->> 'required') = 'false');
-select test.ok('the pay step comes before the first tasks',
-  (select n from jsonb_array_elements(pg_temp.dr('eo51_new', 'ops_read', 'staff_welcome') -> 'steps') with ordinality t(x, n) where x ->> 'key' = 'pay')
-  < coalesce((select n from jsonb_array_elements(pg_temp.dr('eo51_new', 'ops_read', 'staff_welcome') -> 'steps') with ordinality t(x, n) where x ->> 'key' = 'tasks'), 1000));
+select test.eq('the pay step comes last', (select x ->> 'key' from jsonb_array_elements(pg_temp.dr('eo51_new', 'ops_read', 'staff_welcome') -> 'steps') with ordinality t(x, n) order by n desc limit 1), 'pay');
 select test.ok('when they can work is a step (Field) and not done', pg_temp.step('availability') is not null and not (pg_temp.step('availability') ->> 'done')::boolean);
 
 -- ---------------------------------------------------------------- 3. Sign now

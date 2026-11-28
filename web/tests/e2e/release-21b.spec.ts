@@ -57,7 +57,7 @@ test('the academy: a lesson with captions, a quiz failed then passed, the next s
   // 1154: the quiz opens after the section's reading time, in a random order, and a failed try waits (2 minutes since 5070); this
   // test covers the lesson, a failed try and a pass, so those two waits are off for its length (set back at the end)
   const [safe] = await sql<Array<{ wpm: number; cool: number }>>`select academy_read_wpm wpm, academy_fail_cooldown_minutes cool from program_settings limit 1`;
-  await sql`update program_settings set academy_read_wpm = 0, academy_fail_cooldown_minutes = 0`;
+  await sql`update program_settings set academy_read_wpm = 0, academy_fail_cooldown_minutes = 0, academy_integrity_void = false`;
   try {
 
     // ---- the staff member
@@ -86,8 +86,8 @@ test('the academy: a lesson with captions, a quiz failed then passed, the next s
     await check(page, 'section');
     // the quiz (questions in a random order, found by their prompt): all wrong, then right
     const quiz = page.getByTestId('quiz');
-    const answer = async (pick: 'right' | 'wrong') => {
-      await quiz.getByTestId('quiz-start').click();
+    const answer = async (pick: 'right' | 'wrong', start = true) => {
+      if (start) await quiz.getByTestId('quiz-start').click();
       for (const a of answers) await quiz.locator('fieldset', { has: page.locator('legend', { hasText: a.prompt }) }).getByLabel(a[pick], { exact: true }).check();
       await page.getByTestId('quiz-submit').click();
     };
@@ -99,8 +99,9 @@ test('the academy: a lesson with captions, a quiz failed then passed, the next s
     await check(page, 'quiz fix');
     await page.getByTestId('quiz-submit').click();
     await expect(page.getByTestId('quiz-result')).toContainText('Not passed yet');
+    // 5203: Try again starts the next try at once (the wait is off in this test)
     await page.getByTestId('quiz-retry').click();
-    await answer('right');
+    await answer('right', false);
     await expect(page.getByTestId('quiz-result')).toContainText('Passed');
     await page.getByTestId('quiz-next').click();
     await page.waitForURL(/\/staff\/academy\/cs\/coverage-and-drivers$/);
@@ -143,7 +144,7 @@ test('the academy: a lesson with captions, a quiz failed then passed, the next s
     await expect(page.getByTestId('section-cs-requests')).toContainText('Opened by an Admin');
     await page.context().close(); await ap.context().close();
   } finally {
-    await sql`update program_settings set academy_read_wpm = ${safe!.wpm}, academy_fail_cooldown_minutes = ${safe!.cool}`;
+    await sql`update program_settings set academy_read_wpm = ${safe!.wpm}, academy_fail_cooldown_minutes = ${safe!.cool}, academy_integrity_void = true`;
     await sql.end();
   }
 });

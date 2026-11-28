@@ -123,3 +123,13 @@ test('the rows on a page: the section, then the group\'s tabs; Finance\'s money 
   assert.equal(at(['cs'], '/staff/requests').section, null);
   assert.equal(at(['fleet'], '/staff/fleet/map').section?.current.label, 'Fleet map');
 });
+
+test('R51 (5201): a manager has My team before Me; nobody else has it', async () => {
+  const { staffNav } = await import('./nav.ts');
+  const m = staffNav(['sales'], { manager: true });
+  const keys = m.map((g) => g.key);
+  assert.ok(keys.includes('team') && keys.indexOf('team') === keys.indexOf('me') - 1, keys.join(','));
+  assert.deepEqual(m.find((g) => g.key === 'team')!.links.map((l) => l.href), ['/staff/team']);
+  assert.ok(!staffNav(['sales']).some((g) => g.key === 'team'));
+  assert.ok(staffNav(['field'], { manager: true }).some((g) => g.key === 'team'), 'a field manager too');
+});

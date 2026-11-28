@@ -26,6 +26,8 @@ This agreement is between 18122211 Canada Inc., operating as CarmaCars ("CarmaCa
 
 2.3 You record your time and tasks in the system CarmaCars names. CarmaCars may monitor and record everything done in its systems, including calls and messages.
 
+2.4 You answer every academy test and quiz yourself. Using AI tools, browser agents or computer-use software on them is not allowed and breaks this agreement, and CarmaCars may take legal action.
+
 ## 3. Pay
 
 3.1 CarmaCars pays the Rate in Schedule A. A monthly Rate covers the Coverage Hours of each month: a part month, and Coverage Hours missed without CarmaCars' approval, are paid in proportion. An hourly Rate is paid for time you worked, recorded and CarmaCars approved. Payment is made by the Payment Method, at the times in Schedule A. If Schedule A says the Pay is commission only, there is no Rate and there are no Coverage Hours: you are paid only the commission in section 3.4, you choose when you work, and what this agreement says about the Rate and the Coverage Hours does not apply to you.

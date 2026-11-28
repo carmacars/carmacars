@@ -25,7 +25,8 @@ export interface Roles { admin: boolean; va: 'finance' | 'fleet' | 'cs' | 'sales
   /** 1151: not fully onboarded (academy, agreement, WhatsApp): Welcome and the onboarding screens only; the database refuses the rest */ onboarding_locked?: boolean;
   /** 1151: the onboarding step now */ onboarding_step?: 'academy' | 'agreement' | 'whatsapp' | 'done';
   /** 5171: sections to pass before continuing an area of the staff portal (stuck there) */ academy_required?: Array<{ area: string; href: string; title: string }>;
-  /** 0931: a field person who asked to do sales too, and whether the Sales path is passed (the Sales function then held) */ sales_opt_in?: boolean; sales_ready?: boolean }
+  /** 0931: a field person who asked to do sales too, and whether the Sales path is passed (the Sales function then held) */ sales_opt_in?: boolean; sales_ready?: boolean;
+  /** 5201 (REQ-131): marked a manager by an Admin, and the size of their team */ manager?: boolean; team_size?: number }
 
 export async function sessionAal(): Promise<'aal1' | 'aal2' | null> {
   return (await auth()).assurance();

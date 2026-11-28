@@ -23,6 +23,8 @@ export default async function AcademyPerson({ params }: { params: Promise<{ id: 
   const here = `/admin/academy/staff/${id}`;
   // 0802: held or open, and the waiver
   const gate = await adminRead<GateState>(user.id, 'academy_gate_state', { user_id: id }).catch(() => null);
+  // R51 (5199, REQ-130): attempts voided or flagged for AI, automation or cheating signals, with what the quiz page saw
+  const voided = await adminRead<Array<{ id: string; section: string; at: string; voided: boolean; words: string; seconds: number | null }>>(user.id, 'academy_voided', { user_id: id }).catch(() => []);
   return (
     <>
       <PageHead title={p.user.name} kicker="Academy" purpose={p.user.email}><Link prefetch={false} className="btn btn--sm btn--quiet" href="/admin/academy">All staff</Link></PageHead>
@@ -44,6 +46,12 @@ export default async function AcademyPerson({ params }: { params: Promise<{ id: 
                 fields={[{ name: 'reason', label: 'Reason', required: true, placeholder: 'For example: experienced in this work' }]} done="Opened." /> : null) }]} />
         </Card>
       ))}
+      {voided.length > 0 && <Card title="Voided or flagged attempts" testId="ap-voided" tone="warn">
+        <Table rows={voided as unknown as Array<Record<string, unknown>>} testId="ap-voided-list" cols={[{ key: 'section', label: 'Section' },
+          { key: 'voided', label: 'Result', render: (r) => (r.voided ? 'Voided' : 'Flagged (graded)') }, { key: 'words', label: 'What the quiz page saw' },
+          { key: 'at', label: 'When', render: (r) => new Date(String(r.at)).toLocaleString('en-CA', { timeZone: 'America/Toronto' }) }]} />
+        <p className="small muted">A web page cannot stop an AI agent that controls the browser; these signals make it detectable. Talk to the person before you reset a section.</p>
+      </Card>}
       <Card title="Quiz attempts">
         <Table rows={p.attempts} testId="ap-attempts" empty="No quiz yet." cols={[{ key: 'section', label: 'Section' }, { key: 'score_bps', label: 'Score', num: true, render: (r) => pct(r.score_bps as number) },
           { key: 'passed', label: 'Result', render: (r) => (r.passed ? 'Passed' : 'Not passed') }, { key: 'at', label: 'When', render: (r) => new Date(String(r.at)).toLocaleString('en-CA', { timeZone: 'America/Toronto' }) }]} />

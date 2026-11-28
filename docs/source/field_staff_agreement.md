@@ -24,6 +24,8 @@ This agreement is between 18122211 Canada Inc., operating as CarmaCars ("CarmaCa
 - **Detailing.** Clean the Vehicle to the standard in the Procedures and hand any lost property to CarmaCars.
 - **Damage reports.** Report new damage, warning lights, missing items, smoke odour or signs of misuse, with photos, before the Vehicle is moved again.
 
+2.3 You answer every academy test and quiz yourself. Using AI tools, browser agents or computer-use software on them is not allowed and breaks this agreement, and CarmaCars may take legal action.
+
 ## 3. Licence and driving record
 
 3.1 You confirm that you hold a full Ontario Class G licence, have held it for the period in Schedule A, may legally work in Canada, and have a driving record that CarmaCars' insurer accepts.
