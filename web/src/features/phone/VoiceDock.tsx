@@ -1,6 +1,7 @@
 'use client';
 import './phone.css';
 import { useEffect, useState, useSyncExternalStore } from 'react';
+import { usePathname } from 'next/navigation';
 import { answer, audioDevices, chooseMicrophone, chooseSpeaker, decline, dismiss, hangUp, openDialer, placeCall, sendDigit, startVoice, subscribeVoice,
   toggleHold, toggleMute, voiceContacts, voiceState, type AudioDevices, type VoiceContact, type VoiceState } from './voice';
 import { e164, prettyNumber } from './quo-links';
@@ -34,6 +35,8 @@ export function VoiceDock({ quiet, dialer }: { quiet?: boolean; dialer?: boolean
   const [audioFor, setAudioFor] = useState<{ at: number; a: AudioDevices } | null>(null);
   const [typed, setTyped] = useState('');
   const [tab, setTab] = useState<'keypad' | 'contacts'>('keypad');
+  // the renter holds the device on a sign-now page: no Phone button over the initials and signature pads (CI 46134462776)
+  const signing = (usePathname() ?? '').endsWith('/sign-now');
   useEffect(() => { if (!quiet) startVoice(); }, [quiet]);
   useEffect(() => {
     if (st.phase !== 'in_call') return;
@@ -42,7 +45,7 @@ export function VoiceDock({ quiet, dialer }: { quiet?: boolean; dialer?: boolean
   }, [st.phase]);
   if (quiet) return null;
   if (st.phase === 'idle') {
-    if (!dialer) return null;
+    if (!dialer || signing) return null;
     return <button type="button" className="vc-launch" onClick={() => { setTyped(''); setTab('keypad'); openDialer(); }} aria-label="Phone: call a number" title="Call a number" data-testid="voice-launch"><Ic d={PHONE} /></button>;
   }
   const who = st.who ?? 'A caller';
