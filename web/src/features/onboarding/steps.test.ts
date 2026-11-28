@@ -107,3 +107,15 @@ test('a VIN list: pasted, a CSV with a VIN column, typos kept to report, at most
   assert.match(vinProblem('1HGCM82633A004353') ?? '', /check digit/);
   assert.match(vinProblem('1HGCM82633A00435') ?? '', /17 letters/);
 });
+
+test('REQ-141: a car with no real plate has the step "Add the plate" for the owner, and Fleet sees it; adding it clears the step', () => {
+  for (const plate of [null, '', 'XXXXXXXX']) {
+    const c = car({ plate });
+    const o = step(ov('owner', c), 'plate');
+    assert.deepEqual([o.state, o.waiting, o.action], ['waiting', 'Waiting on you', { label: 'Add the plate', href: '/owner/vehicles/v1#plate' }], String(plate));
+    assert.deepEqual(step(ov('staff', c), 'plate').action, { label: 'Add the plate', href: '/staff/vehicles/v1#plate' });
+    assert.deepEqual(step(ov('admin', c), 'plate').action, { label: 'Add the plate', href: '/admin/vehicles/v1#plate' });
+    assert.match(step(ov('owner', c), 'listing').why ?? '', /add the plate/);
+  }
+  assert.equal(carSteps(car({ plate: 'ABCD123' }), ov('owner')).steps.some((s) => s.code === 'plate'), false);
+});

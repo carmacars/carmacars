@@ -5,7 +5,8 @@ import { money, pct } from '@/lib/format';
 import { when } from '@/features/agreement/model';
 import { Back, Dl } from '@/features/portal/Blocks';
 import { CarPhoto, day, InvoiceRows, OwnerBookingRow } from '@/features/owner/Blocks';
-import { ExitNoticeForm } from '@/features/owner/OwnerForms';
+import { ExitNoticeForm, OwnerPlateForm } from '@/features/owner/OwnerForms';
+import { plateMissing } from '@/features/vehicles/plate';
 import { OwnerUpload, type UploadKind } from '@/features/owner/OwnerUpload';
 import { MODE_LABEL, ONBOARDING_STATUS, TRACKER_LATER } from '@/features/owner/types';
 import { ownerView, requireOwner } from '@/server/owner/data';
@@ -82,12 +83,19 @@ export default async function OwnerVehicle({ params }: { params: Promise<{ id: s
       <header className="ow-car-hero" data-testid="vehicle-hero">
         <div className="ow-car-hero__media"><CarPhoto photo={view.photo[id]} name={v.name} eager /><span className={`pu-pill pu-pill--${live.tone}`} data-testid="vehicle-live">{live.label}</span></div>
         <div className="ow-car-hero__text">
-          <p className="pt-kicker">{v.plate ?? 'Plate to come'} · {MODE_LABEL[v.management_mode] ?? v.management_mode}</p><h1 className="d2">{v.name}</h1>
+          <p className="pt-kicker">{plateMissing(v.plate) ? 'Plate to come' : v.plate} · {MODE_LABEL[v.management_mode] ?? v.management_mode}</p><h1 className="d2">{v.name}</h1>
           <p><span className="badge badge--outline">{v.onboarding_status && v.onboarding_status !== 'enrolled' ? ONBOARDING_STATUS[v.onboarding_status] : v.status.replace(/_/g, ' ')}</span></p>
         </div>
       </header>
       <div className="pt-split">
         <div className="stack-lg">
+          {/* REQ-141 (5212): the plate, once the car is registered; needed before it is listed or handed over */}
+          {plateMissing(v.plate) && !['exited', 'total_loss', 'declined'].includes(v.status) && (
+            <section className="pt-card stack" id="plate" aria-labelledby="ow-plate-h" data-testid="owner-plate-step"><h2 className="d4" id="ow-plate-h">Add the plate</h2>
+              <p className="small">Once your car is registered, add its plate here. We need it before the car is listed on the website or handed to a renter.</p>
+              <OwnerPlateForm vehicleId={id} />
+            </section>
+          )}
           {track && <StageTracker data={stages} only={id} base="/owner" refresh={[`/owner/vehicles/${id}`]} title="Your car's steps" />}
           {v.checklist && ob && <OnboardingChecklist data={ob.overview} only={id} title="Onboarding" />}
           {track && kinds.length > 0 && (

@@ -4,7 +4,7 @@ import { AddressFields } from '@/features/forms/AddressFields';
 import { useRouter } from 'next/navigation';
 import Link from '@/components/Link';
 import { useAct } from '@/features/portal/useAct';
-import { bookOwnCar, giveExitNotice, saveOwnerProfile, submitPayoutAccount, type OwnerProfileInput, type PayoutInput } from '@/server/actions/owner';
+import { addOwnerPlate, bookOwnCar, giveExitNotice, saveOwnerProfile, submitPayoutAccount, type OwnerProfileInput, type PayoutInput } from '@/server/actions/owner';
 import { TypedInput } from '@/components/DateInput';
 
 // Small owner forms: exit notice, payout details, contact details, booking my own car.
@@ -43,6 +43,21 @@ export function ExitNoticeForm({ vehicleId }: { vehicleId: string }) {
       <Problem a={a} />
       {a.res?.ok && <p className="alert alert--ok" role="status"><span>Notice received. Exit Date {a.res.data.exit_date}.</span></p>}
       <button className="btn btn--primary" type="submit" disabled={a.pending}>{a.pending ? 'Sending' : 'Give notice'}</button>
+    </form>
+  );
+}
+
+/** REQ-141 (5212): the plate, added once the car is registered (never asked at the application). */
+export function OwnerPlateForm({ vehicleId }: { vehicleId: string }) {
+  const router = useRouter();
+  const a = useAct<{ plate: string }>();
+  const [plate, setPlate] = useState('');
+  return (
+    <form className="stack" noValidate onSubmit={(e) => { e.preventDefault(); a.run(() => addOwnerPlate(vehicleId, plate), (r) => { if (r.ok) router.refresh(); }); }} aria-label="Add the plate" data-testid="owner-plate-form">
+      <Input id="ow-plate" label="Plate" value={plate} set={(x) => setPlate(x.toUpperCase())} err={a.err('plate')} hint="As on the ownership permit, for example ABCD 123." autoCapitalize="characters" autoComplete="off" spellCheck={false} maxLength={10} />
+      <Problem a={a} />
+      {a.res?.ok && <p className="alert alert--ok" role="status"><span>Plate {a.res.data.plate} added. Thank you.</span></p>}
+      <button className="btn btn--primary" type="submit" disabled={a.pending} aria-busy={a.pending || undefined} data-testid="owner-plate-save">{a.pending ? 'Adding' : 'Add the plate'}</button>
     </form>
   );
 }

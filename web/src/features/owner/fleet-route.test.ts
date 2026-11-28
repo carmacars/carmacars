@@ -18,10 +18,12 @@ test('the route is for a corporation, with its number and signing officer; no li
   assert.ok(ownerErrors({ ...corp, signing_officer_title: '' }).signing_officer_title);
 });
 
-test('a car: the VIN, the plate, the tier and who it is registered to; nothing from the other routes', () => {
+test('a car: the VIN, the tier and who it is registered to; the plate is optional (REQ-141); nothing from the other routes', () => {
   assert.deepEqual(vehicleErrors(car(), 'corporation', true), {});
   assert.ok(vehicleErrors(car({ lease_tier: '' }), 'corporation', true).lease_tier);
-  assert.ok(vehicleErrors(car({ plate: '' }), 'corporation', true).plate);
+  assert.equal(vehicleErrors(car({ plate: '' }), 'corporation', true).plate, undefined);
+  assert.ok(vehicleErrors(car({ plate: 'TOO LONG 12' }), 'corporation', true).plate);
+  assert.equal(fleetVehiclePayload(car({ plate: '' })).plate, null);
   assert.ok(vehicleErrors(car({ fleet_transfer: undefined }), 'corporation', true).registered_to);
   const moving = vehicleErrors(car({ fleet_transfer: { registered_to: 'seller', name: '', address: '', date: '' } }), 'corporation', true);
   assert.deepEqual(Object.keys(moving).sort(), ['transfer_address', 'transfer_date', 'transfer_name']);

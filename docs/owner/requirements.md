@@ -709,8 +709,8 @@ Status as of 2026-11-27: "in progress" means built or being built on the named h
 
 ### REQ-141 The plate is asked after the car is registered, not at the application
 - Status: in progress
-- Proof: not yet
-- Test: GAP
+- Proof: supabase/migrations/5212_r51_plate_later.sql (app.plate_missing; the fleet route and the VIN list no longer refuse a car without a plate; To do plate_needed and the email owner_plate_needed once per car; ops_do vehicle_plate_set for the owner and staff; no publish or handover without a real plate, no override); web/src/features/owner/apply-schema.ts (plate optional), web/src/features/onboarding/steps.ts (Add the plate step), web/src/app/owner/vehicles/[id]/page.tsx (#plate form), web/src/features/vehicle-page/VehiclePage.tsx (Plate needed, Admin and staff); emails/src/emails/owner_plate_needed.mjs. Live once r50-hotfix2 deploys
+- Test: supabase/tests/99_r51_plate_later.sql; web/src/features/vehicles/plate.test.ts; web/src/features/onboarding/steps.test.ts; web/src/features/owner/fleet-route.test.ts
 - Asked: Nov 27 23:40
 - Owner: "U ask owners for their plate when the plate gets registered after the owners apply. It's a broken process"
 - Rule: the owner application never requires the plate (a car is often registered after the owner applies). A car without a real plate (empty or a placeholder such as XXXXXXXX) gets an "Add the plate" step for the owner (portal step, email first) and a To do for Fleet; the plate is required before the car is published or handed over, never at the application.

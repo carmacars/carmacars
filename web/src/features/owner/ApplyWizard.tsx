@@ -416,7 +416,7 @@ export function ApplyWizard({ initial, facts, signedIn, ownerOnFile, fleetOnFile
                 ) : (e('year') || e('make') || e('model')) ? <p className="error" role="alert">Enter the VIN: we fill in the year, make and model from it.</p> : null}
                 {fleet ? (
                   <div className="stack" data-testid="apply-fleet-car">
-                    <Field id={id('plate')} label="Plate" err={e('plate')}><input className="input" {...aria(id('plate'), e('plate'))} value={v.plate} onChange={(ev) => set({ plate: ev.target.value.toUpperCase() }, 'plate')} autoCapitalize="characters" data-testid="apply-plate" /></Field>
+                    <Field id={id('plate')} label="Plate" optional hint="Leave it empty if the car is not registered yet: you add it in your owner portal once it is." err={e('plate')}><input className="input" {...aria(id('plate'), e('plate'), 'hint')} value={v.plate} onChange={(ev) => set({ plate: ev.target.value.toUpperCase() }, 'plate')} autoCapitalize="characters" data-testid="apply-plate" /></Field>
                     <fieldset className={`field${e('lease_tier') ? ' has-error' : ''}`} style={{ border: 0, padding: 0, margin: 0 }} aria-describedby={`${id('tier')}-err`}>
                       <legend className="label">The car&apos;s tier</legend>
                       <div className="stack">{TIERS.map(([k, t, b]) => (
@@ -452,7 +452,7 @@ export function ApplyWizard({ initial, facts, signedIn, ownerOnFile, fleetOnFile
                 ) : (<>
                 <ColourSwatches value={v.colour} onChange={(c) => set({ colour: c }, 'colour')} prefix="apply" err={e('colour')} />
                 <div className="field-row field-row--3">
-                  <Field id={id('plate')} label="Plate" err={e('plate')}><input className="input" {...aria(id('plate'), e('plate'))} value={v.plate} onChange={(ev) => set({ plate: ev.target.value.toUpperCase() }, 'plate')} autoCapitalize="characters" /></Field>
+                  <Field id={id('plate')} label="Plate" optional hint="Leave it empty if the car is not registered yet." err={e('plate')}><input className="input" {...aria(id('plate'), e('plate'), 'hint')} value={v.plate} onChange={(ev) => set({ plate: ev.target.value.toUpperCase() }, 'plate')} autoCapitalize="characters" /></Field>
                   <Field id={id('odo')} label="Odometer (km)" err={e('odometer_km')}><input className="input" inputMode="numeric" {...aria(id('odo'), e('odometer_km'))} value={v.odometer_km} onChange={(ev) => set({ odometer_km: ev.target.value.replace(/[^\d]/g, '') }, 'odometer_km')} /></Field>
                   <Field id={id('ins')} label="Current insurer" err={e('current_insurer')}><input className="input" {...aria(id('ins'), e('current_insurer'))} value={v.current_insurer} onChange={(ev) => set({ current_insurer: ev.target.value }, 'current_insurer')} /></Field>
                 </div>
