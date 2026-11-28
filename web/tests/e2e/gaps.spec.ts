@@ -271,12 +271,15 @@ test('gaps: field checklists, the report, referrals, profile and the home screen
   // a hydration error names the first place the server's text and the browser's text differ
   await page.waitForTimeout(1500);
   if (clean(errors).some((e) => /#418/.test(e))) {
-    const text = (h: string) => h.replace(/<script[\s\S]*?<\/script>/g, '').replace(/<style[\s\S]*?<\/style>/g, '').replace(/<[^>]+>/g, '\u0001').replace(/&amp;/g, '&').replace(/&#x27;/g, "'").replace(/\u0001+/g, '|');
-    const resp = await page.goto('/staff/field?add=problem'); const ssr = text(await resp!.text()); await page.waitForTimeout(1500);
-    const dom = await page.evaluate(() => [...document.body.querySelectorAll('*')].filter((e) => e.children.length === 0).map((e) => e.textContent).join('|'));
-    const a = ssr.split('|').map((x) => x.trim()).filter(Boolean); const b = dom.split('|').map((x) => x.trim()).filter(Boolean);
-    const miss = a.filter((x) => !b.includes(x)).slice(0, 6); const extra = b.filter((x) => !a.includes(x)).slice(0, 6);
-    why = `server only: ${JSON.stringify(miss)} browser only: ${JSON.stringify(extra)}`;
+    const resp = await page.goto('/staff/field?add=problem'); const html = await resp!.text(); await page.waitForTimeout(1500);
+    // the elements in order, each with its own text: the first place the server's page and the browser's differ
+    why = await page.evaluate((h) => {
+      const walk = (root: ParentNode) => [...root.querySelectorAll('body *')].filter((e) => !['SCRIPT', 'STYLE', 'TEMPLATE', 'NOSCRIPT'].includes(e.tagName) && !e.closest('template,noscript,[hidden][id^="S:"]'))
+        .map((e) => `${e.tagName.toLowerCase()}${e.getAttribute('class') ? '.' + e.getAttribute('class') : ''} "${[...e.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent).join('').trim().slice(0, 40)}"`);
+      const a = walk(new DOMParser().parseFromString(h, 'text/html')); const b = walk(document);
+      let i = 0; while (i < a.length && i < b.length && a[i] === b[i]) i++;
+      return `first difference at element ${i} of ${a.length}/${b.length}: server ${JSON.stringify(a.slice(Math.max(0, i - 2), i + 3))} browser ${JSON.stringify(b.slice(Math.max(0, i - 2), i + 3))}`;
+    }, html);
   }
 
   await page.getByTestId('what-warning_light').click();
