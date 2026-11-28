@@ -251,6 +251,7 @@ test('gaps: field checklists, the report, referrals, profile and the home screen
   const [job] = await sql`select app.create_field_job('detail', ${car!.id}::uuid, now() + interval '1 hour', ${admin.id}::uuid, null, ${field.id}::uuid, 'Yard', 'Full detail') id`;
   const page = await ctx(browser, true);
   const errors = watch(page);
+  let why = '';
   await signIn(page, field.email, '/staff/field');
   await page.goto(`/staff/field/jobs/${job!.id as string}`);
   await page.getByTestId('acknowledge').click(); await page.getByTestId('start').click({ timeout: 15_000 });
@@ -267,6 +268,20 @@ test('gaps: field checklists, the report, referrals, profile and the home screen
   // the report
   // r35 part X: a problem is reported from Add on Today (the old address opens it)
   await page.goto('/staff/field/report'); await page.waitForURL(/\/staff\/field\?add=problem/); await check(page, 'field report');
+  // a hydration error names the first place the server's text and the browser's text differ
+  await page.waitForTimeout(1500);
+  if (clean(errors).some((e) => /#418/.test(e))) {
+    const resp = await page.goto('/staff/field?add=problem'); const html = await resp!.text(); await page.waitForTimeout(1500);
+    // the elements in order, each with its own text: the first place the server's page and the browser's differ
+    why = await page.evaluate((h) => {
+      const walk = (root: ParentNode) => [...root.querySelectorAll('body *')].filter((e) => !['SCRIPT', 'STYLE', 'TEMPLATE', 'NOSCRIPT'].includes(e.tagName) && !e.closest('template,noscript,[hidden][id^="S:"]'))
+        .map((e) => `${e.tagName.toLowerCase()}${e.getAttribute('class') ? '.' + e.getAttribute('class') : ''} "${[...e.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent).join('').trim().slice(0, 40)}"`);
+      const a = walk(new DOMParser().parseFromString(h, 'text/html')); const b = walk(document);
+      let i = 0; while (i < a.length && i < b.length && a[i] === b[i]) i++;
+      return `first difference at element ${i} of ${a.length}/${b.length}: server ${JSON.stringify(a.slice(Math.max(0, i - 2), i + 3))} browser ${JSON.stringify(b.slice(Math.max(0, i - 2), i + 3))}`;
+    }, html);
+  }
+
   await page.getByTestId('what-warning_light').click();
   await page.getByTestId('report-details').fill('Tire pressure light came on after the wash');
   await page.getByTestId('report-send').click();
@@ -284,7 +299,7 @@ test('gaps: field checklists, the report, referrals, profile and the home screen
   expect(man).toMatchObject({ start_url: '/staff/field', display: 'standalone' });
   for (const i of man.icons) expect((await page.request.get(i.src)).status()).toBe(200);
   await expect(page.locator('link[rel="manifest"]')).toHaveAttribute('href', '/staff/field/manifest.webmanifest');
-  expect(clean(errors)).toEqual([]);
+  expect(clean(errors), why).toEqual([]);
   await sql.end();
 });
 
