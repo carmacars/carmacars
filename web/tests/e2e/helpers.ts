@@ -18,12 +18,17 @@ export async function noOverflow(page: Page) {
   // the stylesheet's safety net (html, body { overflow-x: clip }) would hide an overflow from scrollWidth: lifted while measuring
   const net = await page.addStyleTag({ content: 'html, body { overflow-x: visible !important; }' });
   const { over, wide } = await page.evaluate(() => {
+    const over0 = (a: string[], b: string[]) => [...a, ...b];
     const w = window.innerWidth;
     // the elements whose right edge passes the window (the deepest first), so a failure names its cause
     const wide = [...document.querySelectorAll('body *')].filter((e) => e.getBoundingClientRect().right > w + 0.5 && (!e.closest('[aria-hidden="true"]') || getComputedStyle(e).display !== 'none'))
       .filter((e, _i, all) => !all.some((o) => o !== e && e.contains(o)))
       .slice(0, 5).map((e) => `${e.tagName.toLowerCase()}${e.id ? '#' + e.id : ''}${e.getAttribute('class') ? '.' + String(e.getAttribute('class')).trim().split(/\s+/).join('.') : ''}${e.getAttribute('data-testid') ? `[data-testid=${e.getAttribute('data-testid')}]` : ''} right=${Math.round(e.getBoundingClientRect().right)} "${(e.textContent ?? '').trim().slice(0, 40)}"`);
-    return { over: document.documentElement.scrollWidth - w, wide };
+    // text or children spilling out of a box that does not clip (the box itself fits, its content does not)
+    const spill = [...document.querySelectorAll('body *')].filter((e) => { const r = e.getBoundingClientRect(); return r.right <= w + 0.5 && r.left + e.scrollWidth > w + 0.5 && getComputedStyle(e).overflowX === 'visible'; })
+      .filter((e, _i, all) => !all.some((o) => o !== e && e.contains(o))).slice(0, 5)
+      .map((e) => `spill ${e.tagName.toLowerCase()}${e.getAttribute('class') ? '.' + String(e.getAttribute('class')).trim().split(/\s+/).join('.') : ''}${e.getAttribute('data-testid') ? `[data-testid=${e.getAttribute('data-testid')}]` : ''} to=${Math.round(e.getBoundingClientRect().left + e.scrollWidth)} "${(e.textContent ?? '').trim().slice(0, 40)}"`);
+    return { over: document.documentElement.scrollWidth - w, wide: over0(wide, spill) };
   });
   await net.evaluate((e) => (e as Element).remove());
   expect(over, `horizontal overflow in px; past the edge: ${wide.join(' | ') || 'none found'}`).toBeLessThanOrEqual(0);
