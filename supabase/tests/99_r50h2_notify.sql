@@ -166,8 +166,9 @@ select test.ok('5190: a To do you give yourself makes no alert',
 -- end of access (connector end_staff_access, admin_do staff_end): the hand-back and any move the site makes in it are quiet
 insert into tasks (id, queue, task_type, title, assigned_to, status)
 values (test.id('task:rq50n-leaver'), 'cs', 'rq50n_leaver', 'rq50n the leaver''s To do', test.id('rq50n_cs3'), 'open');
+-- app.today() is the Toronto day the site uses: after 19:00 Toronto the UTC current_date is a day ahead, and staff_resign_end then sets last_day below resigned_on (check staff_resignations_check)
 insert into staff_resignations (user_id, resigned_on, notice_days, last_day, status, created_by)
-values (test.id('rq50n_cs3'), current_date, 7, current_date + 7, 'pending', test.id('rq50n_cs3'));
+values (test.id('rq50n_cs3'), app.today(), 7, app.today() + 7, 'pending', test.id('rq50n_cs3'));
 begin;
 select set_config('request.jwt.claim.sub', test.id('rq50n_admin')::text, true);
 select app.admin_do(test.id('rq50n_admin'), 'staff_end', jsonb_build_object('user', test.id('rq50n_cs3')));
