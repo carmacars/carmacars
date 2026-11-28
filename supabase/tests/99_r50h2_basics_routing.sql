@@ -36,7 +36,7 @@ end $$;
 
 -- ================================================================ 1. the basics (5170)
 select test.eq('basics: the first sections of each path', (select string_agg(code || '=' || core_count, ',' order by code) from academy_paths),
-  'admin=4,cs=5,field=5,finance=5,fleet=4,renter_side=0,sales_in_person=6,sales_remote=5');
+  'admin=4,cs=5,field=5,finance=5,fleet=4,manager=0,renter_side=0,sales_in_person=6,sales_remote=5'); -- R51 (5206): the Managers path has no basics
 select test.eq('basics: the field Today is the 5th field section', (select s.slug from academy_path_sections ps join academy_sections s on s.id = ps.section_id where ps.path_code = 'field' and ps.sort = 5), 'new-r35-field-today');
 select test.eq('basics: field sorts stay 1 to N', (select count(*) = max(sort) from academy_path_sections where path_code = 'field'), true);
 -- the owner (Nov 27 15:05): Field, customer service, Finance and Fleet stay locked until the full academy; Sales and Admins open on the basics

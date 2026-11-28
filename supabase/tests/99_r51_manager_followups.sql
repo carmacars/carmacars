@@ -22,7 +22,7 @@ select pg_temp.dr('mf51_admin', 'admin_do', 'staff_team_set', jsonb_build_object
 select test.ok('a manager has the Manager path', 'manager' = any (app.academy_paths_of(test.id('mf51_boss'))));
 select test.ok('a member does not', not ('manager' = any (coalesce(app.academy_paths_of(test.id('mf51_slow')), '{}'))));
 select test.eq('enrolled with 7 days before it holds them', (select gate || '/' || (lock_from > now() + interval '6 days') from academy_enrollments where user_id = test.id('mf51_boss') and path_code = 'manager'), 'true/true');
-select test.ok('the section teaches and tests: 3 lessons, 5 questions', (select count(*) from academy_lessons l join academy_sections s on s.id = l.section_id where s.slug = 'manager-follow-up') = 3
+select test.ok('the section teaches and tests: 3 lessons and its See it lesson, 5 questions', (select count(*) from academy_lessons l join academy_sections s on s.id = l.section_id where s.slug = 'manager-follow-up') = 4
   and (select count(*) from academy_questions q join academy_sections s on s.id = q.section_id where s.slug = 'manager-follow-up') = 5);
 select test.eq('not passed yet', app.manager_section_passed(test.id('mf51_boss')), false);
 
