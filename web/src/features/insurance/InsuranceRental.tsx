@@ -6,6 +6,7 @@ import { InvoiceEditor, type Working } from './InvoiceEditor';
 import { diffVersions, stageLabel, type Snapshot } from './model';
 import type { InsBase } from './InsuranceList';
 
+export type Delivery = { to: string; at: string; status: 'queued' | 'sent' | 'delivered' | 'bounced' | 'failed'; reason: string | null; fallback: boolean };
 export interface InsRental {
   booking: { id: string; booking_number: string; status: string; pickup_at: string; return_at: string; bill_to: string; hst_bps: number; bypass: boolean; authorized_days: number | null; notes: string | null };
   stage: string;
@@ -16,7 +17,9 @@ export interface InsRental {
     approved_cents: number | null; negotiating_at: string | null; negotiation_note: string | null; written_off_cents: number; written_off_reason: string | null; edited: boolean;
     working: Working; current: Snapshot; aging_days: number | null };
   from_booking: Working;
-  versions: Array<{ id: string; version: number; kind: 'estimate' | 'invoice'; snapshot: Snapshot; emailed_to: string | null; sent_at: string; sent_by: string | null }>;
+  versions: Array<{ id: string; version: number; kind: 'estimate' | 'invoice'; snapshot: Snapshot; emailed_to: string | null; sent_at: string; sent_by: string | null;
+    /** 5307 (REQ-136): each email of the version and how it went; the bounce and the claims email it went to again */
+    delivery?: Delivery[]; bounced_at?: string | null; bounce_reason?: string | null; fallback_to?: string | null }>;
   payments: Array<{ amount_cents: number; method: string; at: string }>;
   history: Array<{ at: string; note: string; by: string | null }>;
   may_money: boolean;
@@ -84,6 +87,10 @@ export function InsuranceRental({ x, base, added }: { x: InsRental; base: InsBas
             <a className="link small" href={`/files/insurer_invoice/${i?.id}:v${v.version}`} data-testid="ins-version-pdf">PDF</a></p>
           {prev ? changes.length ? <ul className="ins-diff" data-testid="ins-version-diff">{changes.map((c) => <li key={c.label}><span>{c.label}</span><span><del>{c.before}</del> to <ins>{c.after}</ins></span></li>)}</ul>
             : <p className="small muted">The same as version {prev.version}.</p> : null}
+          {/* 5307 (REQ-136): delivered means sent with no bounce in 24 hours (the provider gives no receipt) */}
+          {!!v.delivery?.length && <ul className="ins-diff" data-testid="ins-version-delivery">{v.delivery.map((d, k) => <li key={k}><span>{d.to}{d.fallback ? ' (claims email, sent again)' : ''}</span>
+            <span><Badge s={d.status} />{d.status === 'delivered' ? <span className="small muted"> no bounce in 24 hours</span> : null}{d.reason ? <span className="small"> {d.reason}</span> : null}</span></li>)}</ul>}
+          {v.bounced_at && <p className="alert alert--warn small" role="status" data-testid="ins-version-bounced"><span>Bounced {t(v.bounced_at)}: {v.bounce_reason}. {v.fallback_to ? `Sent again to ${v.fallback_to}.` : 'No other claims email on file: an Admin To do has the allowlist request.'}</span></p>}
         </li>);
       })}</ol> : <p className="small muted">Nothing sent yet.</p>}
     </Card>
