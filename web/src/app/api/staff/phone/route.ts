@@ -115,7 +115,7 @@ export async function POST(req: Request) {
     const who = String(b.user_id ?? '');
     if (!/^[0-9a-f-]{36}$/i.test(who)) return NextResponse.json({ error: 'Choose a staff member' }, { status: 400, headers: H });
     const { lineBuy, lineQuote, lineRelease } = await import('@/server/staff-lines');
-    const r = b.action === 'line_quote' ? await lineQuote(w.user.id, who) : b.action === 'line_buy' ? await lineBuy(w.user.id, who, String(b.confirm ?? '')) : await lineRelease(w.user.id, who);
+    const r = b.action === 'line_quote' ? await lineQuote(w.user.id, who) : b.action === 'line_buy' ? await lineBuy(w.user.id, who, { monthly: String(b.confirm ?? ''), currency: String(b.currency ?? '') }) : await lineRelease(w.user.id, who);
     return NextResponse.json(r, { headers: H });
   }
   if (!b?.action || !ACTS.has(b.action) || (!w.admin && !w.va && !BUTTONS.has(b.action))) return NextResponse.json({ error: 'Unknown action' }, { status: 400, headers: H });

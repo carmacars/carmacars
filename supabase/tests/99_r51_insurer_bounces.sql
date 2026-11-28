@@ -29,6 +29,17 @@ create function test.ib51del() returns jsonb language sql stable as $$
 select test.eq('before any bounce: sent', test.ib51del() -> 0 ->> 'status', 'sent');
 
 -- ================================================================ the bounce
+-- R51 review fix: a bounce-shaped message naming an insurer address with no reference changes nothing (it is only logged)
+create temp table ib51_noref as select public.server_email_bounce(jsonb_build_object('to', 'ada.adjuster@example.test', 'status', '5.7.129', 'reason', 'forged')) j;
+select test.eq('no reference: not matched, logged only', (select (j ->> 'matched') || '/' || (j ->> 'why') from ib51_noref), 'false/insurer email: no matching reference, logged only');
+select test.eq('no reference: the version is not marked, nothing sent again', (test.ib51ver()).bounced_at is null and (test.ib51ver()).fallback_to is null, true);
+select test.eq('no reference: no claim history line, no To do, no email to the claims address',
+  (select count(*) from booking_events where booking_id = test.ib51b() and note like 'Email to %bounced%')
+  + (select count(*) from tasks where task_type = 'insurer_email_bounced' and booking_id = test.ib51b())
+  + (select count(*) from notification_outbox where lower(to_address) = 'claims.ib51@example.test'), 0::bigint);
+select test.eq('no reference: logged without an outbox row', (select count(*) from email_bounces where to_address = 'ada.adjuster@example.test' and outbox_id is null and reason = 'forged'), 1::bigint);
+select test.eq('a reference of another address changes nothing either', public.server_email_bounce(jsonb_build_object('to', 'ada.adjuster@example.test', 'ref', gen_random_uuid())) ->> 'matched', 'false');
+select test.eq('delivery still reads sent', test.ib51del() -> 0 ->> 'status', 'sent');
 select test.eq('a bounce for an address we never wrote to is ignored', public.server_email_bounce('{"to": "someone.else@example.test", "status": "5.7.129"}') ->> 'matched', 'false');
 create temp table ib51_r as select public.server_email_bounce(jsonb_build_object('to', 'Ada.Adjuster@example.test', 'status', '5.7.129', 'ref', (test.ib51o('ada.adjuster@example.test')).id,
   'reason', 'The mailbox accepts only senders on its list: ask the insurer to add our sender address. 550 5.7.129 RESOLVER.RST.RestrictedToRecipientsPermission')) j;
@@ -59,7 +70,10 @@ select test.eq('the delivery of the version: the adjuster bounced, the claims em
 -- a second bounce of the same version does not send it again (once a version)
 update notification_outbox set status = 'sent', sent_at = now() - interval '2 days' where id = (test.ib51o('claims.ib51@example.test')).id;
 select test.eq('delivered: sent with no bounce in 24 hours', (select d ->> 'status' from jsonb_array_elements(test.ib51del()) d where d ->> 'to' = 'claims.ib51@example.test'), 'delivered');
-select test.eq('the claims email bounces too: no third send', public.server_email_bounce(jsonb_build_object('to', 'claims.ib51@example.test', 'status', '5.1.1')) ->> 'fallback_to', null::text);
+update notification_outbox set provider_id = 'cf:ib51-message-id' where id = (test.ib51o('claims.ib51@example.test')).id;
+select test.eq('the exact Message-ID we sent matches: the claims email bounces too, no third send',
+  (select (j ->> 'matched') || '/' || coalesce(j ->> 'fallback_to', 'none') from (select public.server_email_bounce(jsonb_build_object('to', 'claims.ib51@example.test', 'status', '5.1.1', 'message_id', '<cf:ib51-message-id>')) j) x), 'true/none');
+select test.eq('another Message-ID does not match', public.server_email_bounce(jsonb_build_object('to', 'claims.ib51@example.test', 'message_id', 'cf:other')) ->> 'matched', 'false');
 select test.eq('the page shows the claims contact', app.insurer_rental_json(test.id('ib51_fin'), jsonb_build_object('booking', test.ib51v('r') ->> 'booking_number')) #>> '{claim,insurer_claims_email}', 'claims.ib51@example.test');
 select test.eq('Settings, Insurers saves the claims contact', (select count(*) from unnest(array['claims_email', 'claims_phone']) c where pg_get_functiondef('app.admin_save_pre0780(uuid,text,jsonb)'::regprocedure) like '%''' || c || '''%'), 2::bigint);
 select test.eq('the browser roles cannot report a bounce', has_function_privilege('authenticated', 'public.server_email_bounce(jsonb)', 'execute') or has_function_privilege('anon', 'public.server_email_bounce(jsonb)', 'execute'), false);

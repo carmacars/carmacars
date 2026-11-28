@@ -47,7 +47,7 @@ export function StaffLine({ user, name, line, testId }: { user: string; name: st
           <span>A Canadian local number ({quote.number}) costs {quote.currency} {quote.monthly} a month at Twilio, billed to the Twilio account until it is released. Calls to it ring only {quote.name}&apos;s portal and app.</span>
           <span className="ad-actions">
             <button type="button" className="btn btn--sm btn--primary" disabled={busy} aria-busy={busy} data-testid={`${testId}-buy`}
-              onClick={() => void run({ action: 'line_buy', confirm: quote.monthly })}>{busy ? 'Buying' : `Buy for ${quote.currency} ${quote.monthly} a month`}</button>
+              onClick={() => void run({ action: 'line_buy', confirm: quote.monthly, currency: quote.currency })}>{busy ? 'Buying' : `Buy for ${quote.currency} ${quote.monthly} a month`}</button>
             <button type="button" className="btn btn--sm btn--quiet" onClick={() => setQuote(null)}>Cancel</button>
           </span>
         </span>)}

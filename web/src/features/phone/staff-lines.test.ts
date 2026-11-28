@@ -22,7 +22,8 @@ test('an Admin sees the last 4 digits only', () => {
 });
 
 test('a number is never bought from a test server', () => {
-  for (const b of ['http://localhost:3000', 'https://localhost', 'http://127.0.0.1:8787', 'https://carmacars.test', 'http://carmacars.ca', 'not a url'])
+  for (const b of ['http://localhost:3000', 'https://localhost', 'http://127.0.0.1:8787', 'https://carmacars.test', 'http://carmacars.ca', 'https://staging.carmacars.ca', 'https://carmacars.ca.evil.example', 'https://preview.pages.dev', 'not a url'])
     assert.ok(lineBuyBlocked(b), b);
   assert.equal(lineBuyBlocked('https://carmacars.ca'), null);
+  assert.equal(lineBuyBlocked('https://www.carmacars.ca'), null);
 });
