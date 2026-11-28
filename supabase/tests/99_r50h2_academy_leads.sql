@@ -17,9 +17,9 @@ create function pg_temp.dr(p_user text, p_call text, p_name text, p jsonb defaul
 $$ select public.door(test.id(p_user), 'aal2', p_call, p_name, p) $$;
 
 -- ================================================================ 1. the waits (5070)
-select test.eq('waits: 2 minutes after a failed try and 10 tries a day by default',
+select test.eq('waits: 1 minute after a failed try (5306, was 2) and 10 tries a day by default',
   (select string_agg(column_default, '/' order by column_name) from information_schema.columns
-    where table_name = 'program_settings' and column_name in ('academy_attempts_per_day', 'academy_fail_cooldown_minutes')), '10/2');
+    where table_name = 'program_settings' and column_name in ('academy_attempts_per_day', 'academy_fail_cooldown_minutes')), '10/1');
 -- (the row's values are not checked here: earlier 99_ files set their own waits, and a 99_ file never depends on another's data)
 
 -- ================================================================ 2. fix once (5070)

@@ -19,7 +19,7 @@ test('Welcome: the step to do now, in order', () => {
   const steps: WelcomeStep[] = [{ key: 'welcome', done: true }, { key: 'profile', done: false, address: false, phone: true, preferred_name: 'Sam' }, { key: 'academy', done: false, passed: 2, sections: 9 }, { key: 'tasks', done: false, tasks: [{ id: 't', title: 'Read your guide', detail: null, done: false }] }];
   assert.equal(currentStep(steps), 'profile');
   assert.equal(stepWords(steps[1]!), 'Add your home address.');
-  assert.equal(stepWords(steps[2]!), 'The basics: 2 of 9 sections passed. Passing them opens your portal and work. If a quiz is below the pass mark, fix the wrong answers once; after a failed try, wait 2 minutes.');
+  assert.equal(stepWords(steps[2]!), 'The basics: 2 of 9 sections passed. Passing them opens your portal and work. If a quiz is below the pass mark, fix the wrong answers once; after a failed fix, wait 1 minute.');
   // 5170: the basics passed opens the portal; the rest is for the payouts
   assert.match(stepWords({ key: 'academy', done: true, passed: 5, sections: 5, full_passed: 7, full_sections: 30 }), /^Basics passed\..*7 of 30 passed\) before held pay is paid out/);
   assert.equal(stepWords(steps[3]!), '1 left.');

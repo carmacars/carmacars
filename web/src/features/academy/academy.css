@@ -109,3 +109,7 @@
 /* R50 hotfix 2 (5070): the one fix after a first check below the pass mark: the wrong questions stand out */
 .ac-quiz .ac-fix { border-color: var(--red-700); border-inline-start-width: 4px; }
 .ac-quiz .ac-fix-ok .check { cursor: default; }
+
+/* R51 (5300, REQ-130): the quiz answered on the page by the person: no selecting or copying the questions */
+.ac-guarded legend, .ac-guarded label { -webkit-user-select: none; user-select: none; }
+.ac-honest { margin: 0; }
